@@ -1,0 +1,6 @@
+[submodule "va108xx-rs"]
+	path = va108xx-rs
+	url = https://github.com/robamu-org/va108xx-rs.git
+[submodule "vorago-reb1-rs"]
+	path = vorago-reb1-rs
+	url = https://github.com/robamu/vorago-reb1-rs.git
