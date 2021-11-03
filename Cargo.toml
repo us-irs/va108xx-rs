@@ -3,4 +3,5 @@
 members = [
 	"vorago-reb1-rs",
 	"va108xx-rs"
+	"va108xx-hal-rs"
 ]
