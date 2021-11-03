@@ -1,0 +1,22 @@
+{
+    // Use IntelliSense to learn about possible attributes.
+    // Hover to view descriptions of existing attributes.
+    // For more information, visit: https://go.microsoft.com/fwlink/?linkid=830387
+    "version": "0.2.0",
+    "configurations": [
+        {
+            "type": "cortex-debug",
+            "request": "launch",
+            "name": "Debug Minimal Blinky",
+            "servertype": "jlink",
+            "gdbPath": "/usr/bin/gdb-multiarch",
+            "cwd": "${workspaceRoot}",
+            "device": "VA10820",
+            "svdFile": "./va108xx-rs/va108xx.svd",
+            "preLaunchTask": "rust: cargo build minimal blinky",
+            "executable": "${workspaceFolder}/target/thumbv6m-none-eabi/debug/examples/minimal-blinky",
+            "interface": "jtag",
+            "runToMain": true,
+        },
+    ]
+}
