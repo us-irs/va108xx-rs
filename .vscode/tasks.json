@@ -4,6 +4,18 @@
     "version": "2.0.0",
     "tasks": [
         {
+            "label": "rust: cargo build",
+            "type": "shell",
+            "command": "~/.cargo/bin/cargo", // note: full path to the cargo
+            "args": [
+                "build"
+            ],
+            "group": {
+                "kind": "build",
+                "isDefault": true
+            }
+        },
+        {
             "label": "rust: cargo build minimal blinky",
             "type": "shell",
             "command": "~/.cargo/bin/cargo", // note: full path to the cargo
