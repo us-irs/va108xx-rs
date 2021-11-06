@@ -51,5 +51,17 @@
                 "isDefault": true
             }
         },
+        {
+            "label": "rust: cargo build rtt",
+            "type": "shell",
+            "command": "~/.cargo/bin/cargo", // note: full path to the cargo
+            "args": [
+                "build", "-p", "vorago-reb1", "--example", "rtt_log",
+            ],
+            "group": {
+                "kind": "build",
+                "isDefault": true
+            }
+        },
     ]
 }

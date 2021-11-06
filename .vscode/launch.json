@@ -46,5 +46,19 @@
             "interface": "jtag",
             "runToMain": true,
         },
+        {
+            "type": "cortex-debug",
+            "request": "launch",
+            "name": "Debug RTT",
+            "servertype": "jlink",
+            "gdbPath": "/usr/bin/gdb-multiarch",
+            "cwd": "${workspaceRoot}",
+            "device": "VA10820",
+            "svdFile": "./va108xx-rs/svd/va108xx-base.svd.patched",
+            "preLaunchTask": "rust: cargo build rtt",
+            "executable": "${workspaceFolder}/target/thumbv6m-none-eabi/debug/examples/rtt_log",
+            "interface": "jtag",
+            "runToMain": true,
+        },
     ]
 }
