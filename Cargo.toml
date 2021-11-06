@@ -5,3 +5,8 @@ members = [
 	"va108xx-rs",
 	"va108xx-hal-rs"
 ]
+
+[profile.release]
+lto = true
+debug = true
+opt-level = 's'
