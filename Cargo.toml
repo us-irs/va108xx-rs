@@ -6,6 +6,10 @@ members = [
 	"va108xx-hal-rs"
 ]
 
+[profile.dev]
+lto = true
+debug = true
+
 [profile.release]
 lto = true
 debug = true
