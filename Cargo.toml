@@ -7,10 +7,10 @@ members = [
 ]
 
 [profile.dev]
-lto = true
+lto = false
 debug = true
 
 [profile.release]
-lto = true
+lto = false
 debug = true
 opt-level = 's'
