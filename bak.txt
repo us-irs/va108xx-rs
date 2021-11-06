@@ -1,0 +1,277 @@
+// pub mod gpioa {
+//     use core::marker::PhantomData;
+//     use core::convert::Infallible;
+//     use cortex_m::interrupt::CriticalSection;
+//     use super::{
+//         FUNSEL1, FUNSEL2, FUNSEL3, Floating, Funsel, GpioExt, Input, OpenDrain, 
+//         PullUp, Output, FilterType, FilterClkSel, Pin, GpioRegExt, PushPull
+//     };
+//     use crate::{pac::PORTA, pac::SYSCONFIG, pac::IOCONFIG};
+//     use embedded_hal::digital::v2::{InputPin, OutputPin, StatefulOutputPin, toggleable};
+//     pub struct Parts {
+//         pub pa0: PA0<Input<Floating>>
+//     }
+
+//     impl GpioExt for PORTA {
+//         type Parts = Parts;
+//         fn split(self, syscfg: &mut SYSCONFIG) -> Parts {
+//             syscfg.peripheral_clk_enable.modify(|_, w| {
+//                 w.porta().set_bit();
+//                 w.gpio().set_bit();
+//                 w.ioconfig().set_bit();
+//                 w
+//             });
+//             Parts {
+//                 pa0: PA0 { _mode: PhantomData }
+//             }
+//         }
+//     }
+    
+//     fn _set_alternate_mode(index: usize, mode: u8) {
+//         unsafe {
+//             let reg = &(*IOCONFIG::ptr());
+//             reg.porta[index].modify(|_, w| {
+//                 w.funsel().bits(mode)
+//             })
+//         }
+//     }
+//     pub struct PA0<MODE> {
+//         _mode: PhantomData<MODE>,
+//     }
+//     impl<MODE> PA0<MODE> {
+//         pub fn into_funsel_1(self, _cs: &CriticalSection) -> PA0<Funsel<FUNSEL1>> {
+//             _set_alternate_mode(0, 1);
+//             PA0 { _mode: PhantomData }
+//         }
+//         pub fn into_funsel_2(self, _cs: &CriticalSection) -> PA0<Funsel<FUNSEL2>> {
+//             _set_alternate_mode(0, 2);
+//             PA0 { _mode: PhantomData }
+//         }
+//         pub fn into_funsel_3(self, _cs: &CriticalSection) -> PA0<Funsel<FUNSEL3>> {
+//             _set_alternate_mode(0, 3);
+//             PA0 { _mode: PhantomData }
+//         }
+//         pub fn into_floating_input(self, _cs: &CriticalSection) -> PA0<Input<Floating>> {
+//             unsafe {
+//                 let reg = &(*IOCONFIG::ptr());
+//                 reg.porta[0].modify(|_, w| {
+//                     w.funsel().bits(0);
+//                     w.pen().clear_bit();
+//                     w.opendrn().clear_bit()
+//                 });
+//                 let port_reg = &(*PORTA::ptr());
+//                 port_reg.dir().modify(|r,w| w.bits(r.bits() & !(1 << 0)));
+//             }
+//             PA0 { _mode: PhantomData }
+//         }
+
+//         pub fn into_pull_up_input(self, _cs: &CriticalSection) -> PA0<Input<PullUp>> {
+//             unsafe {
+//                 let reg = &(*IOCONFIG::ptr());
+//                 reg.porta[0].modify(|_, w| {
+//                     w.funsel().bits(0);
+//                     w.pen().set_bit();
+//                     w.plevel().set_bit();
+//                     w.opendrn().clear_bit()
+//                 });
+//                 let port_reg = &(*PORTA::ptr());
+//                 port_reg.dir().modify(|r,w| w.bits(r.bits() & !(1 << 0)));
+//             }
+//             PA0 { _mode: PhantomData }
+//         }
+
+//         pub fn into_pull_down_input(self, _cs: &CriticalSection) -> PA0<Input<PullUp>> {
+//             unsafe {
+//                 let reg = &(*IOCONFIG::ptr());
+//                 reg.porta[0].modify(|_, w| {
+//                     w.funsel().bits(0);
+//                     w.pen().set_bit();
+//                     w.plevel().clear_bit();
+//                     w.opendrn().clear_bit()
+//                 });
+//                 let port_reg = &(*PORTA::ptr());
+//                 port_reg.dir().modify(|r,w| w.bits(r.bits() & !(1 << 0)));
+//             }
+//             PA0 { _mode: PhantomData }
+//         }
+
+//         pub fn into_open_drain_output(self, _cs: &CriticalSection) -> PA0<Output<OpenDrain>> {
+//             unsafe {
+//                 let reg = &(*IOCONFIG::ptr());
+//                 reg.porta[0].modify(|_, w| {
+//                     w.funsel().bits(0);
+//                     w.pen().clear_bit();
+//                     w.opendrn().set_bit()
+//                 });
+//                 let port_reg = &(*PORTA::ptr());
+//                 port_reg.dir().modify(|r,w| w.bits(r.bits() | (1 << 0)));
+//             }
+//             let pa0: PA0<Output<OpenDrain>> = PA0 { _mode: PhantomData };
+//             // Enable input functionality by default to ensure this is a stateful output pin
+//             let pa0 = pa0.enable_input(_cs, true);
+//             pa0
+//         }
+
+//         pub fn into_push_pull_output(self, _cs: &CriticalSection) -> PA0<Output<PushPull>> {
+//             unsafe {
+//                 let reg = &(*IOCONFIG::ptr());
+//                 reg.porta[0].modify(|_, w| {
+//                     w.funsel().bits(0);
+//                     w.opendrn().clear_bit()
+//                 });
+//                 let port_reg = &(*PORTA::ptr());
+//                 port_reg.dir().modify(|r,w| w.bits(r.bits() | (1 << 0)));
+//             }
+//             let pa0: PA0<Output<PushPull>> = PA0 { _mode: PhantomData };
+//             // Enable input functionality by default to ensure this is a stateful output pin
+//             let pa0 = pa0.enable_input(_cs, true);
+//             pa0
+//         }
+
+//         pub fn filter_type(self,  _cs: &CriticalSection, filter: FilterType, clksel: FilterClkSel) -> Self {
+//             unsafe {
+//                 let reg = &(*IOCONFIG::ptr());
+//                 reg.porta[0].modify(|_, w| {
+//                     w.flttype().bits(filter as u8);
+//                     w.fltclk().bits(clksel as u8)
+//                 })
+//             }
+//             self
+//         }
+//     }
+//     impl<MODE> PA0<Input<MODE>> {
+//         pub fn input_inversion(self, _cs: &CriticalSection, enable: bool) -> Self {
+//             unsafe {
+//                 let reg = &(*IOCONFIG::ptr());
+//                 if enable {
+//                     reg.porta[0].modify(|_, w| w.invinp().set_bit());
+//                 } else {
+//                     reg.porta[0].modify(|_, w| w.invinp().clear_bit());
+//                 }
+//             }
+//             self
+//         }
+//     }
+//     impl<MODE> PA0<Output<MODE>> {
+//         pub fn output_inversion(self, _cs: &CriticalSection, enable: bool) -> Self {
+//             unsafe {
+//                 let reg = &(*IOCONFIG::ptr());
+//                 if enable {
+//                     reg.porta[0].modify(|_, w| w.invout().set_bit());
+//                 } else {
+//                     reg.porta[0].modify(|_, w| w.invout().clear_bit());
+//                 }
+//             }
+//             self
+//         }
+
+//         /// Enable Input even when in output mode. In
+//         /// this mode the input receiver is enabled even
+//         /// if the direction is configured as an output.
+//         /// This allows monitoring of output values
+//         pub fn enable_input(self, _cs: &CriticalSection, enable: bool) -> Self {
+//             unsafe {
+//                 let reg = &(*IOCONFIG::ptr());
+//                 if enable {
+//                     reg.porta[0].modify(|_, w| w.iewo().set_bit());
+//                 } else {
+//                     reg.porta[0].modify(|_, w| w.iewo().clear_bit());
+//                 }
+//             }
+//             self
+//         }
+
+//         /// Enable Pull up/down even when output is active. The Default is to disable pull
+//         /// up/down when output is actively driven. This bit enables the pull up/down all the time.
+//         ///
+//         /// # Arguments
+//         ///
+//         /// `enable` - Enable the peripheral functionality
+//         /// `enable_pullup` - Enable the pullup itself
+//         pub fn enable_pull_up(self, _cs: &CriticalSection, enable: bool, enable_pullup: bool) -> Self {
+//             unsafe {
+//                 let reg = &(*IOCONFIG::ptr());
+//                 reg.porta[0].modify(|_, w| {
+//                     if enable { w.pwoa().set_bit(); } else { w.pwoa().clear_bit(); }
+//                     if enable_pullup { w.pen().set_bit(); } else { w.pen().clear_bit(); }
+//                     w.plevel().set_bit()
+
+//                 });
+//             }
+//             self
+//         }
+//         /// Enable Pull up/down even when output is active. The Default is to disable pull
+//         /// up/down when output is actively driven. This bit enables the pull up/down all the time.
+//         ///
+//         /// # Arguments
+//         ///
+//         /// `enable` - Enable the peripheral functionality
+//         /// `enable_pullup` - Enable the pulldown itself
+//         pub fn enable_pull_down(self, _cs: &CriticalSection, enable: bool, enable_pulldown: bool) -> Self {
+//             unsafe {
+//                 let reg = &(*IOCONFIG::ptr());
+//                 reg.porta[0].modify(|_, w| {
+//                     if enable { w.pwoa().set_bit(); } else { w.pwoa().clear_bit(); }
+//                     if enable_pulldown { w.pen().set_bit(); } else { w.pen().clear_bit(); }
+//                     w.plevel().clear_bit()
+
+//                 });
+//             }
+//             self
+//         }
+//     }
+//     impl<MODE> PA0<Output<MODE>> {
+//         /// Erases the pin number from the type
+//         ///
+//         /// This is useful when you want to collect the pins into an array where you
+//         /// need all the elements to have the same type
+//         pub fn downgrade(self) -> Pin<Output<MODE>> {
+//             Pin {
+//                 i: 0,
+//                 port: PORTA::ptr() as *const dyn GpioRegExt,
+//                 _mode: self._mode,
+//             }
+//         }
+//     }
+//     impl<MODE> StatefulOutputPin for PA0<Output<MODE>> {
+//         fn is_set_high(&self) -> Result<bool, Self::Error> {
+//             self.is_set_low().map(|v| !v)
+//         }
+//         fn is_set_low(&self) -> Result<bool, Self::Error> {
+//             Ok(unsafe { (*PORTA::ptr()).is_set_low(0) })
+//         }
+//     }
+//     impl<MODE> OutputPin for PA0<Output<MODE>> {
+//         type Error = Infallible;
+//         fn set_high(&mut self) -> Result<(), Self::Error> {
+//             Ok(unsafe { (*PORTA::ptr()).set_high(0) })
+//         }
+//         fn set_low(&mut self) -> Result<(), Self::Error> {
+//             Ok(unsafe { (*PORTA::ptr()).set_low(0) })
+//         }
+//     }
+//     impl<MODE> toggleable::Default for PA0<Output<MODE>> {}
+
+//     impl<MODE> PA0<Input<MODE>> {
+//         /// Erases the pin number from the type
+//         ///
+//         /// This is useful when you want to collect the pins into an array where you
+//         /// need all the elements to have the same type
+//         pub fn downgrade(self) -> Pin<Input<MODE>> {
+//             Pin {
+//                 i: 0,
+//                 port: PORTA::ptr() as *const dyn GpioRegExt,
+//                 _mode: self._mode,
+//             }
+//         }
+//     }
+//     impl<MODE> InputPin for PA0<Input<MODE>> {
+//         type Error = Infallible;
+//         fn is_high(&self) -> Result<bool, Self::Error> {
+//             self.is_low().map(|v| !v)
+//         }
+//         fn is_low(&self) -> Result<bool, Self::Error> {
+//             Ok(unsafe { (*PORTA::ptr()).is_low(0) })
+//         }
+//     }
+// }
