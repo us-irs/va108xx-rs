@@ -16,23 +16,11 @@
             }
         },
         {
-            "label": "rust: cargo build pac blinky",
+            "label": "rust: cargo build led blinky",
             "type": "shell",
             "command": "~/.cargo/bin/cargo", // note: full path to the cargo
             "args": [
-                "build", "-p", "vorago-reb1", "--example", "blinky-pac",
-            ],
-            "group": {
-                "kind": "build",
-                "isDefault": true
-            }
-        },
-        {
-            "label": "rust: cargo build hal blinky",
-            "type": "shell",
-            "command": "~/.cargo/bin/cargo", // note: full path to the cargo
-            "args": [
-                "build", "-p", "vorago-reb1", "--example", "blinky-hal",
+                "build", "-p", "vorago-reb1", "--example", "blinky-leds",
             ],
             "group": {
                 "kind": "build",
