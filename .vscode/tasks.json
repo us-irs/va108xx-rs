@@ -20,7 +20,7 @@
             "type": "shell",
             "command": "~/.cargo/bin/cargo", // note: full path to the cargo
             "args": [
-                "build", "-p", "vorago-reb1", "--example", "blinky_pac",
+                "build", "-p", "vorago-reb1", "--example", "blinky-pac",
             ],
             "group": {
                 "kind": "build",
@@ -32,7 +32,7 @@
             "type": "shell",
             "command": "~/.cargo/bin/cargo", // note: full path to the cargo
             "args": [
-                "build", "-p", "vorago-reb1", "--example", "blinky_hal",
+                "build", "-p", "vorago-reb1", "--example", "blinky-hal",
             ],
             "group": {
                 "kind": "build",
@@ -56,7 +56,31 @@
             "type": "shell",
             "command": "~/.cargo/bin/cargo", // note: full path to the cargo
             "args": [
-                "build", "-p", "vorago-reb1", "--example", "rtt_log",
+                "build", "-p", "vorago-reb1", "--example", "rtt-log",
+            ],
+            "group": {
+                "kind": "build",
+                "isDefault": true
+            }
+        },
+        {
+            "label": "rust: cargo build button blinky",
+            "type": "shell",
+            "command": "~/.cargo/bin/cargo", // note: full path to the cargo
+            "args": [
+                "build", "-p", "vorago-reb1", "--example", "blinky-button-irq",
+            ],
+            "group": {
+                "kind": "build",
+                "isDefault": true
+            }
+        },
+        {
+            "label": "rust: cargo build systick",
+            "type": "shell",
+            "command": "~/.cargo/bin/cargo", // note: full path to the cargo
+            "args": [
+                "build", "-p", "vorago-reb1", "--example", "timer-ticks-pac",
             ],
             "group": {
                 "kind": "build",
