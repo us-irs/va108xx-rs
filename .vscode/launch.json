@@ -70,7 +70,7 @@
             "device": "VA10820",
             "svdFile": "./va108xx-rs/svd/va108xx-base.svd.patched",
             "preLaunchTask": "rust: cargo build systick",
-            "executable": "${workspaceFolder}/target/thumbv6m-none-eabi/debug/examples/timer-ticks-pac",
+            "executable": "${workspaceFolder}/target/thumbv6m-none-eabi/debug/examples/timer-ticks",
             "interface": "jtag",
             "runToMain": true,
         },

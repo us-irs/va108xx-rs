@@ -45,7 +45,7 @@
             "command": "~/.cargo/bin/cargo", // note: full path to the cargo
             "args": [
                 "build", "-p", "va108xx-hal", "--example", 
-                "timer-ticks-pac", "--features", "rt"
+                "timer-ticks", "--features", "rt"
             ],
             "group": {
                 "kind": "build",
