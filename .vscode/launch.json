@@ -74,5 +74,20 @@
             "interface": "jtag",
             "runToMain": true,
         },
+        {
+            "type": "cortex-debug",
+            "request": "launch",
+            "name": "Debug UART",
+            "servertype": "jlink",
+            "gdbPath": "/usr/bin/gdb-multiarch",
+            "cwd": "${workspaceRoot}",
+            "device": "VA10820",
+            "svdFile": "./va108xx-rs/svd/va108xx-base.svd.patched",
+            "preLaunchTask": "rust: cargo build button uart",
+            "executable": "${workspaceFolder}/target/thumbv6m-none-eabi/debug/examples/uart",
+            "interface": "jtag",
+            "runToMain": true,
+        },
+        
     ]
 }

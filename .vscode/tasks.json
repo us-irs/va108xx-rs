@@ -52,6 +52,18 @@
                 "isDefault": true
             }
         },
+        {
+            "label": "rust: cargo build button uart",
+            "type": "shell",
+            "command": "~/.cargo/bin/cargo", // note: full path to the cargo
+            "args": [
+                "build", "-p", "va108xx-hal", "--example", "uart",
+            ],
+            "group": {
+                "kind": "build",
+                "isDefault": true
+            }
+        },
 
         {
             "label": "rust: cargo build led blinky",
