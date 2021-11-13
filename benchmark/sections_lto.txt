@@ -1,7 +1,3 @@
-Generated using:
-
-cargo objdump -p vorago-reb1 --example blinky-button-irq --release \
-     -- --disassemble --no-show-raw-insn --print-imm-hex > sections.txt
 
 blinky-button-irq:	file format elf32-littlearm
 
