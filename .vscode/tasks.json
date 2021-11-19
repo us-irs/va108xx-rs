@@ -21,6 +21,7 @@
             "command": "~/.cargo/bin/cargo", // note: full path to the cargo
             "args": [
                 "build", "-p", "va108xx-hal", "--example", "tests",
+                "--features", "rt"
             ],
             "group": {
                 "kind": "build",
