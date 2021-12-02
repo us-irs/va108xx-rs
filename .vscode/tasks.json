@@ -102,5 +102,17 @@
                 "isDefault": true
             }
         },
+        {
+            "label": "rust: cargo build temp sensor",
+            "type": "shell",
+            "command": "~/.cargo/bin/cargo", // note: full path to the cargo
+            "args": [
+                "build", "-p", "vorago-reb1", "--example", "temp-sensor",
+            ],
+            "group": {
+                "kind": "build",
+                "isDefault": true
+            }
+        },
     ]
 }
