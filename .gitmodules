@@ -1,6 +1,6 @@
 [submodule "va108xx-rs"]
 	path = va108xx-rs
-	url = https://github.com/robamu-org/va108xx-rs.git
+	url = https://egit.irs.uni-stuttgart.de/rust/va108xx-rs
 [submodule "vorago-reb1-rs"]
 	path = vorago-reb1-rs
 	url = https://github.com/robamu-org/vorago-reb1-rs.git
