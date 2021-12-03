@@ -1,5 +1,5 @@
 [![Crates.io](https://img.shields.io/crates/v/va108xx)](https://crates.io/crates/va108xx)
-[![build](https://github.com/robamu-org/va108xx-rs/actions/workflows/ci.yml/badge.svg)](https://github.com/robamu-org/va108xx-rs/actions/workflows/ci.yml)
+[![build](https://github.com/us-irs/va108xx-rs/actions/workflows/ci.yml/badge.svg)](https://github.com/us-irs/va108xx-rs/actions/workflows/ci.yml)
 [![docs.rs](https://img.shields.io/docsrs/va108xx)](https://docs.rs/va108xx)
 
 # PAC for the Vorago VA108xx microcontroller family
