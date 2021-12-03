@@ -21,6 +21,7 @@
             "command": "~/.cargo/bin/cargo", // note: full path to the cargo
             "args": [
                 "build", "-p", "va108xx-hal", "--example", "tests",
+                "--features", "rt"
             ],
             "group": {
                 "kind": "build",
@@ -53,11 +54,23 @@
             }
         },
         {
-            "label": "rust: cargo build button uart",
+            "label": "rust: cargo build uart",
             "type": "shell",
             "command": "~/.cargo/bin/cargo", // note: full path to the cargo
             "args": [
                 "build", "-p", "va108xx-hal", "--example", "uart",
+            ],
+            "group": {
+                "kind": "build",
+                "isDefault": true
+            }
+        },
+        {
+            "label": "rust: cargo build spi",
+            "type": "shell",
+            "command": "~/.cargo/bin/cargo", // note: full path to the cargo
+            "args": [
+                "build", "-p", "va108xx-hal", "--example", "spi",
             ],
             "group": {
                 "kind": "build",
@@ -83,6 +96,18 @@
             "command": "~/.cargo/bin/cargo", // note: full path to the cargo
             "args": [
                 "build", "-p", "vorago-reb1", "--example", "blinky-button-irq",
+            ],
+            "group": {
+                "kind": "build",
+                "isDefault": true
+            }
+        },
+        {
+            "label": "rust: cargo build temp sensor",
+            "type": "shell",
+            "command": "~/.cargo/bin/cargo", // note: full path to the cargo
+            "args": [
+                "build", "-p", "vorago-reb1", "--example", "temp-sensor",
             ],
             "group": {
                 "kind": "build",
