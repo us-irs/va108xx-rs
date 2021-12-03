@@ -8,6 +8,11 @@ and this project adheres to [Semantic Versioning](http://semver.org/).
 
 ## [unreleased]
 
+## [v0.2.0]
+
+- Authorative repository was transferred to https://egit.irs.uni-stuttgart.de/rust/va108xx-rs but
+  there still will be a GitHub mirror. Project relicensed as Apache-2.0 only
+
 ## [v0.1.3]
 
 ### Added
