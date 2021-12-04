@@ -114,5 +114,18 @@
                 "isDefault": true
             }
         },
+        {
+            "label": "rust: cargo build button blinky rtic",
+            "type": "shell",
+            "command": "~/.cargo/bin/cargo", // note: full path to the cargo
+            "args": [
+                "build", "-p", "vorago-reb1", "--example", "blinky-button-rtic",
+                "--features", "rt"
+            ],
+            "group": {
+                "kind": "build",
+                "isDefault": true
+            }
+        },
     ]
 }
