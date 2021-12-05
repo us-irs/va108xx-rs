@@ -9,6 +9,11 @@ Voragos VA108xx series of Cortex-M0 based microcontrollers.
 
 The crate was generated using [`svd2rust`](https://github.com/rust-embedded/svd2rust).
 
+If you are interested in higher-level abstractions, it is recommended you visit
+the [`va108xx-hal` HAL crate](https://github.com/robamu-org/va108xx-hal-rs) and
+the [`vorago-reb1` BSP crate](https://github.com/robamu-org/vorago-reb1-rs) which build on top of
+this PAC and provide application examples as well.
+
 ## Usage
 
 To use this crate, add this to your `Cargo.toml`
