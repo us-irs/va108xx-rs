@@ -293,7 +293,20 @@
           <description>Peripheral Reset Control</description>
           <addressOffset>0x078</addressOffset>
           <resetValue>0xFFFFFFFF</resetValue>
-        </register>
+        <fields><field><name>PORTA</name><description>Reset PORTA</description><bitOffset>0</bitOffset><bitWidth>1</bitWidth></field>
+            <field><name>PORTB</name><description>Reset PORTB</description><bitOffset>1</bitOffset><bitWidth>1</bitWidth></field>
+            <field><name>SPI_0</name><description>Reset SPI[0]</description><bitOffset>4</bitOffset><bitWidth>1</bitWidth></field>
+            <field><name>SPI_1</name><description>Reset SPI[1]</description><bitOffset>5</bitOffset><bitWidth>1</bitWidth></field>
+            <field><name>SPI_2</name><description>Reset SPI[2]</description><bitOffset>6</bitOffset><bitWidth>1</bitWidth></field>
+            <field><name>UART_0</name><description>Reset UART[0]</description><bitOffset>8</bitOffset><bitWidth>1</bitWidth></field>
+            <field><name>UART_1</name><description>Reset UART[1]</description><bitOffset>9</bitOffset><bitWidth>1</bitWidth></field>
+            <field><name>I2C_0</name><description>Reset I2C[0]</description><bitOffset>16</bitOffset><bitWidth>1</bitWidth></field>
+            <field><name>I2C_1</name><description>Reset I2C[1]</description><bitOffset>17</bitOffset><bitWidth>1</bitWidth></field>
+            <field><name>IRQSEL</name><description>Reset IRQ selector</description><bitOffset>21</bitOffset><bitWidth>1</bitWidth></field>
+            <field><name>IOCONFIG</name><description>Reset IO Configuration block</description><bitOffset>22</bitOffset><bitWidth>1</bitWidth></field>
+            <field><name>UTILITY</name><description>Reset Utility Block</description><bitOffset>23</bitOffset><bitWidth>1</bitWidth></field>
+            <field><name>GPIO</name><description>Reset GPIO</description><bitOffset>24</bitOffset><bitWidth>1</bitWidth></field>
+            </fields></register>
         <register>
           <name>PERIPHERAL_CLK_ENABLE</name>
           <description>Peripheral Enable Control</description>

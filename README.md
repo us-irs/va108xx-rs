@@ -33,7 +33,8 @@ For full details on the autgenerated API, please see the
 
 The base file used by `svd2rust` is generated using the `svdtools` package and a
 YAML patch file. You can create the patched file by running this command after installing
-the Python [`svdtools` package](https://github.com/stm32-rs/svdtools):
+the Python [`svdtools` package](https://github.com/stm32-rs/svdtools) and the `form` tool
+with `cargo install form`:
 
 ```sh
 cd svd
