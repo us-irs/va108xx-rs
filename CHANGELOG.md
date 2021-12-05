@@ -8,6 +8,16 @@ and this project adheres to [Semantic Versioning](http://semver.org/).
 
 ## [unreleased]
 
+- Added peripheral reset fields for PERIPHERAL_RESET register
+
+## [v0.2.2]
+
+- README tweks
+
+## [v0.2.1]
+
+- Some README and Manifest weaks
+
 ## [v0.2.0]
 
 - Authorative repository was transferred to https://egit.irs.uni-stuttgart.de/rust/va108xx-rs but
