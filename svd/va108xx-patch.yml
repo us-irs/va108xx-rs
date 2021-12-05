@@ -126,3 +126,12 @@ I2CA:
         description: Controller is Idle
         bitOffset: 1
         bitWidth: 1
+
+# All TIMs are derived from TIM0
+TIM0:
+  CSD_CTRL:
+    _add:
+      CSDTRG2:
+        description: Cascade 2 Enabled as Trigger
+        bitOffset: 10
+        bitWidth: 1
