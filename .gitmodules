@@ -1,5 +1,5 @@
 [submodule "va108xx-rs"]
-	path = va108xx-rs
+	path = va108xx
 	url = https://egit.irs.uni-stuttgart.de/rust/va108xx
 [submodule "vorago-reb1-rs"]
 	path = vorago-reb1-rs
