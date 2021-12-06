@@ -2,8 +2,8 @@
 
 members = [
 	"vorago-reb1-rs",
-	"va108xx-rs",
-	"va108xx-hal-rs"
+	"va108xx",
+	"va108xx-hal"
 ]
 
 [profile.dev]
