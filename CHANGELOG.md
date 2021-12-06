@@ -8,9 +8,13 @@ and this project adheres to [Semantic Versioning](http://semver.org/).
 
 ## [unreleased]
 
+## [v0.2.4]
+
+- Added missing bitfield `CSDTRG2` in `CSD_CTRL` register of `TIM0` peripheral
+
 ## [v0.2.3]
 
-- Added peripheral reset fields for PERIPHERAL_RESET register
+- Added peripheral reset fields for `PERIPHERAL_RESET` register
 
 ## [v0.2.2]
 
