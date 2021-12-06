@@ -1296,7 +1296,8 @@
               <description>Cascade 2 test  mode</description>
               <bitRange>[11:11]</bitRange>
             </field>
-          </fields>
+          <field><name>CSDTRG2</name><description>Cascade 2 Enabled as Trigger</description><bitOffset>10</bitOffset><bitWidth>1</bitWidth></field>
+            </fields>
         </register>
         <register>
           <name>CASCADE0</name>
