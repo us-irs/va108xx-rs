@@ -24,7 +24,7 @@ pipeline {
                 sh 'cargo fmt'
             }
         }
-        stage('Build') {
+        stage('Check') {
             agent {
                 dockerfile {
                     dir 'automation'
@@ -32,7 +32,7 @@ pipeline {
                 }
             }
             steps {
-                sh 'cargo build'
+                sh 'cargo check --target thumbv6m-none-eabi'
             }
         }
     }
