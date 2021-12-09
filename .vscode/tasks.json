@@ -151,5 +151,18 @@
                 "isDefault": true
             }
         },
+        {
+            "label": "rust: cargo build accelerometer",
+            "type": "shell",
+            "command": "~/.cargo/bin/cargo", // note: full path to the cargo
+            "args": [
+                "build", "-p", "vorago-reb1", "--example", "accelerometer",
+                "--features", "rt"
+            ],
+            "group": {
+                "kind": "build",
+                "isDefault": true
+            }
+        },
     ]
 }
