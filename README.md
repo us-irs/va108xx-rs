@@ -9,9 +9,15 @@ git submodule init
 git submodule update
 ```
 
-## Use VS Code files
+## Debugging with VS Code
 
-Make sure to install the `Cortex-Debug` extension first.
+The REB1 board features an on-board JTAG, so all that is required to flash the board is a
+Micro-USB cable and an 
+You can debug applications on the REB1 board with a graphical user interface using VS Code with
+the [`Cortex-Debug` plugin](https://marketplace.visualstudio.com/items?itemName=marus25.cortex-debug).
+
+Some sample configuration files for VS code were provided as well. You can simply use `Run and Debug`
+to automatically rebuild and flash your application.
 
 The `tasks.json` and the `launch.json` files are generic and you can use them immediately by
 opening the folder in VS code or adding it to a workspace.
