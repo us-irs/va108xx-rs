@@ -131,7 +131,7 @@
             "type": "shell",
             "command": "~/.cargo/bin/cargo", // note: full path to the cargo
             "args": [
-                "build", "-p", "vorago-reb1", "--example", "temp-sensor",
+                "build", "-p", "vorago-reb1", "--example", "adt75-temp-sensor",
             ],
             "group": {
                 "kind": "build",
@@ -156,7 +156,7 @@
             "type": "shell",
             "command": "~/.cargo/bin/cargo", // note: full path to the cargo
             "args": [
-                "build", "-p", "vorago-reb1", "--example", "accelerometer",
+                "build", "-p", "vorago-reb1", "--example", "adxl343-accelerometer",
                 "--features", "rt"
             ],
             "group": {
