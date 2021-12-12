@@ -163,5 +163,18 @@
             "interface": "jtag",
             "runToMain": true,
         },
+        {
+            "type": "cortex-debug",
+            "request": "launch",
+            "name": "Debug ADC",
+            "servertype": "jlink",
+            "cwd": "${workspaceRoot}",
+            "device": "Cortex-M0",
+            "svdFile": "./va108xx/svd/va108xx-base.svd.patched",
+            "preLaunchTask": "rust: cargo build adc",
+            "executable": "${workspaceFolder}/target/thumbv6m-none-eabi/debug/examples/max11619-adc",
+            "interface": "jtag",
+            "runToMain": true,
+        },
     ]
 }

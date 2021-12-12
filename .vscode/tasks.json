@@ -164,5 +164,18 @@
                 "isDefault": true
             }
         },
+        {
+            "label": "rust: cargo build adc",
+            "type": "shell",
+            "command": "~/.cargo/bin/cargo", // note: full path to the cargo
+            "args": [
+                "build", "-p", "vorago-reb1", "--example", "max11619-adc",
+                "--features", "rt"
+            ],
+            "group": {
+                "kind": "build",
+                "isDefault": true
+            }
+        },
     ]
 }
