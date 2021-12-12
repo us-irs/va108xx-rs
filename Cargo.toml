@@ -3,7 +3,8 @@
 members = [
 	"vorago-reb1-rs",
 	"va108xx",
-	"va108xx-hal"
+	"va108xx-hal",
+	"max116xx-10bit",
 ]
 
 [profile.dev]
