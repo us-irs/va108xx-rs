@@ -12,7 +12,11 @@ lto = false
 debug = true
 
 [profile.release]
-# Can be problematic for debugging
-lto = true
+# Can be problematic for debugging and is definitely problematic with RTT
+lto = false
 debug = true
 opt-level = 's'
+
+[profile.release-lto]
+inherits = "release"
+lto = true
