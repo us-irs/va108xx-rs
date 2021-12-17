@@ -1,7 +1,7 @@
 [workspace]
 
 members = [
-	"vorago-reb1-rs",
+	"vorago-reb1",
 	"va108xx",
 	"va108xx-hal",
 	"max116xx-10bit",
