@@ -101,6 +101,18 @@
                 "isDefault": true
             }
         },
+        {
+            "label": "rust: cargo build uart irq",
+            "type": "shell",
+            "command": "~/.cargo/bin/cargo", // note: full path to the cargo
+            "args": [
+                "build", "-p", "va108xx-hal", "--example", "uart-irq-rtic", "--features", "rt"
+            ],
+            "group": {
+                "kind": "build",
+                "isDefault": true
+            }
+        },
 
         {
             "label": "rust: cargo build led blinky",
