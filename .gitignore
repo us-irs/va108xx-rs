@@ -11,3 +11,7 @@ Cargo.lock
 
 /.vscode/.cortex-debug.*
 /.vscode/settings.json
+
+# JetBrains IDEs
+/.idea
+*.iml
