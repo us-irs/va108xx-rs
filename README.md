@@ -1,15 +1,25 @@
-# Vorago Rust Workspace
+Vorago Rust Workspace
+========
 
 Workspace for developing Rust code for the Vorago devices
 
 After cloning, run
 
 ```sh
-git submodule init
-git submodule update
+git submodule update --init
 ```
 
-## Debugging with VS Code
+# Preparing the Rust installation
+
+
+Building an application for the VA108XX family requires the `thumbv6m-none-eabi`
+cross-compiler toolchain. If you have not installed it yet, you can do so with
+
+```sh
+rustup target add thumbv6m-none-eabi
+```
+
+# Debugging with VS Code
 
 The REB1 board features an on-board JTAG, so all that is required to flash the board is a
 Micro-USB cable and an 
