@@ -10,7 +10,7 @@ and this project adheres to [Semantic Versioning](http://semver.org/).
 
 ## [v0.5.0] 2024-06-16
 
-- Updated `va108xx` and `va108xx-hal` dependency.
+- Updated `va108xx` to v0.3.0 and `va108xx-hal` dependency to v0.6.0
 
 ## [v0.4.0]
 
