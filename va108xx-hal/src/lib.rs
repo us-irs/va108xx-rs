@@ -1,4 +1,5 @@
 #![no_std]
+#![cfg_attr(docs_rs, feature(doc_auto_cfg))]
 
 pub use va108xx;
 pub use va108xx as pac;

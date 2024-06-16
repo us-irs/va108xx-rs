@@ -18,8 +18,6 @@ dummy-pin = "1"
 
 [dependencies.max116xx-10bit]
 version = "0.3"
-git = "https://egit.irs.uni-stuttgart.de/rust/max116xx-10bit"
-branch = "bump-embedded-hal"
 
 [dependencies.va108xx-hal]
 version = "0.6"
@@ -39,3 +37,7 @@ version = "0.5"
 
 [dev-dependencies.panic-rtt-target]
 version = "0.1"
+
+[package.metadata.docs.rs]
+all-features = true
+rustdoc-args = ["--cfg", "docs_rs", "--generate-link-to-definition"]

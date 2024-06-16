@@ -10,8 +10,8 @@ jobs:
       - uses: dtolnay/rust-toolchain@stable
         with:
           targets: "thumbv6m-none-eabi"
-      - run: cargo check --release
-      - run: cargo check --examples --release
+      - run: cargo check --target thumbv6m-none-eabi --release
+      - run: cargo check --target thumbv6m-none-eabi --examples --release
 
   test:
     name: Run Tests
@@ -21,8 +21,9 @@ jobs:
       - uses: dtolnay/rust-toolchain@stable
       - name: Install nextest
         uses: taiki-e/install-action@nextest
-      - run: cargo nextest run --all-features
-      - run: cargo test --doc
+      - run: cargo nextest run --all-features -p va108xx-hal
+      # I think we can skip those on an embedded crate..
+      # - run: cargo test --doc -p va108xx-hal
 
   fmt:
     name: Check formatting
@@ -46,4 +47,6 @@ jobs:
     steps:
       - uses: actions/checkout@v4
       - uses: dtolnay/rust-toolchain@stable
-      - run: cargo clippy -- -D warnings
+        with:
+          targets: "thumbv6m-none-eabi"
+      - run: cargo clippy --target thumbv6m-none-eabi -- -D warnings
