@@ -14,16 +14,6 @@ various drivers in the embedded rust ecosystem.
 In contrats to other HAL implementations, there is only one chip variant available here so there
 is no need to pass the chip variant as a feature.
 
-## Supported Boards
-
- The first way to use this HAL will probably be with the
- [REB1 development board](https://www.voragotech.com/products/reb1-va108x0-development-board-0).
- The BSP provided for this board also contains instructions how to flash the board.
-
- | Crate | Version |
-|:------|:--------|
-[vorago-reb1](https://crates.io/crates/vorago-reb1) | [![Crates.io](https://img.shields.io/crates/v/vorago-reb1)](https://crates.io/crates/vorago-reb1) |
-
 ## Building
 
 Building an application requires the `thumbv6m-none-eabi` cross-compiler toolchain.
@@ -40,15 +30,6 @@ available to learn Rust:
 
 - [Rust Embedded Book](https://docs.rust-embedded.org/book/)
 - [Rust Discovery Book](https://docs.rust-embedded.org/discovery/)
-
-## Examples
-
-Some examples, which are not specific to a particular board were provided as well.
-You can build the timer example with
-
-```sh
-cargo build --example timer-ticks
-```
 
 ## Setting up your own binary crate
 
@@ -83,5 +64,4 @@ is contained within the
 6. Build the application with `cargo build`
 
 7. Flashing the board might work differently for different boards and there is usually
-   more than one way. You can find example instructions for the REB1 development board
-   [here](https://egit.irs.uni-stuttgart.de/rust/vorago-reb1).
+   more than one way. You can find example instructions in primary README.
