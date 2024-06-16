@@ -1,6 +1,6 @@
 [package]
 name = "vorago-reb1"
-version = "0.4.0"
+version = "0.5.0"
 authors = ["Robin Mueller <robin.mueller.m@gmail.com>"]
 edition = "2021"
 description = "Board Support Crate for the Vorago REB1 development board"
@@ -11,10 +11,9 @@ keywords = ["no-std", "reb1", "cortex-m", "vorago", "va108xx"]
 categories = ["aerospace", "embedded", "no-std", "hardware-support"]
 
 [dependencies]
-cortex-m = { version = "0.7.6", features = ["critical-section-single-core"] }
+cortex-m = { version = "0.7", features = ["critical-section-single-core"] }
 cortex-m-rt = "0.7"
 embedded-hal = "1"
-dummy-pin = "1"
 
 [dependencies.max116xx-10bit]
 version = "0.3"

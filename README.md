@@ -1,3 +1,5 @@
+[![build](https://github.com/us-irs/va108xx-rs/actions/workflows/ci.yml/badge.svg)](https://github.com/us-irs/va108xx-rs/actions/workflows/ci.yml)
+
 Vorago VA108xx Rust Support
 =========
 

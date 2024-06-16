@@ -8,6 +8,10 @@ and this project adheres to [Semantic Versioning](http://semver.org/).
 
 ## [unreleased]
 
+## [v0.5.0] 2024-06-16
+
+- Updated `va108xx` and `va108xx-hal` dependency.
+
 ## [v0.4.0]
 
 - Update manifest file to have correct links and license
