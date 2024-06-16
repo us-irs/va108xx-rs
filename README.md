@@ -1,7 +1,7 @@
 Vorago VA108xx Rust Support
 =========
 
-This crate collection provided support to write Rust applications for the VA108XX family
+This crate collection provides support to write Rust applications for the VA108XX family
 of devices.
 
 ## List of crates

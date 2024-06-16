@@ -13,15 +13,15 @@
 #[rtic::app(device = pac, dispatchers = [OC4])]
 mod app {
     use embedded_io::Write;
+    use panic_rtt_target as _;
     use rtic_monotonics::systick::Systick;
     use rtic_sync::make_channel;
-    use panic_rtt_target as _;
     use rtt_target::{rprintln, rtt_init_print};
     use va108xx_hal::{
-        time::Hertz,
         gpio::PinsB,
         pac,
         prelude::*,
+        time::Hertz,
         uart::{self, IrqCfg, IrqResult, UartWithIrqBase},
     };
 
@@ -52,7 +52,11 @@ mod app {
 
         // Initialize the systick interrupt & obtain the token to prove that we did
         let systick_mono_token = rtic_monotonics::create_systick_token!();
-        Systick::start(cx.core.SYST, Hertz::from(50.MHz()).raw(), systick_mono_token);
+        Systick::start(
+            cx.core.SYST,
+            Hertz::from(50.MHz()).raw(),
+            systick_mono_token,
+        );
 
         let mut dp = cx.device;
         let gpiob = PinsB::new(&mut dp.sysconfig, Some(dp.ioconfig), dp.portb);

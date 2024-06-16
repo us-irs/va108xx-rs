@@ -1,3 +1,6 @@
+// Manually inserted.
+#![allow(clippy::identity_op)]
+
 #[repr(C)]
 #[doc = "Register block"]
 pub struct RegisterBlock {

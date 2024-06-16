@@ -13,29 +13,31 @@ pipeline {
           }
         }
         stage('Clippy') {
-            steps {
-                sh 'cargo clippy'
-            }
+          steps {
+            sh 'cargo clippy --target thumbv6m-none-eabi'
+          }
         }
         stage('Rustfmt') {
-            steps {
-                sh 'cargo fmt'
-            }
+          steps {
+            sh 'cargo fmt'
+          }
         }
         stage('Docs') {
-            steps {
-                sh: cargo +nightly doc --all-features --config 'build.rustdocflags=["--cfg", "docs_rs"]'
-            }
+          steps {
+            sh """
+              cargo +nightly doc --all-features --config 'build.rustdocflags=["--cfg", "docs_rs"]'
+            """
+          }
         }
         stage('Check') {
-            steps {
-                sh 'cargo check --target thumbv6m-none-eabi'
-            }
+          steps {
+            sh 'cargo check --target thumbv6m-none-eabi'
+          }
         }
         stage('Check Examples') {
-            steps {
-                sh 'cargo check --target thumbv6m-none-eabi --examples'
-            }
+          steps {
+            sh 'cargo check --target thumbv6m-none-eabi --examples'
+          }
         }
     }
 }

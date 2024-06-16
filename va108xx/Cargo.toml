@@ -21,3 +21,7 @@ version = ">=0.6.15,<0.8"
 
 [features]
 rt = ["cortex-m-rt/device"]
+
+[package.metadata.docs.rs]
+all-features = true
+rustdoc-args = ["--cfg", "docs_rs", "--generate-link-to-definition"]
