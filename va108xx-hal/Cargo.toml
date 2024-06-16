@@ -1,0 +1,45 @@
+[package]
+name = "va108xx-hal"
+version = "0.6.0"
+authors = ["Robin Mueller <muellerr@irs.uni-stuttgart.de>"]
+edition = "2021"
+description = "HAL for the Vorago VA108xx family of microcontrollers"
+homepage = "https://egit.irs.uni-stuttgart.de/rust/va108xx-hal"
+repository = "https://egit.irs.uni-stuttgart.de/rust/va108xx-hal"
+license = "Apache-2.0"
+keywords = ["no-std", "hal", "cortex-m", "vorago", "va108xx"]
+categories = ["aerospace", "embedded", "no-std", "hardware-support"]
+
+[dependencies]
+cortex-m = { version = "0.7", features = ["critical-section-single-core"]}
+cortex-m-rt = "0.7"
+nb = "1"
+paste = "1"
+embedded-hal-nb = "1"
+libm = "0.2"
+embedded-io = "0.6"
+fugit = "0.3"
+typenum = "1"
+defmt = { version = "0.3", optional = true }
+delegate = "0.12"
+
+[dependencies.va108xx]
+version = "0.3.0"
+path = "../va108xx"
+default-features = false
+features = ["critical-section"]
+
+[dependencies.embedded-hal]
+version = "1"
+
+[dependencies.void]
+version = "1"
+default-features = false
+
+[dependencies.once_cell]
+version = "1.14"
+default-features = false
+
+[features]
+default = ["rt"]
+rt = ["va108xx/rt"]

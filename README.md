@@ -1,36 +1,101 @@
-Vorago Rust Workspace
-========
+Vorago VA108xx Rust Support
+=========
 
-Workspace for developing Rust code for the Vorago devices
+This crate collection provided support to write Rust applications for the VA108XX family
+of devices.
 
-After cloning, run
+## List of crates
+
+This workspace contains the following released crates:
+
+- The [`va108xx`](https://egit.irs.uni-stuttgart.de/rust/va108xx-rs/src/branch/main/va108xx) PAC
+  crate containing basic low-level register definition.
+- The [`va108xx-hal`](https://egit.irs.uni-stuttgart.de/rust/va108xx-rs/src/branch/main/va108xx-hal)
+  HAL crate containing higher-level abstractions on top of the PAC register crate.
+- The [`vorago-reb1`](https://egit.irs.uni-stuttgart.de/rust/va108xx-rs/src/branch/main/vorago-reb1)
+  BSP crate containing support for the REB1 development board.
+
+It also contains the following helper crates:
+
+- The `board-tests` contains an application which can be used to test the libraries on the
+  board.
+- The `examples` crates contains various example applications for the HAL and the PAC.
+
+## Using the `.cargo/config.toml` file
+
+Use the following command to have a starting `config.toml` file
 
 ```sh
-git submodule update --init
+cp .cargo/def-config.toml .cargo/config.toml
 ```
 
-# Preparing the Rust installation
+You then can adapt the `config.toml` to your needs. For example, you can configure runners
+to conveniently flash with `cargo run`.
 
+## Using the sample VS Code files
 
-Building an application for the VA108XX family requires the `thumbv6m-none-eabi`
-cross-compiler toolchain. If you have not installed it yet, you can do so with
+Use the following command to have a starting configuration for VS Code:
 
 ```sh
-rustup target add thumbv6m-none-eabi
+cp -rT vscode .vscode
 ```
 
-# Debugging with VS Code
+You can then adapt the files in `.vscode` to your needs.
 
-The REB1 board features an on-board JTAG, so all that is required to flash the board is a
-Micro-USB cable and an 
-You can debug applications on the REB1 board with a graphical user interface using VS Code with
+## Flashing, running and debugging the software
+
+You can use CLI or VS Code for flashing, running and debugging. In any case, take
+care of installing the pre-requisites first.
+
+### Pre-Requisites
+
+1. [SEGGER J-Link tools](https://www.segger.com/downloads/jlink/) installed
+2. [gdb-multiarch](https://packages.debian.org/sid/gdb-multiarch) or similar
+   cross-architecture debugger installed. All commands here assume `gdb-multiarch`.
+
+### Using CLI
+
+You can build the blinky example application with the following command
+
+```sh
+cargo build --example blinky
+```
+
+Start the GDB server first. The server needs to be started with a certain configuration and with
+a JLink script to disable ROM protection.
+For example, on Debian based system the following command can be used to do this (this command
+is also run when running the `jlink-gdb.sh` script)
+
+```sh
+JLinkGDBServer -select USB -device Cortex-M0 -endian little -if JTAG-speed auto \
+  -LocalhostOnly
+```
+
+After this, you can flash and debug the application with the following command
+
+```sh
+gdb-mutliarch -q -x jlink/jlink.gdb target/thumbv6m-none-eabihf/debug/examples/blinky
+```
+
+Please note that you can automate all steps except starting the GDB server by using a cargo
+runner configuration, for example with the following lines in your `.cargo/config.toml` file:
+
+```toml
+[target.'cfg(all(target_arch = "arm", target_os = "none"))']
+runner = "gdb-multiarch -q -x jlink/jlink.gdb"
+```
+
+After that, you can simply use `cargo run --example blinky` to flash the blinky
+example.
+
+### Using VS Code
+
+Assuming a working debug connection to your VA108xx board, you can debug using VS Code with
 the [`Cortex-Debug` plugin](https://marketplace.visualstudio.com/items?itemName=marus25.cortex-debug).
 
-Some sample configuration files for VS code were provided as well. You can simply use `Run and Debug`
+Some sample configuration files for VS code were provided and can be used by running
+`cp -rT vscode .vscode` like specified above. After that, you can use `Run and Debug`
 to automatically rebuild and flash your application.
-
-The `tasks.json` and the `launch.json` files are generic and you can use them immediately by
-opening the folder in VS code or adding it to a workspace.
 
 If you would like to use a custom GDB application, you can specify the gdb binary in the following
 configuration variables in your `settings.json`:

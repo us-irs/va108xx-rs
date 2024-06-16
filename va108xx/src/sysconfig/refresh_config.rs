@@ -1,0 +1,27 @@
+#[doc = "Register `REFRESH_CONFIG` reader"]
+pub type R = crate::R<RefreshConfigSpec>;
+#[doc = "Register `REFRESH_CONFIG` writer"]
+pub type W = crate::W<RefreshConfigSpec>;
+impl core::fmt::Debug for R {
+    fn fmt(&self, f: &mut core::fmt::Formatter) -> core::fmt::Result {
+        write!(f, "{}", self.bits())
+    }
+}
+impl W {}
+#[doc = "Register Refresh Control\n\nYou can [`read`](crate::generic::Reg::read) this register and get [`refresh_config::R`](R).  You can [`reset`](crate::generic::Reg::reset), [`write`](crate::generic::Reg::write), [`write_with_zero`](crate::generic::Reg::write_with_zero) this register using [`refresh_config::W`](W). You can also [`modify`](crate::generic::Reg::modify) this register. See [API](https://docs.rs/svd2rust/#read--modify--write-api)."]
+pub struct RefreshConfigSpec;
+impl crate::RegisterSpec for RefreshConfigSpec {
+    type Ux = u32;
+}
+#[doc = "`read()` method returns [`refresh_config::R`](R) reader structure"]
+impl crate::Readable for RefreshConfigSpec {}
+#[doc = "`write(|w| ..)` method takes [`refresh_config::W`](W) writer structure"]
+impl crate::Writable for RefreshConfigSpec {
+    type Safety = crate::Unsafe;
+    const ZERO_TO_MODIFY_FIELDS_BITMAP: u32 = 0;
+    const ONE_TO_MODIFY_FIELDS_BITMAP: u32 = 0;
+}
+#[doc = "`reset()` method sets REFRESH_CONFIG to value 0"]
+impl crate::Resettable for RefreshConfigSpec {
+    const RESET_VALUE: u32 = 0;
+}
