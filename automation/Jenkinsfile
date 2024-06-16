@@ -1,0 +1,41 @@
+pipeline {
+    agent {
+        dockerfile {
+            dir 'automation'
+            reuseNode true
+        }
+    }
+
+    stages {
+        stage('Rust Toolchain Info') {
+          steps {
+            sh 'rustc --version'
+          }
+        }
+        stage('Clippy') {
+            steps {
+                sh 'cargo clippy'
+            }
+        }
+        stage('Rustfmt') {
+            steps {
+                sh 'cargo fmt'
+            }
+        }
+        stage('Docs') {
+            steps {
+                sh: cargo +nightly doc --all-features --config 'build.rustdocflags=["--cfg", "docs_rs"]'
+            }
+        }
+        stage('Check') {
+            steps {
+                sh 'cargo check --target thumbv6m-none-eabi'
+            }
+        }
+        stage('Check Examples') {
+            steps {
+                sh 'cargo check --target thumbv6m-none-eabi --examples'
+            }
+        }
+    }
+}
