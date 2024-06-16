@@ -1,5 +1,4 @@
 [![Crates.io](https://img.shields.io/crates/v/va108xx-hal)](https://crates.io/crates/va108xx-hal)
-[![ci](https://github.com/us-irs/va108xx-hal-rs/actions/workflows/ci.yml/badge.svg)](https://github.com/us-irs/va108xx-hal-rs/actions/workflows/ci.yml)
 [![docs.rs](https://img.shields.io/docsrs/va108xx-hal)](https://docs.rs/va108xx-hal)
 
 # HAL for the Vorago VA108xx MCU family

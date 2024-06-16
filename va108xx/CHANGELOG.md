@@ -8,6 +8,10 @@ and this project adheres to [Semantic Versioning](http://semver.org/).
 
 ## [unreleased]
 
+## [v0.3.0] 2024-06-16
+
+- Re-generated PAC with `svd2rust` v0.33.3
+
 ## [v0.2.4]
 
 - Added missing bitfield `CSDTRG2` in `CSD_CTRL` register of `TIM0` peripheral
