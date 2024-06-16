@@ -8,7 +8,7 @@
 
 use cortex_m_rt::entry;
 use panic_halt as _;
-use va108xx as pac;
+use va108xx_hal::pac;
 
 // REB LED pin definitions. All on port A
 const LED_D2: u32 = 1 << 10;

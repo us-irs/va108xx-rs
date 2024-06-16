@@ -24,8 +24,7 @@ defmt = { version = "0.3", optional = true }
 delegate = "0.12"
 
 [dependencies.va108xx]
-version = "0.3.0"
-path = "../va108xx"
+version = "0.3"
 default-features = false
 features = ["critical-section"]
 

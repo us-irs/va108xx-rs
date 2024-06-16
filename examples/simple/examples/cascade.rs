@@ -39,7 +39,7 @@ fn main() -> ! {
         CountDownTimer::new(&mut dp.sysconfig, 50.MHz(), dp.tim3).auto_disable(true);
     cascade_triggerer.listen(
         Event::TimeOut,
-        IrqCfg::new(va108xx::Interrupt::OC1, true, false),
+        IrqCfg::new(pac::Interrupt::OC1, true, false),
         Some(&mut dp.irqsel),
         Some(&mut dp.sysconfig),
     );
@@ -62,7 +62,7 @@ fn main() -> ! {
     // the timer expires
     cascade_target_1.listen(
         Event::TimeOut,
-        IrqCfg::new(va108xx::Interrupt::OC2, true, false),
+        IrqCfg::new(pac::Interrupt::OC2, true, false),
         Some(&mut dp.irqsel),
         Some(&mut dp.sysconfig),
     );
@@ -88,7 +88,7 @@ fn main() -> ! {
     // the timer expires
     cascade_target_2.listen(
         Event::TimeOut,
-        IrqCfg::new(va108xx::Interrupt::OC3, true, false),
+        IrqCfg::new(pac::Interrupt::OC3, true, false),
         Some(&mut dp.irqsel),
         Some(&mut dp.sysconfig),
     );
