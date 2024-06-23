@@ -2,8 +2,8 @@
 //!
 //! ## Examples
 //!
-//! - [UART simple example](https://egit.irs.uni-stuttgart.de/rust/va108xx-hal/src/branch/main/examples/uart.rs)
-//! - [UART with IRQ and RTIC](https://egit.irs.uni-stuttgart.de/rust/va108xx-hal/src/branch/main/examples/uart-irq-rtic.rs)
+//! - [UART simple example](https://egit.irs.uni-stuttgart.de/rust/va108xx-rs/src/branch/main/examples/simple/examples/uart.rs)
+//! - [UART with IRQ and RTIC](https://egit.irs.uni-stuttgart.de/rust/va108xx-rs/src/branch/main/examples/simple/examples/uart-irq-rtic.rs)
 use core::{marker::PhantomData, ops::Deref};
 use embedded_hal_nb::serial::Read;
 use fugit::RateExtU32;

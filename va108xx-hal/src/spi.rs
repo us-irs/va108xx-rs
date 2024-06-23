@@ -2,7 +2,7 @@
 //!
 //! ## Examples
 //!
-//! - [Blocking SPI example](https://egit.irs.uni-stuttgart.de/rust/va108xx-hal/src/branch/main/examples/spi.rs)
+//! - [Blocking SPI example](https://egit.irs.uni-stuttgart.de/rust/va108xx-rs/src/branch/main/examples/simple/examples/spi.rs)
 use crate::{
     clock::{enable_peripheral_clock, PeripheralClocks},
     gpio::pins::{
