@@ -29,72 +29,47 @@
 //! }
 //! ```
 //!
-//! A `PinId` identifies a pin by it's group (A, B, C or D) and pin number. Each
-//! `PinId` instance is named according to its datasheet identifier, e.g.
-//! [`PA02`].
+//! A [PinId] identifies a pin by it's group (A or B) and pin number. Each
+//! [PinId] instance is named according to its datasheet identifier, e.g.
+//! [PA2].
 //!
-//! A `PinMode` represents the various pin modes. The available `PinMode`
-//! variants are [`Disabled`], [`Input`], [`Interrupt`], [`Output`] and
-//! [`Alternate`], each with its own corresponding configurations.
+//! A [PinMode] represents the various pin modes. The available [PinMode]
+//! variants are [`Input`], [`Output`] and [`Alternate`], each with its own
+//! corresponding configurations.
 //!
 //! It is not possible for users to create new instances of a [`Pin`]. Singleton
-//! instances of each pin are made available to users through the [`Pins`]
+//! instances of each pin are made available to users through the PinsX
 //! struct.
 //!
-//! To create the [`Pins`] struct, users must supply the PAC
-//! [`PORT`](crate::pac::PORT) peripheral. The [`Pins`] struct takes
-//! ownership of the [`PORT`] and provides the corresponding pins. Each [`Pin`]
-//! within the [`Pins`] struct can be moved out and used individually.
+//! Example for the pins of PORT A:
+//!
+//! To create the [PinsA] struct, users must supply the PAC
+//! [Port](crate::pac::Porta) peripheral. The [PinsA] struct takes
+//! ownership of the [Porta] and provides the corresponding pins. Each [`Pin`]
+//! within the [PinsA] struct can be moved out and used individually.
 //!
 //!
 //! ```
 //! let mut peripherals = Peripherals::take().unwrap();
-//! let pins = Pins::new(peripherals.PORT);
+//! let pinsa = PinsA::new(peripherals.PORT);
 //! ```
 //!
 //! Pins can be converted between modes using several different methods.
 //!
-//! ```
+//! ```no_run
 //! // Use one of the literal function names
-//! let pa27 = pins.pa27.into_floating_input();
+//! let pa0 = pinsa.pa0.into_floating_input();
 //! // Use a generic method and one of the `PinMode` variant types
-//! let pa27 = pins.pa27.into_mode::<FloatingInput>();
+//! let pa0 = pinsa.pa0.into_mode::<FloatingInput>();
 //! // Specify the target type and use `From`/`Into`
-//! let pa27: Pin<PA27, FloatingInput> = pins.pa27.into();
+//! let pa0: Pin<PA0, FloatingInput> = pinsa.pa27.into();
 //! ```
 //!
 //! # Embedded HAL traits
 //!
 //! This module implements all of the embedded HAL GPIO traits for each [`Pin`]
 //! in the corresponding [`PinMode`]s, namely: [`InputPin`], [`OutputPin`],
-//! [`ToggleableOutputPin`] and [`StatefulOutputPin`].
-//!
-//! For example, you can control the logic level of an `OutputPin` like so
-//!
-//! ```
-//! use atsamd_hal::pac::Peripherals;
-//! use atsamd_hal::gpio::Pins;
-//! use crate::ehal_02::digital::v2::OutputPin;
-//!
-//! let mut peripherals = Peripherals::take().unwrap();
-//! let mut pins = Pins::new(peripherals.PORT);
-//! pins.pa27.set_high();
-//! ```
-//!
-//! # Type-level features
-//!
-//! This module also provides additional, type-level tools to work with GPIO
-//! pins.
-//!
-//! The [`OptionalPinId`] and [`OptionalPin`] traits use the [`OptionalKind`]
-//! pattern to act as type-level versions of [`Option`] for `PinId` and `Pin`
-//! respectively. And the [`AnyPin`] trait defines an [`AnyKind`] type class
-//! for all `Pin` types.
-//!
-//! [type classes]: crate::typelevel#type-classes
-//! [type-level enum]: crate::typelevel#type-level-enum
-//! [`OptionalKind`]: crate::typelevel#optionalkind-trait-pattern
-//! [`AnyKind`]: crate::typelevel#anykind-trait-pattern
+//! and [`StatefulOutputPin`].
 use super::dynpins::{DynAlternate, DynGroup, DynInput, DynOutput, DynPinId, DynPinMode};
 use super::reg::RegisterInterface;
 use crate::{
@@ -137,9 +112,9 @@ pub enum PinState {
 
 /// Type-level enum for input configurations
 ///
-/// The valid options are [`Floating`], [`PullDown`] and [`PullUp`].
+/// The valid options are [Floating], [PullDown] and [PullUp].
 pub trait InputConfig: Sealed {
-    /// Corresponding [`DynInput`](super::DynInput)
+    /// Corresponding [DynInput]
     const DYN: DynInput;
 }
 
@@ -297,9 +272,9 @@ pub type Reset = InputFloating;
 
 /// Type-level enum representing pin modes
 ///
-/// The valid options are [`Input`], [`Output`] and [`Alternate`].
+/// The valid options are [Input], [Output] and [Alternate].
 pub trait PinMode: Sealed {
-    /// Corresponding [`DynPinMode`](super::DynPinMode)
+    /// Corresponding [DynPinMode]
     const DYN: DynPinMode;
 }
 
@@ -319,7 +294,7 @@ impl<C: AlternateConfig> PinMode for Alternate<C> {
 
 /// Type-level enum for pin IDs
 pub trait PinId: Sealed {
-    /// Corresponding [`DynPinId`](super::DynPinId)
+    /// Corresponding [DynPinId]
     const DYN: DynPinId;
 }
 
@@ -344,7 +319,7 @@ macro_rules! pin_id {
 //  Pin
 //==================================================================================================
 
-/// A type-level GPIO pin, parameterized by [`PinId`] and [`PinMode`] types
+/// A type-level GPIO pin, parameterized by [PinId] and [PinMode] types
 
 pub struct Pin<I: PinId, M: PinMode> {
     pub(in crate::gpio) regs: Registers<I>,
@@ -352,12 +327,12 @@ pub struct Pin<I: PinId, M: PinMode> {
 }
 
 impl<I: PinId, M: PinMode> Pin<I, M> {
-    /// Create a new [`Pin`]
+    /// Create a new [Pin]
     ///
     /// # Safety
     ///
-    /// Each [`Pin`] must be a singleton. For a given [`PinId`], there must be
-    /// at most one corresponding [`Pin`] in existence at any given time.
+    /// Each [Pin] must be a singleton. For a given [PinId], there must be
+    /// at most one corresponding [Pin] in existence at any given time.
     /// Violating this requirement is `unsafe`.
     #[inline]
     pub(crate) unsafe fn new() -> Pin<I, M> {
