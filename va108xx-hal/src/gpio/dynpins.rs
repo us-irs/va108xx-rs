@@ -36,8 +36,7 @@
 //! Users may try to convert value-level pins back to their type-level
 //! equivalents. However, this option is fallible, because the compiler cannot
 //! guarantee the pin has the correct ID or is in the correct mode at
-//! compile-time. Use [`TryFrom`](core::convert::TryFrom)/
-//! [`TryInto`](core::convert::TryInto) for this conversion.
+//! compile-time. Use [TryFrom]/[TryInto] for this conversion.
 //!
 //! ```
 //! // Convert to a `DynPin`
@@ -55,7 +54,7 @@
 //! `Error = core::convert::Infallible`, the value-level API can return a real
 //! error. If the [`DynPin`] is not in the correct [`DynPinMode`] for the
 //! operation, the trait functions will return
-//! [`InvalidPinType`](PinError::InvalidPinType).
+//! [InvalidPinTypeError].
 
 use super::{
     pins::{FilterType, InterruptEdge, InterruptLevel, Pin, PinId, PinMode, PinState},

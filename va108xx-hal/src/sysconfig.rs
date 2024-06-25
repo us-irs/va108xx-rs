@@ -1,18 +1,19 @@
 use crate::{pac, PeripheralSelect};
 
 #[derive(PartialEq, Eq, Debug)]
-pub struct InvalidounterResetVal(pub(crate) ());
+#[cfg_attr(feature = "defmt", derive(defmt::Format))]
+pub struct InvalidCounterResetVal(pub(crate) ());
 
 /// Enable scrubbing for the ROM
 ///
-/// Returns [`UtilityError::InvalidCounterResetVal`] if the scrub rate is 0
+/// Returns [InvalidCounterResetVal] if the scrub rate is 0
 /// (equivalent to disabling) or larger than 24 bits
 pub fn enable_rom_scrubbing(
     syscfg: &mut pac::Sysconfig,
     scrub_rate: u32,
-) -> Result<(), InvalidounterResetVal> {
+) -> Result<(), InvalidCounterResetVal> {
     if scrub_rate == 0 || scrub_rate > u32::pow(2, 24) {
-        return Err(InvalidounterResetVal(()));
+        return Err(InvalidCounterResetVal(()));
     }
     syscfg.rom_scrub().write(|w| unsafe { w.bits(scrub_rate) });
     Ok(())
@@ -24,14 +25,14 @@ pub fn disable_rom_scrubbing(syscfg: &mut pac::Sysconfig) {
 
 /// Enable scrubbing for the RAM
 ///
-/// Returns [`UtilityError::InvalidCounterResetVal`] if the scrub rate is 0
+/// Returns [InvalidCounterResetVal] if the scrub rate is 0
 /// (equivalent to disabling) or larger than 24 bits
 pub fn enable_ram_scrubbing(
     syscfg: &mut pac::Sysconfig,
     scrub_rate: u32,
-) -> Result<(), InvalidounterResetVal> {
+) -> Result<(), InvalidCounterResetVal> {
     if scrub_rate == 0 || scrub_rate > u32::pow(2, 24) {
-        return Err(InvalidounterResetVal(()));
+        return Err(InvalidCounterResetVal(()));
     }
     syscfg.ram_scrub().write(|w| unsafe { w.bits(scrub_rate) });
     Ok(())
