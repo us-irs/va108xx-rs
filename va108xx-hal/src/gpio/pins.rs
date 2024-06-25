@@ -29,11 +29,11 @@
 //! }
 //! ```
 //!
-//! A `PinId` identifies a pin by it's group (A, B, C or D) and pin number. Each
-//! `PinId` instance is named according to its datasheet identifier, e.g.
+//! A [PinId] identifies a pin by it's group (A or B) and pin number. Each
+//! [PinId] instance is named according to its datasheet identifier, e.g.
 //! [PA2].
 //!
-//! A `PinMode` represents the various pin modes. The available `PinMode`
+//! A [PinMode] represents the various pin modes. The available [PinMode]
 //! variants are [`Input`], [`Output`] and [`Alternate`], each with its own
 //! corresponding configurations.
 //!
@@ -51,18 +51,18 @@
 //!
 //! ```
 //! let mut peripherals = Peripherals::take().unwrap();
-//! let pins = Pins::new(peripherals.PORT);
+//! let pinsa = PinsA::new(peripherals.PORT);
 //! ```
 //!
 //! Pins can be converted between modes using several different methods.
 //!
-//! ```
+//! ```no_run
 //! // Use one of the literal function names
-//! let pa27 = pins.pa27.into_floating_input();
+//! let pa0 = pinsa.pa0.into_floating_input();
 //! // Use a generic method and one of the `PinMode` variant types
-//! let pa27 = pins.pa27.into_mode::<FloatingInput>();
+//! let pa0 = pinsa.pa0.into_mode::<FloatingInput>();
 //! // Specify the target type and use `From`/`Into`
-//! let pa27: Pin<PA27, FloatingInput> = pins.pa27.into();
+//! let pa0: Pin<PA0, FloatingInput> = pinsa.pa27.into();
 //! ```
 //!
 //! # Embedded HAL traits
@@ -70,18 +70,6 @@
 //! This module implements all of the embedded HAL GPIO traits for each [`Pin`]
 //! in the corresponding [`PinMode`]s, namely: [`InputPin`], [`OutputPin`],
 //! and [`StatefulOutputPin`].
-//!
-//! For example, you can control the logic level of an `OutputPin` like so
-//!
-//! ```
-//! use atsamd_hal::pac::Peripherals;
-//! use atsamd_hal::gpio::Pins;
-//! use crate::ehal_02::digital::v2::OutputPin;
-//!
-//! let mut peripherals = Peripherals::take().unwrap();
-//! let mut pins = Pins::new(peripherals.PORT);
-//! pins.pa27.set_high();
-//! ```
 use super::dynpins::{DynAlternate, DynGroup, DynInput, DynOutput, DynPinId, DynPinMode};
 use super::reg::RegisterInterface;
 use crate::{
