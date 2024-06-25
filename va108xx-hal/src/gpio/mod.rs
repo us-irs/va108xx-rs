@@ -20,8 +20,7 @@
 //!
 //! ## Examples
 //!
-//! - [Blinky example](https://egit.irs.uni-stuttgart.de/rust/va108xx-hal/src/branch/main/examples/blinky.rs)
-//!
+//! - [Blinky example](https://egit.irs.uni-stuttgart.de/rust/va108xx-rs/src/branch/main/examples/simple/examples/blinky.rs)
 
 #[derive(Debug, PartialEq, Eq)]
 #[cfg_attr(feature = "defmt", derive(defmt::Format))]
