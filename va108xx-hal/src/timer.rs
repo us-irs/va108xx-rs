@@ -2,7 +2,7 @@
 //!
 //! ## Examples
 //!
-//! - [MS and second tick implementation](https://egit.irs.uni-stuttgart.de/rust/va108xx-hal/src/branch/main/examples/timer-ticks.rs)
+//! - [MS and second tick implementation](https://egit.irs.uni-stuttgart.de/rust/va108xx-rs/src/branch/main/examples/simple/examples/timer-ticks.rs)
 //! - [Cascade feature example](https://egit.irs.uni-stuttgart.de/rust/va108xx-hal/src/branch/main/examples/cascade.rs)
 pub use crate::IrqCfg;
 use crate::{
