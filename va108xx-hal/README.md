@@ -39,7 +39,7 @@ your custom board.
 
 The hello world of embedded development is usually to blinky a LED. This example
 is contained within the
-[examples folder](https://egit.irs.uni-stuttgart.de/rust/va108xx-hal/src/branch/main/examples/blinky.rs).
+[examples folder](https://egit.irs.uni-stuttgart.de/rust/va108xx-rs/src/branch/main/examples/simple/examples/blinky.rs).
 
 1. Set up your Rust cross-compiler if you have not done so yet. See more in the [build chapter](#Building)
 2. Create a new binary crate with `cargo init`
