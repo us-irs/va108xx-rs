@@ -38,4 +38,4 @@ version = "0.1"
 
 [package.metadata.docs.rs]
 all-features = true
-rustdoc-args = ["--cfg", "docs_rs", "--generate-link-to-definition"]
+rustdoc-args = ["--generate-link-to-definition"]
