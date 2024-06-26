@@ -45,4 +45,4 @@ rt = ["va108xx/rt"]
 
 [package.metadata.docs.rs]
 all-features = true
-rustdoc-args = ["--cfg", "docs_rs", "--generate-link-to-definition"]
+rustdoc-args = ["--generate-link-to-definition"]
