@@ -106,3 +106,6 @@ configuration variables in your `settings.json`:
 - `"cortex-debug.gdbPath.linux"`
 - `"cortex-debug.gdbPath.windows"`
 - `"cortex-debug.gdbPath.osx"`
+
+The provided VS Code configurations also provide an integrated RTT logger, which you can access
+via the terminal at `RTT Ch:0 console`.

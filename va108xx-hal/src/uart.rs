@@ -10,14 +10,15 @@ use fugit::RateExtU32;
 
 pub use crate::IrqCfg;
 use crate::{
-    clock::{self, enable_peripheral_clock, PeripheralClocks},
-    gpio::pins::{
+    clock::{enable_peripheral_clock, PeripheralClocks},
+    gpio::pin::{
         AltFunc1, AltFunc2, AltFunc3, Pin, PA16, PA17, PA18, PA19, PA2, PA26, PA27, PA3, PA30,
         PA31, PA8, PA9, PB18, PB19, PB20, PB21, PB22, PB23, PB6, PB7, PB8, PB9,
     },
     pac::{self, uarta as uart_base},
     time::Hertz,
     utility::unmask_irq,
+    PeripheralSelect,
 };
 
 //==================================================================================================
@@ -305,7 +306,7 @@ pub struct UartBase<Uart> {
 }
 /// Serial abstraction. Entry point to create a new UART
 pub struct Uart<Uart, Pins> {
-    uart_base: UartBase<Uart>,
+    inner: UartBase<Uart>,
     pins: Pins,
 }
 
@@ -352,6 +353,7 @@ impl<UART> Tx<UART> {
 pub trait Instance: Deref<Target = uart_base::RegisterBlock> {
     fn ptr() -> *const uart_base::RegisterBlock;
     const IDX: u8;
+    const PERIPH_SEL: PeripheralSelect;
 }
 
 impl<UART: Instance> UartBase<UART> {
@@ -489,14 +491,34 @@ impl<UART: Instance> UartBase<UART> {
     }
 }
 
-impl<UART, PINS> Uart<UART, PINS>
+impl<UartInstance, PinsInstance> Uart<UartInstance, PinsInstance>
 where
-    UART: Instance,
+    UartInstance: Instance,
+    PinsInstance: Pins<UartInstance>,
 {
+    pub fn new(
+        syscfg: &mut va108xx::Sysconfig,
+        sys_clk: impl Into<Hertz>,
+        uart: UartInstance,
+        pins: PinsInstance,
+        config: impl Into<Config>,
+    ) -> Self {
+        crate::clock::enable_peripheral_clock(syscfg, UartInstance::PERIPH_SEL);
+        Uart {
+            inner: UartBase {
+                uart,
+                tx: Tx::new(),
+                rx: Rx::new(),
+            },
+            pins,
+        }
+        .init(config.into(), sys_clk.into())
+    }
+
     /// This function assumes that the peripheral clock was alredy enabled
     /// in the SYSCONFIG register
     fn init(mut self, config: Config, sys_clk: Hertz) -> Self {
-        self.uart_base = self.uart_base.init(config, sys_clk);
+        self.inner = self.inner.init(config, sys_clk);
         self
     }
 
@@ -507,7 +529,7 @@ where
         irq_cfg: IrqCfg,
         sys_cfg: Option<&mut pac::Sysconfig>,
         irq_sel: Option<&mut pac::Irqsel>,
-    ) -> UartWithIrq<UART, PINS> {
+    ) -> UartWithIrq<UartInstance, PinsInstance> {
         let (uart, pins) = self.downgrade_internal();
         UartWithIrq {
             pins,
@@ -526,75 +548,75 @@ where
 
     #[inline]
     pub fn enable_rx(&mut self) {
-        self.uart_base.enable_rx();
+        self.inner.enable_rx();
     }
 
     #[inline]
     pub fn disable_rx(&mut self) {
-        self.uart_base.enable_rx();
+        self.inner.enable_rx();
     }
 
     #[inline]
     pub fn enable_tx(&mut self) {
-        self.uart_base.enable_tx();
+        self.inner.enable_tx();
     }
 
     #[inline]
     pub fn disable_tx(&mut self) {
-        self.uart_base.disable_tx();
+        self.inner.disable_tx();
     }
 
     #[inline]
     pub fn clear_rx_fifo(&mut self) {
-        self.uart_base.clear_rx_fifo();
+        self.inner.clear_rx_fifo();
     }
 
     #[inline]
     pub fn clear_tx_fifo(&mut self) {
-        self.uart_base.clear_tx_fifo();
+        self.inner.clear_tx_fifo();
     }
 
     #[inline]
     pub fn clear_rx_status(&mut self) {
-        self.uart_base.clear_rx_status();
+        self.inner.clear_rx_status();
     }
 
     #[inline]
     pub fn clear_tx_status(&mut self) {
-        self.uart_base.clear_tx_status();
+        self.inner.clear_tx_status();
     }
 
     pub fn listen(&self, event: Event) {
-        self.uart_base.listen(event);
+        self.inner.listen(event);
     }
 
     pub fn unlisten(&self, event: Event) {
-        self.uart_base.unlisten(event);
+        self.inner.unlisten(event);
     }
 
-    pub fn release(self) -> (UART, PINS) {
-        (self.uart_base.release(), self.pins)
+    pub fn release(self) -> (UartInstance, PinsInstance) {
+        (self.inner.release(), self.pins)
     }
 
-    fn downgrade_internal(self) -> (UartBase<UART>, PINS) {
+    fn downgrade_internal(self) -> (UartBase<UartInstance>, PinsInstance) {
         let base = UartBase {
-            uart: self.uart_base.uart,
-            tx: self.uart_base.tx,
-            rx: self.uart_base.rx,
+            uart: self.inner.uart,
+            tx: self.inner.tx,
+            rx: self.inner.rx,
         };
         (base, self.pins)
     }
 
-    pub fn downgrade(self) -> UartBase<UART> {
+    pub fn downgrade(self) -> UartBase<UartInstance> {
         UartBase {
-            uart: self.uart_base.uart,
-            tx: self.uart_base.tx,
-            rx: self.uart_base.rx,
+            uart: self.inner.uart,
+            tx: self.inner.tx,
+            rx: self.inner.rx,
         }
     }
 
-    pub fn split(self) -> (Tx<UART>, Rx<UART>) {
-        self.uart_base.split()
+    pub fn split(self) -> (Tx<UartInstance>, Rx<UartInstance>) {
+        self.inner.split()
     }
 }
 
@@ -603,6 +625,8 @@ impl Instance for pac::Uarta {
         pac::Uarta::ptr() as *const _
     }
     const IDX: u8 = 0;
+
+    const PERIPH_SEL: PeripheralSelect = PeripheralSelect::Uart0;
 }
 
 impl Instance for pac::Uartb {
@@ -610,36 +634,8 @@ impl Instance for pac::Uartb {
         pac::Uartb::ptr() as *const _
     }
     const IDX: u8 = 1;
-}
 
-macro_rules! uart_impl {
-    ($($UARTX:path: ($uartx:ident, $clk_enb_enum:path),)+) => {
-        $(
-
-            impl<PINS: Pins<$UARTX>> Uart<$UARTX, PINS> {
-                pub fn $uartx(
-                    uart: $UARTX,
-                    pins: PINS,
-                    config: impl Into<Config>,
-                    syscfg: &mut pac::Sysconfig,
-                    sys_clk: impl Into<Hertz>
-                ) -> Self
-                {
-                    enable_peripheral_clock(syscfg, $clk_enb_enum);
-                    Uart {
-                        uart_base: UartBase {
-                            uart,
-                            tx: Tx::new(),
-                            rx: Rx::new(),
-                        },
-                        pins,
-                    }
-                    .init(config.into(), sys_clk.into())
-                }
-            }
-
-        )+
-    }
+    const PERIPH_SEL: PeripheralSelect = PeripheralSelect::Uart1;
 }
 
 impl<UART: Instance> UartWithIrqBase<UART> {
@@ -877,10 +873,12 @@ impl<UART: Instance, PINS> UartWithIrq<UART, PINS> {
     }
 }
 
+/*
 uart_impl! {
     pac::Uarta: (uarta, clock::PeripheralClocks::Uart0),
     pac::Uartb: (uartb, clock::PeripheralClocks::Uart1),
 }
+*/
 
 impl<Uart> Tx<Uart> where Uart: Instance {}
 

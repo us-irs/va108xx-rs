@@ -1,4 +1,7 @@
-//! MAX11619 ADC example applikcation
+//! MAX11619 ADC example application.
+//!
+//! You can turn the potentiometer knob of the REB1 board to measure
+//! different ADC values.
 #![no_main]
 #![no_std]
 
@@ -139,12 +142,12 @@ fn main() -> ! {
         .expect("Setting accelerometer chip select high failed");
 
     let transfer_cfg = TransferConfig::<NoneT>::new(3.MHz(), spi::MODE_0, None, true, false);
-    let spi = Spi::spib(
+    let spi = Spi::new(
+        &mut dp.sysconfig,
+        50.MHz(),
         dp.spib,
         (sck, miso, mosi),
-        50.MHz(),
         spi_cfg,
-        Some(&mut dp.sysconfig),
         Some(&transfer_cfg.downgrade()),
     )
     .downgrade();

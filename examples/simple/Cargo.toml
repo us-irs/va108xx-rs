@@ -28,6 +28,6 @@ version = "1"
 features = ["cortex-m-systick"]
 
 [dependencies.va108xx-hal]
-version = "0.6"
+version = "0.7"
 path = "../../va108xx-hal"
 features = ["rt", "defmt"]
