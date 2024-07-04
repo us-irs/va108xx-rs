@@ -13,6 +13,7 @@ and this project adheres to [Semantic Versioning](http://semver.org/).
 - Replace I2C `i2ca`, `i2cb` constructors by `new` constructor. Update constructor
   to fail on invalid fast I2C speed system clock values
 - Renamed `gpio::pins` to `gpio::pin` and `gpio::dynpins` to `gpio::dynpin`
+- Simplify UART clock divider calculations and remove `libm` dependency consequently
 
 ## [v0.6.0] 2024-06-16
 

@@ -7,7 +7,6 @@
 use core::{marker::PhantomData, ops::Deref};
 use embedded_hal_nb::serial::Read;
 use fugit::RateExtU32;
-use libm::floorf;
 
 pub use crate::IrqCfg;
 use crate::{
@@ -365,12 +364,19 @@ impl<UART: Instance> UartBase<UART> {
             false => 16,
             true => 8,
         };
+
+        // This is the calculation: (64.0 * (x - integer_part as f32) + 0.5) as u32 without floating
+        // point calculations.
+        let frac = ((sys_clk.raw() % (config.baudrate.raw() * 16)) * 64
+            + (config.baudrate.raw() * 8))
+            / (config.baudrate.raw() * 16);
+        // Calculations here are derived from chapter 4.8.5 (p.79) of the datasheet.
         let x = sys_clk.raw() as f32 / (config.baudrate.raw() * baud_multiplier) as f32;
-        let integer_part = floorf(x) as u32;
-        let frac = floorf(64.0 * (x - integer_part as f32) + 0.5) as u32;
-        self.uart
-            .clkscale()
-            .write(|w| unsafe { w.bits(integer_part * 64 + frac) });
+        let integer_part = x as u32;
+        self.uart.clkscale().write(|w| unsafe {
+            w.frac().bits(frac as u8);
+            w.int().bits(integer_part)
+        });
 
         let (paren, pareven) = match config.parity {
             Parity::None => (false, false),
