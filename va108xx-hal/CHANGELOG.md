@@ -6,6 +6,15 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](http://keepachangelog.com/)
 and this project adheres to [Semantic Versioning](http://semver.org/).
 
+## [v0.7.0] 2024-07-04
+
+- Replace `uarta` and `uartb` `Uart` constructors by `new` constructor
+- Replace SPI `spia`, `spib` and `spic` constructors by `new` constructor
+- Replace I2C `i2ca`, `i2cb` constructors by `new` constructor. Update constructor
+  to fail on invalid fast I2C speed system clock values
+- Renamed `gpio::pins` to `gpio::pin` and `gpio::dynpins` to `gpio::dynpin`
+- Simplify UART clock divider calculations and remove `libm` dependency consequently
+
 ## [v0.6.0] 2024-06-16
 
 - Updated `embedded-hal` to v1
