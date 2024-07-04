@@ -370,7 +370,7 @@ impl<UART: Instance> UartBase<UART> {
         let frac = ((sys_clk.raw() % (config.baudrate.raw() * 16)) * 64
             + (config.baudrate.raw() * 8))
             / (config.baudrate.raw() * 16);
-        // Calculations here are derived from chapter 10.4.4 (p.74) of the datasheet.
+        // Calculations here are derived from chapter 4.8.5 (p.79) of the datasheet.
         let x = sys_clk.raw() as f32 / (config.baudrate.raw() * baud_multiplier) as f32;
         let integer_part = x as u32;
         self.uart.clkscale().write(|w| unsafe {
