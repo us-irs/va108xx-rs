@@ -5,6 +5,7 @@
 #[rtic::app(device = pac)]
 mod app {
     use panic_rtt_target as _;
+    use rtic_monotonics::systick::Systick;
     use rtt_target::{rprintln, rtt_init_default, set_print_channel};
     use va108xx_hal::{
         clock::{set_clk_div_register, FilterClkSel},
@@ -43,10 +44,18 @@ mod app {
     struct Shared {}
 
     #[init]
-    fn init(ctx: init::Context) -> (Shared, Local, init::Monotonics) {
+    fn init(ctx: init::Context) -> (Shared, Local) {
         let channels = rtt_init_default!();
         set_print_channel(channels.up.0);
         rprintln!("-- Vorago Button IRQ Example --");
+        // Initialize the systick interrupt & obtain the token to prove that we did
+        let systick_mono_token = rtic_monotonics::create_systick_token!();
+        Systick::start(
+            ctx.core.SYST,
+            Hertz::from(50.MHz()).raw(),
+            systick_mono_token,
+        );
+
         let mode = match CFG_MODE {
             // Ask mode from user via RTT
             CfgMode::Prompt => prompt_mode(channels.down.0),
@@ -90,7 +99,7 @@ mod app {
             50.MHz(),
             dp.tim0,
         );
-        (Shared {}, Local { leds, button, mode }, init::Monotonics())
+        (Shared {}, Local { leds, button, mode })
     }
 
     // `shared` cannot be accessed from this context

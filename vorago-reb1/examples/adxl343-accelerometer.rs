@@ -52,12 +52,12 @@ fn main() -> ! {
         false,
         true,
     );
-    let mut spi = Spi::spib(
+    let mut spi = Spi::new(
+        &mut dp.sysconfig,
+        50.MHz(),
         dp.spib,
         (sck, miso, mosi),
-        50.MHz(),
         spi_cfg,
-        Some(&mut dp.sysconfig),
         Some(&transfer_cfg.downgrade()),
     );
 

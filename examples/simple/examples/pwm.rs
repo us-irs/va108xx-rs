@@ -21,9 +21,9 @@ fn main() -> ! {
     let mut dp = pac::Peripherals::take().unwrap();
     let pinsa = PinsA::new(&mut dp.sysconfig, None, dp.porta);
     let mut pwm = pwm::PwmPin::new(
-        (pinsa.pa3.into_funsel_1(), dp.tim3),
-        50.MHz(),
         &mut dp.sysconfig,
+        50.MHz(),
+        (pinsa.pa3.into_funsel_1(), dp.tim3),
         10.Hz(),
     );
     let mut delay = set_up_ms_delay_provider(&mut dp.sysconfig, 50.MHz(), dp.tim0);

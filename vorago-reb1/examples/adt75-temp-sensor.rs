@@ -13,7 +13,7 @@ fn main() -> ! {
     rprintln!("-- Vorago Temperature Sensor and I2C Example --");
     let mut dp = pac::Peripherals::take().unwrap();
     let mut delay = set_up_ms_delay_provider(&mut dp.sysconfig, 50.MHz(), dp.tim0);
-    let mut temp_sensor = Adt75TempSensor::new(dp.i2ca, 50.MHz(), Some(&mut dp.sysconfig))
+    let mut temp_sensor = Adt75TempSensor::new(&mut dp.sysconfig, 50.MHz(), dp.i2ca)
         .expect("Creating temperature sensor struct failed");
     loop {
         let temp = temp_sensor

@@ -4,10 +4,10 @@
 //!
 //! ## Examples
 //!
-//! - [Temperature Sensor example](https://egit.irs.uni-stuttgart.de/rust/vorago-reb1/src/branch/main/examples/adt75-temp-sensor.rs)
+//! - [Temperature Sensor example](https://egit.irs.uni-stuttgart.de/rust/va108xx-rs/src/branch/main/vorago-reb1/examples/adt75-temp-sensor.rs
 use embedded_hal::i2c::{I2c, SevenBitAddress};
 use va108xx_hal::{
-    i2c::{Error, I2cMaster, I2cSpeed, MasterConfig},
+    i2c::{Error, I2cMaster, I2cSpeed, InitError, MasterConfig},
     pac,
     time::Hertz,
 };
@@ -29,20 +29,40 @@ pub enum RegAddresses {
     OneShot = 0x04,
 }
 
+#[derive(Debug)]
+pub enum AdtInitError {
+    Init(InitError),
+    I2c(Error),
+}
+
+impl From<InitError> for AdtInitError {
+    fn from(value: InitError) -> Self {
+        Self::Init(value)
+    }
+}
+
+impl From<Error> for AdtInitError {
+    fn from(value: Error) -> Self {
+        Self::I2c(value)
+    }
+}
+
 impl Adt75TempSensor {
     pub fn new(
-        i2ca: pac::I2ca,
+        sys_cfg: &mut pac::Sysconfig,
         sys_clk: impl Into<Hertz> + Copy,
-        sys_cfg: Option<&mut pac::Sysconfig>,
+        i2ca: pac::I2ca,
     ) -> Result<Self, Error> {
         let mut sensor = Adt75TempSensor {
-            sensor_if: I2cMaster::i2ca(
+            // The master construction can not fail for regular I2C speed.
+            sensor_if: I2cMaster::new(
+                sys_cfg,
+                sys_clk,
                 i2ca,
                 MasterConfig::default(),
-                sys_clk,
                 I2cSpeed::Regular100khz,
-                sys_cfg,
-            ),
+            )
+            .unwrap(),
             cmd_buf: [RegAddresses::Temperature as u8],
             current_reg: RegAddresses::Temperature,
         };

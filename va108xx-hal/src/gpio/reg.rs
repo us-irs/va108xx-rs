@@ -1,5 +1,5 @@
-use super::dynpins::{self, DynGroup, DynPinId, DynPinMode};
-use super::pins::{FilterType, InterruptEdge, InterruptLevel, PinState};
+use super::dynpin::{self, DynGroup, DynPinId, DynPinMode};
+use super::pin::{FilterType, InterruptEdge, InterruptLevel, PinState};
 use super::IsMaskedError;
 use crate::clock::FilterClkSel;
 use va108xx::{ioconfig, porta};
@@ -30,7 +30,7 @@ impl From<DynPinMode> for ModeFields {
         use DynPinMode::*;
         match mode {
             Input(config) => {
-                use dynpins::DynInput::*;
+                use dynpin::DynInput::*;
                 fields.dir = false;
                 match config {
                     Floating => (),
@@ -44,7 +44,7 @@ impl From<DynPinMode> for ModeFields {
                 }
             }
             Output(config) => {
-                use dynpins::DynOutput::*;
+                use dynpin::DynOutput::*;
                 fields.dir = true;
                 match config {
                     PushPull => (),

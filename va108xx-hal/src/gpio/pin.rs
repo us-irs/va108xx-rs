@@ -70,7 +70,7 @@
 //! This module implements all of the embedded HAL GPIO traits for each [`Pin`]
 //! in the corresponding [`PinMode`]s, namely: [`InputPin`], [`OutputPin`],
 //! and [`StatefulOutputPin`].
-use super::dynpins::{DynAlternate, DynGroup, DynInput, DynOutput, DynPinId, DynPinMode};
+use super::dynpin::{DynAlternate, DynGroup, DynInput, DynOutput, DynPinId, DynPinMode};
 use super::reg::RegisterInterface;
 use crate::{
     pac::{Irqsel, Porta, Portb, Sysconfig},
