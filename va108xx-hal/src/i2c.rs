@@ -2,7 +2,7 @@
 //!
 //! ## Examples
 //!
-//! - [REB1 I2C temperature sensor example](https://egit.irs.uni-stuttgart.de/rust/va108xx-rs/src/branch/main/vorago-reb1/examples/adt75-temp-sensor.rs
+//! - [REB1 I2C temperature sensor example](https://egit.irs.uni-stuttgart.de/rust/va108xx-rs/src/branch/main/vorago-reb1/examples/adt75-temp-sensor.rs)
 use crate::{
     clock::enable_peripheral_clock, pac, time::Hertz, typelevel::Sealed, PeripheralSelect,
 };
