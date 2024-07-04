@@ -4,7 +4,7 @@
 //!
 //! ## Examples
 //!
-//! - [PWM example](https://egit.irs.uni-stuttgart.de/rust/va108xx-hal/src/branch/main/examples/pwm.rs)
+//! - [PWM example](https://egit.irs.uni-stuttgart.de/rust/va108xx-rs/src/branch/main/examples/simple/examples/pwm.rs)
 use core::convert::Infallible;
 use core::marker::PhantomData;
 
@@ -158,9 +158,9 @@ where
 {
     /// Create a new stronlgy typed PWM pin
     pub fn new(
-        vtp: (Pin, Tim),
-        sys_clk: impl Into<Hertz> + Copy,
         sys_cfg: &mut pac::Sysconfig,
+        sys_clk: impl Into<Hertz> + Copy,
+        tim_and_pin: (Pin, Tim),
         initial_period: impl Into<Hertz> + Copy,
     ) -> Self {
         let mut pin = PwmPin {
@@ -171,7 +171,7 @@ where
                 current_rst_val: 0,
                 sys_clk: sys_clk.into(),
             },
-            reg: unsafe { TimAndPinRegister::new(vtp.0, vtp.1) },
+            reg: unsafe { TimAndPinRegister::new(tim_and_pin.0, tim_and_pin.1) },
             mode: PhantomData,
         };
         enable_peripheral_clock(sys_cfg, crate::clock::PeripheralClocks::Gpio);
@@ -225,12 +225,13 @@ where
     (Pin, Tim): ValidTimAndPin<Pin, Tim>,
 {
     pub fn pwma(
-        vtp: (Pin, Tim),
-        sys_clk: impl Into<Hertz> + Copy,
         sys_cfg: &mut pac::Sysconfig,
+        sys_clk: impl Into<Hertz> + Copy,
+        pin_and_tim: (Pin, Tim),
         initial_period: impl Into<Hertz> + Copy,
     ) -> Self {
-        let mut pin: PwmPin<Pin, Tim, PwmA> = Self::new(vtp, sys_clk, sys_cfg, initial_period);
+        let mut pin: PwmPin<Pin, Tim, PwmA> =
+            Self::new(sys_cfg, sys_clk, pin_and_tim, initial_period);
         pin.enable_pwm_a();
         pin
     }
@@ -241,12 +242,13 @@ where
     (Pin, Tim): ValidTimAndPin<Pin, Tim>,
 {
     pub fn pwmb(
-        vtp: (Pin, Tim),
-        sys_clk: impl Into<Hertz> + Copy,
         sys_cfg: &mut pac::Sysconfig,
+        sys_clk: impl Into<Hertz> + Copy,
+        pin_and_tim: (Pin, Tim),
         initial_period: impl Into<Hertz> + Copy,
     ) -> Self {
-        let mut pin: PwmPin<Pin, Tim, PwmB> = Self::new(vtp, sys_clk, sys_cfg, initial_period);
+        let mut pin: PwmPin<Pin, Tim, PwmB> =
+            Self::new(sys_cfg, sys_clk, pin_and_tim, initial_period);
         pin.enable_pwm_b();
         pin
     }

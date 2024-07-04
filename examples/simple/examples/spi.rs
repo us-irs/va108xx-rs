@@ -73,12 +73,12 @@ fn main() -> ! {
                 pinsa.pa30.into_funsel_1(),
                 pinsa.pa29.into_funsel_1(),
             );
-            let mut spia = Spi::spia(
+            let mut spia = Spi::new(
+                &mut dp.sysconfig,
+                50.MHz(),
                 dp.spia,
                 (sck, miso, mosi),
-                50.MHz(),
                 spi_cfg,
-                Some(&mut dp.sysconfig),
                 None,
             );
             spia.set_fill_word(FILL_WORD);
@@ -90,12 +90,12 @@ fn main() -> ! {
                 pinsb.pb8.into_funsel_2(),
                 pinsb.pb7.into_funsel_2(),
             );
-            let mut spia = Spi::spia(
+            let mut spia = Spi::new(
+                &mut dp.sysconfig,
+                50.MHz(),
                 dp.spia,
                 (sck, miso, mosi),
-                50.MHz(),
                 spi_cfg,
-                Some(&mut dp.sysconfig),
                 None,
             );
             spia.set_fill_word(FILL_WORD);
@@ -107,12 +107,12 @@ fn main() -> ! {
                 pinsb.pb4.into_funsel_1(),
                 pinsb.pb3.into_funsel_1(),
             );
-            let mut spib = Spi::spib(
+            let mut spib = Spi::new(
+                &mut dp.sysconfig,
+                50.MHz(),
                 dp.spib,
                 (sck, miso, mosi),
-                50.MHz(),
                 spi_cfg,
-                Some(&mut dp.sysconfig),
                 None,
             );
             spib.set_fill_word(FILL_WORD);
@@ -195,6 +195,10 @@ fn main() -> ! {
                     if EXAMPLE_SEL == ExampleSelect::Loopback {
                         // Can't really verify correct reply here.
                         spi.write(&[0x42]).expect("write failed");
+                        // Need small delay.. otherwise we will read back the sent byte (which we don't want here).
+                        // The write function will return as soon as all bytes were shifted out, ignoring the
+                        // reply bytes.
+                        delay.delay_us(50);
                         // Because of the loopback mode, we should get back the fill word here.
                         spi.read(&mut reply_buf[0..1]).unwrap();
                         assert_eq!(reply_buf[0], FILL_WORD);

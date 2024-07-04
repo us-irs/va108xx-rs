@@ -2,13 +2,13 @@
 //!
 //! ## Examples
 //!
-//! - [LED example](https://egit.irs.uni-stuttgart.de/rust/vorago-reb1/src/branch/main/examples/blinky-leds.rs)
-//! - [Button Blinky using IRQs](https://egit.irs.uni-stuttgart.de/rust/vorago-reb1/src/branch/main/examples/blinky-button-irq.rs)
-//! - [Button Blinky using IRQs and RTIC](https://egit.irs.uni-stuttgart.de/rust/vorago-reb1/src/branch/main/examples/blinky-button-rtic.rs)
+//! - [LED example](https://egit.irs.uni-stuttgart.de/rust/va108xx-rs/src/branch/main/vorago-reb1/examples/blinky-leds.rs)
+//! - [Button Blinky using IRQs](https://egit.irs.uni-stuttgart.de/rust/va108xx-rs/src/branch/main/vorago-reb1/examples/blinky-button-irq.rs)
+//! - [Button Blinky using IRQs and RTIC](https://egit.irs.uni-stuttgart.de/rust/va108xx-rs/src/branch/main/vorago-reb1/examples/blinky-button-rtic.rs)
 use embedded_hal::digital::OutputPin;
 use va108xx_hal::{
-    gpio::dynpins::DynPin,
-    gpio::pins::{Pin, PushPullOutput, PA10, PA6, PA7},
+    gpio::dynpin::DynPin,
+    gpio::pin::{Pin, PushPullOutput, PA10, PA6, PA7},
 };
 
 pub type LD2 = Pin<PA10, PushPullOutput>;

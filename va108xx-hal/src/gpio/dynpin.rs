@@ -57,7 +57,7 @@
 //! [InvalidPinTypeError].
 
 use super::{
-    pins::{FilterType, InterruptEdge, InterruptLevel, Pin, PinId, PinMode, PinState},
+    pin::{FilterType, InterruptEdge, InterruptLevel, Pin, PinId, PinMode, PinState},
     reg::RegisterInterface,
 };
 use crate::{clock::FilterClkSel, pac, FunSel, IrqCfg};

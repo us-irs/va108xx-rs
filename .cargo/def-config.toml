@@ -24,8 +24,7 @@ rustflags = [
   # "-C", "link-arg=-Tdefmt.x",
 
   # Can be useful for debugging.
-  "-Clink-args=-Map=app.map"
-
+  # "-Clink-args=-Map=app.map"
 ]
 
 [build]

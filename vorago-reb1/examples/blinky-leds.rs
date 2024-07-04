@@ -10,7 +10,7 @@ use cortex_m_rt::entry;
 use embedded_hal::delay::DelayNs;
 use embedded_hal::digital::{OutputPin, StatefulOutputPin};
 use panic_halt as _;
-use va108xx_hal::{gpio::pins::PinsA, pac, prelude::*, timer::set_up_ms_delay_provider};
+use va108xx_hal::{gpio::PinsA, pac, prelude::*, timer::set_up_ms_delay_provider};
 use vorago_reb1::leds::Leds;
 
 // REB LED pin definitions. All on port A

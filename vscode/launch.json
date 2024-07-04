@@ -18,6 +18,17 @@
             "executable": "${workspaceFolder}/target/thumbv6m-none-eabi/debug/examples/blinky-leds",
             "interface": "jtag",
             "runToEntryPoint": "main",
+            "rttConfig": {
+                "enabled": true,
+                "address": "0x10000000",
+                "decoders": [
+                    {
+                        "port": 0,
+                        "timestamp": true,
+                        "type": "console"
+                    }
+                ]
+            }
         },
         {
             "type": "cortex-debug",
@@ -28,9 +39,20 @@
             "device": "Cortex-M0",
             "svdFile": "./va108xx/svd/va108xx.svd.patched",
             "preLaunchTask": "rust: cargo build hal tests",
-            "executable": "${workspaceFolder}/target/thumbv6m-none-eabi/debug/examples/tests",
+            "executable": "${workspaceFolder}/target/thumbv6m-none-eabi/debug/board-tests",
             "interface": "jtag",
             "runToEntryPoint": "main",
+            "rttConfig": {
+                "enabled": true,
+                "address": "0x10000000",
+                "decoders": [
+                    {
+                        "port": 0,
+                        "timestamp": true,
+                        "type": "console"
+                    }
+                ]
+            }
         },
         {
             "type": "cortex-debug",
@@ -44,6 +66,17 @@
             "executable": "${workspaceFolder}/target/thumbv6m-none-eabi/debug/examples/rtt-log",
             "interface": "jtag",
             "runToEntryPoint": "main",
+            "rttConfig": {
+                "enabled": true,
+                "address": "0x10000000",
+                "decoders": [
+                    {
+                        "port": 0,
+                        "timestamp": true,
+                        "type": "console"
+                    }
+                ]
+            }
         },
         {
             "type": "cortex-debug",
@@ -57,6 +90,17 @@
             "executable": "${workspaceFolder}/target/thumbv6m-none-eabi/debug/examples/blinky-button-irq",
             "interface": "jtag",
             "runToEntryPoint": "main",
+            "rttConfig": {
+                "enabled": true,
+                "address": "0x10000000",
+                "decoders": [
+                    {
+                        "port": 0,
+                        "timestamp": true,
+                        "type": "console"
+                    }
+                ]
+            }
         },
         {
             "type": "cortex-debug",
@@ -70,6 +114,17 @@
             "executable": "${workspaceFolder}/target/thumbv6m-none-eabi/debug/examples/timer-ticks",
             "interface": "jtag",
             "runToEntryPoint": "main",
+            "rttConfig": {
+                "enabled": true,
+                "address": "0x10000000",
+                "decoders": [
+                    {
+                        "port": 0,
+                        "timestamp": true,
+                        "type": "console"
+                    }
+                ]
+            }
         },
         {
             "type": "cortex-debug",
@@ -83,6 +138,17 @@
             "executable": "${workspaceFolder}/target/thumbv6m-none-eabi/debug/examples/uart",
             "interface": "jtag",
             "runToEntryPoint": "main",
+            "rttConfig": {
+                "enabled": true,
+                "address": "0x10000000",
+                "decoders": [
+                    {
+                        "port": 0,
+                        "timestamp": true,
+                        "type": "console"
+                    }
+                ]
+            }
         },
         {
             "type": "cortex-debug",
@@ -96,6 +162,17 @@
             "executable": "${workspaceFolder}/target/thumbv6m-none-eabi/debug/examples/spi",
             "interface": "jtag",
             "runToEntryPoint": "main",
+            "rttConfig": {
+                "enabled": true,
+                "address": "0x10000000",
+                "decoders": [
+                    {
+                        "port": 0,
+                        "timestamp": true,
+                        "type": "console"
+                    }
+                ]
+            }
         },
         {
             "type": "cortex-debug",
@@ -109,11 +186,22 @@
             "executable": "${workspaceFolder}/target/thumbv6m-none-eabi/debug/examples/adt75-temp-sensor",
             "interface": "jtag",
             "runToEntryPoint": "main",
+            "rttConfig": {
+                "enabled": true,
+                "address": "0x10000000",
+                "decoders": [
+                    {
+                        "port": 0,
+                        "timestamp": true,
+                        "type": "console"
+                    }
+                ]
+            }
         },
         {
             "type": "cortex-debug",
             "request": "launch",
-            "name": "Debug Button Blinky RTIC",
+            "name": "Button Blinky RTIC Example",
             "servertype": "jlink",
             "cwd": "${workspaceRoot}",
             "device": "Cortex-M0",
@@ -122,11 +210,22 @@
             "executable": "${workspaceFolder}/target/thumbv6m-none-eabi/debug/examples/blinky-button-rtic",
             "interface": "jtag",
             "runToEntryPoint": "main",
+            "rttConfig": {
+                "enabled": true,
+                "address": "0x10000000",
+                "decoders": [
+                    {
+                        "port": 0,
+                        "timestamp": true,
+                        "type": "console"
+                    }
+                ]
+            }
         },
         {
             "type": "cortex-debug",
             "request": "launch",
-            "name": "Debug PWM",
+            "name": "PWM Example",
             "servertype": "jlink",
             "cwd": "${workspaceRoot}",
             "device": "Cortex-M0",
@@ -135,11 +234,22 @@
             "executable": "${workspaceFolder}/target/thumbv6m-none-eabi/debug/examples/pwm",
             "interface": "jtag",
             "runToEntryPoint": "main",
+            "rttConfig": {
+                "enabled": true,
+                "address": "0x10000000",
+                "decoders": [
+                    {
+                        "port": 0,
+                        "timestamp": true,
+                        "type": "console"
+                    }
+                ]
+            }
         },
         {
             "type": "cortex-debug",
             "request": "launch",
-            "name": "Debug Cascade",
+            "name": "Cascade Example",
             "servertype": "jlink",
             "cwd": "${workspaceRoot}",
             "device": "Cortex-M0",
@@ -148,11 +258,22 @@
             "executable": "${workspaceFolder}/target/thumbv6m-none-eabi/debug/examples/cascade",
             "interface": "jtag",
             "runToEntryPoint": "main",
+            "rttConfig": {
+                "enabled": true,
+                "address": "0x10000000",
+                "decoders": [
+                    {
+                        "port": 0,
+                        "timestamp": true,
+                        "type": "console"
+                    }
+                ]
+            }
         },
         {
             "type": "cortex-debug",
             "request": "launch",
-            "name": "Debug Accelerometer",
+            "name": "Accelerometer Example",
             "servertype": "jlink",
             "cwd": "${workspaceRoot}",
             "device": "Cortex-M0",
@@ -161,6 +282,17 @@
             "executable": "${workspaceFolder}/target/thumbv6m-none-eabi/debug/examples/adxl343-accelerometer",
             "interface": "jtag",
             "runToEntryPoint": "main",
+            "rttConfig": {
+                "enabled": true,
+                "address": "0x10000000",
+                "decoders": [
+                    {
+                        "port": 0,
+                        "timestamp": true,
+                        "type": "console"
+                    }
+                ]
+            }
         },
         {
             "type": "cortex-debug",
@@ -178,7 +310,7 @@
         {
             "type": "cortex-debug",
             "request": "launch",
-            "name": "Debug ADC",
+            "name": "ADC Example",
             "servertype": "jlink",
             "cwd": "${workspaceRoot}",
             "device": "Cortex-M0",
@@ -187,11 +319,22 @@
             "executable": "${workspaceFolder}/target/thumbv6m-none-eabi/debug/examples/max11619-adc",
             "interface": "jtag",
             "runToEntryPoint": "main",
+            "rttConfig": {
+                "enabled": true,
+                "address": "0x10000000",
+                "decoders": [
+                    {
+                        "port": 0,
+                        "timestamp": true,
+                        "type": "console"
+                    }
+                ]
+            }
         },
         {
             "type": "cortex-debug",
             "request": "launch",
-            "name": "Debug UART IRQ",
+            "name": "UART IRQ Example",
             "servertype": "jlink",
             "cwd": "${workspaceRoot}",
             "device": "Cortex-M0",
@@ -200,6 +343,17 @@
             "executable": "${workspaceFolder}/target/thumbv6m-none-eabi/debug/examples/uart-irq-rtic",
             "interface": "jtag",
             "runToEntryPoint": "main",
+            "rttConfig": {
+                "enabled": true,
+                "address": "0x10000000",
+                "decoders": [
+                    {
+                        "port": 0,
+                        "timestamp": true,
+                        "type": "console"
+                    }
+                ]
+            }
         },
     ]
 }

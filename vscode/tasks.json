@@ -21,10 +21,8 @@
             "command": "~/.cargo/bin/cargo", // note: full path to the cargo
             "args": [
                 "build",
-                "-p",
-                "va108xx-hal",
                 "--bin",
-                "tests",
+                "board-tests",
                 "--features",
                 "rt"
             ],
@@ -39,8 +37,6 @@
             "command": "~/.cargo/bin/cargo", // note: full path to the cargo
             "args": [
                 "build",
-                "-p",
-                "va108xx-hal",
                 "--example",
                 "rtt-log",
             ],
@@ -55,8 +51,6 @@
             "command": "~/.cargo/bin/cargo", // note: full path to the cargo
             "args": [
                 "build",
-                "-p",
-                "va108xx-hal",
                 "--example",
                 "timer-ticks",
                 "--features",
@@ -89,8 +83,6 @@
             "command": "~/.cargo/bin/cargo", // note: full path to the cargo
             "args": [
                 "build",
-                "-p",
-                "va108xx-hal",
                 "--example",
                 "spi",
             ],
@@ -105,8 +97,6 @@
             "command": "~/.cargo/bin/cargo", // note: full path to the cargo
             "args": [
                 "build",
-                "-p",
-                "va108xx-hal",
                 "--example",
                 "pwm",
                 "--features",
@@ -123,8 +113,6 @@
             "command": "~/.cargo/bin/cargo", // note: full path to the cargo
             "args": [
                 "build",
-                "-p",
-                "va108xx-hal",
                 "--example",
                 "cascade",
                 "--features",
@@ -141,8 +129,6 @@
             "command": "~/.cargo/bin/cargo", // note: full path to the cargo
             "args": [
                 "build",
-                "-p",
-                "va108xx-hal",
                 "--example",
                 "uart-irq-rtic",
                 "--features",

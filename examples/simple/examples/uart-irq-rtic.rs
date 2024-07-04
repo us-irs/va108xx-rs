@@ -65,7 +65,7 @@ mod app {
 
         let irq_cfg = IrqCfg::new(pac::interrupt::OC3, true, true);
         let (mut irq_uart, _) =
-            uart::Uart::uartb(dp.uartb, (tx, rx), 115200.Hz(), &mut dp.sysconfig, 50.MHz())
+            uart::Uart::new(&mut dp.sysconfig, 50.MHz(), dp.uartb, (tx, rx), 115200.Hz())
                 .into_uart_with_irq(irq_cfg, Some(&mut dp.sysconfig), Some(&mut dp.irqsel))
                 .downgrade();
         irq_uart
