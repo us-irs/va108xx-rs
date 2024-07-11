@@ -11,14 +11,14 @@ variants:
       psel: 0x0
   memory_map:
   - !Ram
-    name: IRAM1
+    name: DRAM
     range:
       start: 0x10000000
       end: 0x10008000
     cores:
     - main
   - !Nvm
-    name: IROM1
+    name: NVM
     range:
       start: 0x0
       end: 0x20000
@@ -30,6 +30,29 @@ variants:
   - va108xx_m95m01_128kb_prog
   - va108xx_mr25h10_1mb_prog
   - va108xx_ttflash_prog
+- name: VA108xx_RAM
+  cores:
+  - name: main
+    type: armv6m
+    core_access_options: !Arm
+      ap: 0
+      psel: 0x0
+  memory_map:
+  - !Ram
+    name: DRAM
+    range:
+      start: 0x10000000
+      end: 0x10008000
+    cores:
+    - main
+  - !Ram
+    name: IRAM
+    range:
+      start: 0x0
+      end: 0x20000
+    is_boot_memory: true
+    cores:
+    - main
 flash_algorithms:
 - name: va108xx_fm25v20a_fram_128kb_prog
   description: VA108_FM25V20A_FRAM_128KB
