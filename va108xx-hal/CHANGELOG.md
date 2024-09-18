@@ -6,6 +6,20 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](http://keepachangelog.com/)
 and this project adheres to [Semantic Versioning](http://semver.org/).
 
+## [unreleased]
+
+## Changed
+
+- Improves `CascardSource` handling and general API when chosing cascade sources.
+- Replaced `utility::unmask_irq` by `enable_interrupt` and `disable_interrupt` API.
+- Improve and fix SPI abstractions. Add new low level interface. The primary SPI constructor now
+  only expects a configuration structure and the transfer configuration needs to be applied in a
+  separate step.
+
+## Fixes
+
+- Fixes for SPI peripheral: Flush implementation was incorrect and should now flush properly.
+
 ## [v0.7.0] 2024-07-04
 
 - Replace `uarta` and `uartb` `Uart` constructors by `new` constructor

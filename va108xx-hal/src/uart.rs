@@ -3,7 +3,7 @@
 //! ## Examples
 //!
 //! - [UART simple example](https://egit.irs.uni-stuttgart.de/rust/va108xx-rs/src/branch/main/examples/simple/examples/uart.rs)
-//! - [UART with IRQ and RTIC](https://egit.irs.uni-stuttgart.de/rust/va108xx-rs/src/branch/main/examples/simple/examples/uart-irq-rtic.rs)
+//! - [UART with IRQ and RTIC](https://egit.irs.uni-stuttgart.de/rust/va108xx-rs/src/branch/va108xx-update-package/examples/rtic/src/bin/uart-rtic.rs)
 use core::{marker::PhantomData, ops::Deref};
 use embedded_hal_nb::serial::Read;
 use fugit::RateExtU32;
@@ -11,13 +11,13 @@ use fugit::RateExtU32;
 pub use crate::IrqCfg;
 use crate::{
     clock::{enable_peripheral_clock, PeripheralClocks},
+    enable_interrupt,
     gpio::pin::{
         AltFunc1, AltFunc2, AltFunc3, Pin, PA16, PA17, PA18, PA19, PA2, PA26, PA27, PA3, PA30,
         PA31, PA8, PA9, PB18, PB19, PB20, PB21, PB22, PB23, PB6, PB7, PB8, PB9,
     },
     pac::{self, uarta as uart_base},
     time::Hertz,
-    utility::unmask_irq,
     PeripheralSelect,
 };
 
@@ -638,7 +638,7 @@ impl Instance for pac::Uartb {
     const PERIPH_SEL: PeripheralSelect = PeripheralSelect::Uart1;
 }
 
-impl<UART: Instance> UartWithIrqBase<UART> {
+impl<Uart: Instance> UartWithIrqBase<Uart> {
     fn init(self, sys_cfg: Option<&mut pac::Sysconfig>, irq_sel: Option<&mut pac::Irqsel>) -> Self {
         if let Some(sys_cfg) = sys_cfg {
             enable_peripheral_clock(sys_cfg, PeripheralClocks::Irqsel)
@@ -646,7 +646,7 @@ impl<UART: Instance> UartWithIrqBase<UART> {
         if let Some(irq_sel) = irq_sel {
             if self.irq_info.irq_cfg.route {
                 irq_sel
-                    .uart0(UART::IDX as usize)
+                    .uart0(Uart::IDX as usize)
                     .write(|w| unsafe { w.bits(self.irq_info.irq_cfg.irq as u32) });
             }
         }
@@ -676,7 +676,9 @@ impl<UART: Instance> UartWithIrqBase<UART> {
         self.uart.enable_tx();
         self.enable_rx_irq_sources(enb_timeout_irq);
         if self.irq_info.irq_cfg.enable {
-            unmask_irq(self.irq_info.irq_cfg.irq);
+            unsafe {
+                enable_interrupt(self.irq_info.irq_cfg.irq);
+            }
         }
         Ok(())
     }
@@ -839,7 +841,7 @@ impl<UART: Instance> UartWithIrqBase<UART> {
         self.irq_info.rx_len = 0;
     }
 
-    pub fn release(self) -> UART {
+    pub fn release(self) -> Uart {
         self.uart.release()
     }
 }

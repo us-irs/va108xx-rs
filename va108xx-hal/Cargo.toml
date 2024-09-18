@@ -19,7 +19,7 @@ embedded-hal-nb = "1"
 embedded-io = "0.6"
 fugit = "0.3"
 typenum = "1"
-defmt = { version = "0.3", optional = true }
+critical-section = "1"
 delegate = "0.12"
 
 [dependencies.va108xx]
@@ -38,9 +38,14 @@ default-features = false
 version = "1.14"
 default-features = false
 
+[dependencies.defmt]
+version = "0.3"
+optional = true
+
 [features]
 default = ["rt"]
 rt = ["va108xx/rt"]
+defmt = ["dep:defmt", "fugit/defmt"]
 
 [package.metadata.docs.rs]
 all-features = true

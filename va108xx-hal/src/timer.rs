@@ -7,6 +7,7 @@
 pub use crate::IrqCfg;
 use crate::{
     clock::{enable_peripheral_clock, PeripheralClocks},
+    enable_interrupt,
     gpio::{
         AltFunc1, AltFunc2, AltFunc3, DynPinId, Pin, PinId, PA0, PA1, PA10, PA11, PA12, PA13, PA14,
         PA15, PA2, PA24, PA25, PA26, PA27, PA28, PA29, PA3, PA30, PA31, PA4, PA5, PA6, PA7, PA8,
@@ -17,10 +18,9 @@ use crate::{
     time::Hertz,
     timer,
     typelevel::Sealed,
-    utility::unmask_irq,
 };
 use core::cell::Cell;
-use cortex_m::interrupt::Mutex;
+use critical_section::Mutex;
 use fugit::RateExtU32;
 
 const IRQ_DST_NONE: u32 = 0xffffffff;
@@ -72,25 +72,46 @@ pub enum CascadeSel {
     Csd2 = 2,
 }
 
+#[derive(Debug, PartialEq, Eq)]
+#[cfg_attr(feature = "defmt", derive(defmt::Format))]
+pub struct InvalidCascadeSourceId;
+
 /// The numbers are the base numbers for bundles like PORTA, PORTB or TIM
 #[derive(Debug, PartialEq, Eq)]
+#[cfg_attr(feature = "defmt", derive(defmt::Format))]
+#[repr(u8)]
 pub enum CascadeSource {
-    PortABase = 0,
-    PortBBase = 32,
-    TimBase = 64,
+    PortA(u8),
+    PortB(u8),
+    Tim(u8),
     RamSbe = 96,
     RamMbe = 97,
     RomSbe = 98,
     RomMbe = 99,
     Txev = 100,
-    ClockDividerBase = 120,
+    ClockDivider(u8),
 }
 
-#[derive(Debug, PartialEq, Eq)]
-pub enum TimerErrors {
-    Canceled,
-    /// Invalid input for Cascade source
-    InvalidCsdSourceInput,
+impl CascadeSource {
+    fn id(&self) -> Result<u8, InvalidCascadeSourceId> {
+        let port_check = |base: u8, id: u8, len: u8| {
+            if id > len - 1 {
+                return Err(InvalidCascadeSourceId);
+            }
+            Ok(base + id)
+        };
+        match self {
+            CascadeSource::PortA(id) => port_check(0, *id, 32),
+            CascadeSource::PortB(id) => port_check(32, *id, 32),
+            CascadeSource::Tim(id) => port_check(64, *id, 24),
+            CascadeSource::RamSbe => Ok(96),
+            CascadeSource::RamMbe => Ok(97),
+            CascadeSource::RomSbe => Ok(98),
+            CascadeSource::RomMbe => Ok(99),
+            CascadeSource::Txev => Ok(100),
+            CascadeSource::ClockDivider(id) => port_check(120, *id, 8),
+        }
+    }
 }
 
 //==================================================================================================
@@ -360,87 +381,24 @@ pub struct CountDownTimer<TIM: ValidTim> {
     listening: bool,
 }
 
-fn enable_tim_clk(syscfg: &mut pac::Sysconfig, idx: u8) {
+#[inline(always)]
+pub fn enable_tim_clk(syscfg: &mut pac::Sysconfig, idx: u8) {
     syscfg
         .tim_clk_enable()
         .modify(|r, w| unsafe { w.bits(r.bits() | (1 << idx)) });
+}
+
+#[inline(always)]
+pub fn disable_tim_clk(syscfg: &mut pac::Sysconfig, idx: u8) {
+    syscfg
+        .tim_clk_enable()
+        .modify(|r, w| unsafe { w.bits(r.bits() & !(1 << idx)) });
 }
 
 unsafe impl<TIM: ValidTim> TimRegInterface for CountDownTimer<TIM> {
     fn tim_id(&self) -> u8 {
         TIM::TIM_ID
     }
-}
-
-macro_rules! csd_sel {
-    ($func_name:ident, $csd_reg:ident) => {
-        /// Configure the Cascade sources
-        pub fn $func_name(
-            &mut self,
-            src: CascadeSource,
-            id: Option<u8>,
-        ) -> Result<(), TimerErrors> {
-            let mut id_num = 0;
-            if let CascadeSource::PortABase
-            | CascadeSource::PortBBase
-            | CascadeSource::ClockDividerBase
-            | CascadeSource::TimBase = src
-            {
-                if id.is_none() {
-                    return Err(TimerErrors::InvalidCsdSourceInput);
-                }
-            }
-            if id.is_some() {
-                id_num = id.unwrap();
-            }
-            match src {
-                CascadeSource::PortABase => {
-                    if id_num > 55 {
-                        return Err(TimerErrors::InvalidCsdSourceInput);
-                    }
-                    self.tim.reg().$csd_reg().write(|w| unsafe {
-                        w.cassel().bits(CascadeSource::PortABase as u8 + id_num)
-                    });
-                    Ok(())
-                }
-                CascadeSource::PortBBase => {
-                    if id_num > 23 {
-                        return Err(TimerErrors::InvalidCsdSourceInput);
-                    }
-                    self.tim.reg().$csd_reg().write(|w| unsafe {
-                        w.cassel().bits(CascadeSource::PortBBase as u8 + id_num)
-                    });
-                    Ok(())
-                }
-                CascadeSource::TimBase => {
-                    if id_num > 23 {
-                        return Err(TimerErrors::InvalidCsdSourceInput);
-                    }
-                    self.tim.reg().$csd_reg().write(|w| unsafe {
-                        w.cassel().bits(CascadeSource::TimBase as u8 + id_num)
-                    });
-                    Ok(())
-                }
-                CascadeSource::ClockDividerBase => {
-                    if id_num > 7 {
-                        return Err(TimerErrors::InvalidCsdSourceInput);
-                    }
-                    self.tim.reg().cascade0().write(|w| unsafe {
-                        w.cassel()
-                            .bits(CascadeSource::ClockDividerBase as u8 + id_num)
-                    });
-                    Ok(())
-                }
-                _ => {
-                    self.tim
-                        .reg()
-                        .$csd_reg()
-                        .write(|w| unsafe { w.cassel().bits(src as u8) });
-                    Ok(())
-                }
-            }
-        }
-    };
 }
 
 impl<TIM: ValidTim> CountDownTimer<TIM> {
@@ -554,18 +512,18 @@ impl<TIM: ValidTim> CountDownTimer<TIM> {
 
     #[inline(always)]
     pub fn enable(&mut self) {
-        self.tim.reg().ctrl().modify(|_, w| w.enable().set_bit());
         if let Some(irq_cfg) = self.irq_cfg {
             self.enable_interrupt();
             if irq_cfg.enable {
-                unmask_irq(irq_cfg.irq);
+                unsafe { enable_interrupt(irq_cfg.irq) };
             }
         }
+        self.tim.reg().enable().write(|w| unsafe { w.bits(1) });
     }
 
     #[inline(always)]
     pub fn disable(&mut self) {
-        self.tim.reg().ctrl().modify(|_, w| w.enable().clear_bit());
+        self.tim.reg().enable().write(|w| unsafe { w.bits(0) });
     }
 
     /// Disable the counter, setting both enable and active bit to 0
@@ -619,9 +577,32 @@ impl<TIM: ValidTim> CountDownTimer<TIM> {
         });
     }
 
-    csd_sel!(cascade_0_source, cascade0);
-    csd_sel!(cascade_1_source, cascade1);
-    csd_sel!(cascade_2_source, cascade2);
+    pub fn cascade_0_source(&mut self, src: CascadeSource) -> Result<(), InvalidCascadeSourceId> {
+        let id = src.id()?;
+        self.tim
+            .reg()
+            .cascade0()
+            .write(|w| unsafe { w.cassel().bits(id) });
+        Ok(())
+    }
+
+    pub fn cascade_1_source(&mut self, src: CascadeSource) -> Result<(), InvalidCascadeSourceId> {
+        let id = src.id()?;
+        self.tim
+            .reg()
+            .cascade1()
+            .write(|w| unsafe { w.cassel().bits(id) });
+        Ok(())
+    }
+
+    pub fn cascade_2_source(&mut self, src: CascadeSource) -> Result<(), InvalidCascadeSourceId> {
+        let id = src.id()?;
+        self.tim
+            .reg()
+            .cascade2()
+            .write(|w| unsafe { w.cassel().bits(id) });
+        Ok(())
+    }
 
     pub fn curr_freq(&self) -> Hertz {
         self.curr_freq
@@ -656,12 +637,13 @@ impl<TIM: ValidTim> CountDownTimer<TIM> {
         }
     }
 
-    pub fn cancel(&mut self) -> Result<(), TimerErrors> {
+    /// Returns [false] if the timer was not active, and true otherwise.
+    pub fn cancel(&mut self) -> bool {
         if !self.tim.reg().ctrl().read().enable().bit_is_set() {
-            return Err(TimerErrors::Canceled);
+            return false;
         }
         self.tim.reg().ctrl().write(|w| w.enable().clear_bit());
-        Ok(())
+        true
     }
 }
 
@@ -747,7 +729,7 @@ pub fn set_up_ms_delay_provider<TIM: ValidTim>(
 /// This function can be called in a specified interrupt handler to increment
 /// the MS counter
 pub fn default_ms_irq_handler() {
-    cortex_m::interrupt::free(|cs| {
+    critical_section::with(|cs| {
         let mut ms = MS_COUNTER.borrow(cs).get();
         ms += 1;
         MS_COUNTER.borrow(cs).set(ms);
@@ -756,7 +738,7 @@ pub fn default_ms_irq_handler() {
 
 /// Get the current MS tick count
 pub fn get_ms_ticks() -> u32 {
-    cortex_m::interrupt::free(|cs| MS_COUNTER.borrow(cs).get())
+    critical_section::with(|cs| MS_COUNTER.borrow(cs).get())
 }
 
 //==================================================================================================

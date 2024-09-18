@@ -16,7 +16,7 @@ use va108xx_hal::{
     pac::{self, interrupt},
     prelude::*,
     pwm::{default_ms_irq_handler, set_up_ms_tick},
-    spi::{self, Spi, SpiBase, TransferConfig},
+    spi::{self, Spi, SpiBase, SpiClkConfig, TransferConfigWithHwcs},
     IrqCfg,
 };
 
@@ -24,8 +24,7 @@ use va108xx_hal::{
 pub enum ExampleSelect {
     // Enter loopback mode. It is not necessary to tie MOSI/MISO together for this
     Loopback,
-    // Send a test buffer and print everything received
-    TestBuffer,
+    MosiMisoTiedTogetherManually,
 }
 
 #[derive(PartialEq, Debug)]
@@ -55,6 +54,8 @@ fn main() -> ! {
         dp.tim0,
     );
 
+    let spi_clk_cfg = SpiClkConfig::from_clk(50.MHz(), SPI_SPEED_KHZ.kHz())
+        .expect("creating SPI clock config failed");
     let spia_ref: RefCell<Option<SpiBase<pac::Spia, u8>>> = RefCell::new(None);
     let spib_ref: RefCell<Option<SpiBase<pac::Spib, u8>>> = RefCell::new(None);
     let pinsa = PinsA::new(&mut dp.sysconfig, None, dp.porta);
@@ -79,7 +80,6 @@ fn main() -> ! {
                 dp.spia,
                 (sck, miso, mosi),
                 spi_cfg,
-                None,
             );
             spia.set_fill_word(FILL_WORD);
             spia_ref.borrow_mut().replace(spia.downgrade());
@@ -96,7 +96,6 @@ fn main() -> ! {
                 dp.spia,
                 (sck, miso, mosi),
                 spi_cfg,
-                None,
             );
             spia.set_fill_word(FILL_WORD);
             spia_ref.borrow_mut().replace(spia.downgrade());
@@ -113,7 +112,6 @@ fn main() -> ! {
                 dp.spib,
                 (sck, miso, mosi),
                 spi_cfg,
-                None,
             );
             spib.set_fill_word(FILL_WORD);
             spib_ref.borrow_mut().replace(spib.downgrade());
@@ -123,17 +121,21 @@ fn main() -> ! {
     match SPI_BUS_SEL {
         SpiBusSelect::SpiAPortA | SpiBusSelect::SpiAPortB => {
             if let Some(ref mut spi) = *spia_ref.borrow_mut() {
-                let transfer_cfg =
-                    TransferConfig::new_no_hw_cs(SPI_SPEED_KHZ.kHz(), SPI_MODE, BLOCKMODE, false);
+                let transfer_cfg = TransferConfigWithHwcs::new_no_hw_cs(
+                    Some(spi_clk_cfg),
+                    Some(SPI_MODE),
+                    BLOCKMODE,
+                    false,
+                );
                 spi.cfg_transfer(&transfer_cfg);
             }
         }
         SpiBusSelect::SpiBPortB => {
             if let Some(ref mut spi) = *spib_ref.borrow_mut() {
                 let hw_cs_pin = pinsb.pb2.into_funsel_1();
-                let transfer_cfg = TransferConfig::new(
-                    SPI_SPEED_KHZ.kHz(),
-                    SPI_MODE,
+                let transfer_cfg = TransferConfigWithHwcs::new(
+                    Some(spi_clk_cfg),
+                    Some(SPI_MODE),
                     Some(hw_cs_pin),
                     BLOCKMODE,
                     false,
@@ -149,92 +151,64 @@ fn main() -> ! {
         match SPI_BUS_SEL {
             SpiBusSelect::SpiAPortA | SpiBusSelect::SpiAPortB => {
                 if let Some(ref mut spi) = *spia_ref.borrow_mut() {
-                    if EXAMPLE_SEL == ExampleSelect::Loopback {
-                        // Can't really verify correct reply here.
-                        spi.write(&[0x42]).expect("write failed");
-                        // Because of the loopback mode, we should get back the fill word here.
-                        spi.read(&mut reply_buf[0..1]).unwrap();
-                        assert_eq!(reply_buf[0], FILL_WORD);
-                        delay.delay_ms(500_u32);
+                    // Can't really verify correct reply here.
+                    spi.write(&[0x42]).expect("write failed");
+                    // Because of the loopback mode, we should get back the fill word here.
+                    spi.read(&mut reply_buf[0..1]).unwrap();
+                    assert_eq!(reply_buf[0], FILL_WORD);
+                    delay.delay_ms(500_u32);
 
-                        let tx_buf: [u8; 3] = [0x01, 0x02, 0x03];
-                        spi.transfer(&mut reply_buf[0..3], &tx_buf).unwrap();
-                        assert_eq!(tx_buf, reply_buf[0..3]);
-                        rprintln!(
-                            "Received reply: {}, {}, {}",
-                            reply_buf[0],
-                            reply_buf[1],
-                            reply_buf[2]
-                        );
-                        delay.delay_ms(500_u32);
+                    let tx_buf: [u8; 3] = [0x01, 0x02, 0x03];
+                    spi.transfer(&mut reply_buf[0..3], &tx_buf).unwrap();
+                    assert_eq!(tx_buf, reply_buf[0..3]);
+                    rprintln!(
+                        "Received reply: {}, {}, {}",
+                        reply_buf[0],
+                        reply_buf[1],
+                        reply_buf[2]
+                    );
+                    delay.delay_ms(500_u32);
 
-                        let mut tx_rx_buf: [u8; 3] = [0x03, 0x02, 0x01];
-                        spi.transfer_in_place(&mut tx_rx_buf).unwrap();
-                        rprintln!(
-                            "Received reply: {}, {}, {}",
-                            tx_rx_buf[0],
-                            tx_rx_buf[1],
-                            tx_rx_buf[2]
-                        );
-                        assert_eq!(&tx_rx_buf[0..3], &[0x03, 0x02, 0x01]);
-                    } else {
-                        let send_buf: [u8; 3] = [0x01, 0x02, 0x03];
-                        spi.transfer(&mut reply_buf[0..3], &send_buf).unwrap();
-                        rprintln!(
-                            "Received reply: {}, {}, {}",
-                            reply_buf[0],
-                            reply_buf[1],
-                            reply_buf[2]
-                        );
-                        delay.delay_ms(1000_u32);
-                    }
+                    let mut tx_rx_buf: [u8; 3] = [0x03, 0x02, 0x01];
+                    spi.transfer_in_place(&mut tx_rx_buf).unwrap();
+                    rprintln!(
+                        "Received reply: {}, {}, {}",
+                        tx_rx_buf[0],
+                        tx_rx_buf[1],
+                        tx_rx_buf[2]
+                    );
+                    assert_eq!(&tx_rx_buf[0..3], &[0x03, 0x02, 0x01]);
                 }
             }
             SpiBusSelect::SpiBPortB => {
                 if let Some(ref mut spi) = *spib_ref.borrow_mut() {
-                    if EXAMPLE_SEL == ExampleSelect::Loopback {
-                        // Can't really verify correct reply here.
-                        spi.write(&[0x42]).expect("write failed");
-                        // Need small delay.. otherwise we will read back the sent byte (which we don't want here).
-                        // The write function will return as soon as all bytes were shifted out, ignoring the
-                        // reply bytes.
-                        delay.delay_us(50);
-                        // Because of the loopback mode, we should get back the fill word here.
-                        spi.read(&mut reply_buf[0..1]).unwrap();
-                        assert_eq!(reply_buf[0], FILL_WORD);
-                        delay.delay_ms(500_u32);
+                    // Can't really verify correct reply here.
+                    spi.write(&[0x42]).expect("write failed");
+                    // Because of the loopback mode, we should get back the fill word here.
+                    spi.read(&mut reply_buf[0..1]).unwrap();
+                    assert_eq!(reply_buf[0], FILL_WORD);
+                    delay.delay_ms(500_u32);
 
-                        let tx_buf: [u8; 3] = [0x01, 0x02, 0x03];
-                        spi.transfer(&mut reply_buf[0..3], &tx_buf).unwrap();
-                        assert_eq!(tx_buf, reply_buf[0..3]);
-                        rprintln!(
-                            "Received reply: {}, {}, {}",
-                            reply_buf[0],
-                            reply_buf[1],
-                            reply_buf[2]
-                        );
-                        delay.delay_ms(500_u32);
+                    let tx_buf: [u8; 3] = [0x01, 0x02, 0x03];
+                    spi.transfer(&mut reply_buf[0..3], &tx_buf).unwrap();
+                    assert_eq!(tx_buf, reply_buf[0..3]);
+                    rprintln!(
+                        "Received reply: {}, {}, {}",
+                        reply_buf[0],
+                        reply_buf[1],
+                        reply_buf[2]
+                    );
+                    delay.delay_ms(500_u32);
 
-                        let mut tx_rx_buf: [u8; 3] = [0x03, 0x02, 0x01];
-                        spi.transfer_in_place(&mut tx_rx_buf).unwrap();
-                        rprintln!(
-                            "Received reply: {}, {}, {}",
-                            tx_rx_buf[0],
-                            tx_rx_buf[1],
-                            tx_rx_buf[2]
-                        );
-                        assert_eq!(&tx_rx_buf[0..3], &[0x03, 0x02, 0x01]);
-                    } else {
-                        let send_buf: [u8; 3] = [0x01, 0x02, 0x03];
-                        spi.transfer(&mut reply_buf[0..3], &send_buf).unwrap();
-                        rprintln!(
-                            "Received reply: {}, {}, {}",
-                            reply_buf[0],
-                            reply_buf[1],
-                            reply_buf[2]
-                        );
-                        delay.delay_ms(1000_u32);
-                    }
+                    let mut tx_rx_buf: [u8; 3] = [0x03, 0x02, 0x01];
+                    spi.transfer_in_place(&mut tx_rx_buf).unwrap();
+                    rprintln!(
+                        "Received reply: {}, {}, {}",
+                        tx_rx_buf[0],
+                        tx_rx_buf[1],
+                        tx_rx_buf[2]
+                    );
+                    assert_eq!(&tx_rx_buf[0..3], &[0x03, 0x02, 0x01]);
                 }
             }
         }

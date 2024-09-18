@@ -15,7 +15,6 @@ pub mod time;
 pub mod timer;
 pub mod typelevel;
 pub mod uart;
-pub mod utility;
 
 #[derive(Debug, Eq, Copy, Clone, PartialEq)]
 pub enum FunSel {
@@ -97,4 +96,22 @@ pub fn port_mux(
             Ok(())
         }
     }
+}
+
+/// Enable a specific interrupt using the NVIC peripheral.
+///
+/// # Safety
+///
+/// This function is `unsafe` because it can break mask-based critical sections.
+#[inline]
+pub unsafe fn enable_interrupt(irq: pac::Interrupt) {
+    unsafe {
+        cortex_m::peripheral::NVIC::unmask(irq);
+    }
+}
+
+/// Disable a specific interrupt using the NVIC peripheral.
+#[inline]
+pub fn disable_interrupt(irq: pac::Interrupt) {
+    cortex_m::peripheral::NVIC::mask(irq);
 }

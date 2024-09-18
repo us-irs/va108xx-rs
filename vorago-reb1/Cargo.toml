@@ -14,12 +14,15 @@ categories = ["aerospace", "embedded", "no-std", "hardware-support"]
 cortex-m = { version = "0.7", features = ["critical-section-single-core"] }
 cortex-m-rt = "0.7"
 embedded-hal = "1"
+nb = "1"
+bitfield = "0.17"
 
 [dependencies.max116xx-10bit]
 version = "0.3"
 
 [dependencies.va108xx-hal]
-version = "0.7"
+version = ">=0.7, <0.8"
+path = "../va108xx-hal"
 features = ["rt"]
 
 [features]
@@ -28,20 +31,10 @@ rt = ["va108xx-hal/rt"]
 [dev-dependencies]
 panic-halt = "0.2"
 nb = "1"
-
-[dev-dependencies.rtt-target]
-version = "0.5"
-
-[dev-dependencies.panic-rtt-target]
-version = "0.1"
-
-[dev-dependencies.rtic]
-version = "2"
-features = ["thumbv6-backend"]
-
-[dev-dependencies.rtic-monotonics]
-version = "1"
-features = ["cortex-m-systick"]
+rtt-target = "0.5"
+panic-rtt-target = "0.1"
+embedded-hal-bus = "0.2"
+dummy-pin = "1"
 
 [package.metadata.docs.rs]
 all-features = true

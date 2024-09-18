@@ -14,14 +14,13 @@
 mod app {
     use embedded_io::Write;
     use panic_rtt_target as _;
-    use rtic_monotonics::systick::Systick;
+    use rtic_example::SYSCLK_FREQ;
     use rtic_sync::make_channel;
     use rtt_target::{rprintln, rtt_init_print};
     use va108xx_hal::{
         gpio::PinsB,
         pac,
         prelude::*,
-        time::Hertz,
         uart::{self, IrqCfg, IrqResult, UartWithIrqBase},
     };
 
@@ -44,19 +43,14 @@ mod app {
         pub timeout: bool,
     }
 
+    rtic_monotonics::systick_monotonic!(Mono, 1_000);
+
     #[init]
     fn init(cx: init::Context) -> (Shared, Local) {
         rtt_init_print!();
-        //set_print_channel(channels.up.0);
         rprintln!("-- VA108xx UART IRQ example application--");
 
-        // Initialize the systick interrupt & obtain the token to prove that we did
-        let systick_mono_token = rtic_monotonics::create_systick_token!();
-        Systick::start(
-            cx.core.SYST,
-            Hertz::from(50.MHz()).raw(),
-            systick_mono_token,
-        );
+        Mono::start(cx.core.SYST, SYSCLK_FREQ.raw());
 
         let mut dp = cx.device;
         let gpiob = PinsB::new(&mut dp.sysconfig, Some(dp.ioconfig), dp.portb);
@@ -74,7 +68,6 @@ mod app {
 
         let (rx_info_tx, rx_info_rx) = make_channel!(RxInfo, 3);
         let rx_buf: [u8; 64] = [0; 64];
-        //reply_handler::spawn().expect("spawning reply handler failed");
         (
             Shared { irq_uart, rx_buf },
             Local {
@@ -112,8 +105,8 @@ mod app {
                             .expect("Read operation init failed");
 
                         let mut end_idx = 0;
-                        for idx in 0..rx_buf.len() {
-                            if (rx_buf[idx] as char) == '\n' {
+                        for (idx, val) in rx_buf.iter().enumerate() {
+                            if (*val as char) == '\n' {
                                 end_idx = idx;
                                 break;
                             }

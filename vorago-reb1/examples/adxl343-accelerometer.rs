@@ -5,15 +5,16 @@
 #![no_main]
 #![no_std]
 use cortex_m_rt::entry;
-use embedded_hal::spi::SpiBus;
+use embedded_hal::spi::{SpiBus, MODE_3};
 use embedded_hal::{delay::DelayNs, digital::OutputPin};
 use panic_rtt_target as _;
 use rtt_target::{rprintln, rtt_init_print};
+use va108xx_hal::spi::SpiClkConfig;
 use va108xx_hal::{
     gpio::PinsA,
     pac,
     prelude::*,
-    spi::{Spi, SpiConfig, TransferConfig},
+    spi::{Spi, SpiConfig},
     timer::set_up_ms_delay_provider,
 };
 
@@ -31,7 +32,6 @@ fn main() -> ! {
     let mut dp = pac::Peripherals::take().unwrap();
     let mut delay = set_up_ms_delay_provider(&mut dp.sysconfig, 50.MHz(), dp.tim0);
     let pinsa = PinsA::new(&mut dp.sysconfig, None, dp.porta);
-    let spi_cfg = SpiConfig::default();
     let (sck, mosi, miso) = (
         pinsa.pa20.into_funsel_2(),
         pinsa.pa19.into_funsel_2(),
@@ -45,21 +45,20 @@ fn main() -> ! {
         .set_high()
         .expect("Setting ADC chip select high failed");
 
-    let transfer_cfg = TransferConfig::new(
-        1.MHz(),
-        embedded_hal::spi::MODE_3,
-        Some(cs_pin),
-        false,
-        true,
-    );
+    let spi_cfg = SpiConfig::default()
+        .clk_cfg(
+            SpiClkConfig::from_clk(50.MHz(), 1.MHz()).expect("creating SPI clock config failed"),
+        )
+        .mode(MODE_3)
+        .slave_output_disable(true);
     let mut spi = Spi::new(
         &mut dp.sysconfig,
         50.MHz(),
         dp.spib,
         (sck, miso, mosi),
         spi_cfg,
-        Some(&transfer_cfg.downgrade()),
     );
+    spi.cfg_hw_cs_with_pin(&cs_pin);
 
     let mut tx_rx_buf: [u8; 3] = [0; 3];
     tx_rx_buf[0] = READ_MASK | DEVID_REG;
