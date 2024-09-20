@@ -67,8 +67,6 @@
             "command": "~/.cargo/bin/cargo", // note: full path to the cargo
             "args": [
                 "build",
-                "-p",
-                "va108xx-hal",
                 "--example",
                 "uart",
             ],
@@ -129,10 +127,8 @@
             "command": "~/.cargo/bin/cargo", // note: full path to the cargo
             "args": [
                 "build",
-                "--example",
-                "uart-irq-rtic",
-                "--features",
-                "rt"
+                "--bin",
+                "uart-rtic",
             ],
             "group": {
                 "kind": "build",
@@ -158,8 +154,6 @@
             "command": "~/.cargo/bin/cargo", // note: full path to the cargo
             "args": [
                 "build",
-                "-p",
-                "vorago-reb1",
                 "--example",
                 "blinky-leds",
             ],
@@ -174,8 +168,6 @@
             "command": "~/.cargo/bin/cargo", // note: full path to the cargo
             "args": [
                 "build",
-                "-p",
-                "vorago-reb1",
                 "--example",
                 "blinky-button-irq",
             ],
@@ -190,8 +182,6 @@
             "command": "~/.cargo/bin/cargo", // note: full path to the cargo
             "args": [
                 "build",
-                "-p",
-                "vorago-reb1",
                 "--example",
                 "adt75-temp-sensor",
             ],
@@ -206,8 +196,6 @@
             "command": "~/.cargo/bin/cargo", // note: full path to the cargo
             "args": [
                 "build",
-                "-p",
-                "vorago-reb1",
                 "--example",
                 "blinky-button-rtic",
             ],
@@ -222,8 +210,6 @@
             "command": "~/.cargo/bin/cargo", // note: full path to the cargo
             "args": [
                 "build",
-                "-p",
-                "vorago-reb1",
                 "--example",
                 "adxl343-accelerometer"
             ],
@@ -238,8 +224,6 @@
             "command": "~/.cargo/bin/cargo", // note: full path to the cargo
             "args": [
                 "build",
-                "-p",
-                "vorago-reb1",
                 "--example",
                 "max11619-adc",
             ],
@@ -247,6 +231,40 @@
                 "kind": "build",
                 "isDefault": true
             }
+        },
+        {
+            "label": "reb1-nvm",
+            "type": "shell",
+            "command": "~/.cargo/bin/cargo", // note: full path to the cargo
+            "args": [
+                "build",
+                "--example",
+                "nvm",
+            ],
+            "group": {
+                "kind": "build",
+                "isDefault": true
+            }
+        },
+        {
+            "label": "rtic-example",
+            "type": "shell",
+            "command": "~/.cargo/bin/cargo", // note: full path to the cargo
+            "args": [
+                "build",
+                "--bin",
+                "rtic-example",
+            ],
+        },
+        {
+            "label": "embassy-example",
+            "type": "shell",
+            "command": "~/.cargo/bin/cargo", // note: full path to the cargo
+            "args": [
+                "build",
+                "--bin",
+                "embassy-example",
+            ],
         },
     ]
 }

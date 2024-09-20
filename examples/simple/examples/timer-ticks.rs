@@ -3,8 +3,8 @@
 #![no_std]
 
 use core::cell::Cell;
-use cortex_m::interrupt::Mutex;
 use cortex_m_rt::entry;
+use critical_section::Mutex;
 use panic_rtt_target as _;
 use rtt_target::{rprintln, rtt_init_print};
 use va108xx_hal::{
@@ -83,11 +83,12 @@ fn main() -> ! {
         }
     }
     loop {
-        let current_ms = cortex_m::interrupt::free(|cs| MS_COUNTER.borrow(cs).get());
+        let current_ms = critical_section::with(|cs| MS_COUNTER.borrow(cs).get());
         if current_ms - last_ms >= 1000 {
-            last_ms = current_ms;
+            // To prevent drift.
+            last_ms += 1000;
             rprintln!("MS counter: {}", current_ms);
-            let second = cortex_m::interrupt::free(|cs| SEC_COUNTER.borrow(cs).get());
+            let second = critical_section::with(|cs| SEC_COUNTER.borrow(cs).get());
             rprintln!("Second counter: {}", second);
         }
         cortex_m::asm::delay(10000);
@@ -110,7 +111,7 @@ fn OC0() {
 #[interrupt]
 #[allow(non_snake_case)]
 fn OC1() {
-    cortex_m::interrupt::free(|cs| {
+    critical_section::with(|cs| {
         let mut sec = SEC_COUNTER.borrow(cs).get();
         sec += 1;
         SEC_COUNTER.borrow(cs).set(sec);

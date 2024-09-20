@@ -19,9 +19,13 @@ This workspace contains the following released crates:
 
 It also contains the following helper crates:
 
-- The `board-tests` contains an application which can be used to test the libraries on the
-  board.
-- The `examples` crates contains various example applications for the HAL and the PAC.
+- The [`board-tests`](https://egit.irs.uni-stuttgart.de/rust/va108xx-rs/src/branch/main/board-tests)
+  contains an application which can be used to test the libraries on the board.
+- The [`examples`](https://egit.irs.uni-stuttgart.de/rust/va108xx-rs/src/branch/main/examples)
+  folder contains various example applications crates using the HAL and the PAC.
+  This folder also contains dedicated example applications using the
+  [`RTIC`](https://rtic.rs/2/book/en/) and [`embassy`](https://github.com/embassy-rs/embassy)
+  native Rust RTOSes.
 
 ## Using the `.cargo/config.toml` file
 
@@ -94,6 +98,8 @@ example.
 
 Assuming a working debug connection to your VA108xx board, you can debug using VS Code with
 the [`Cortex-Debug` plugin](https://marketplace.visualstudio.com/items?itemName=marus25.cortex-debug).
+Please make sure that [`objdump-multiarch` and `nm-multiarch`](https://forums.raspberrypi.com/viewtopic.php?t=333146)
+are installed as well.
 
 Some sample configuration files for VS code were provided and can be used by running
 `cp -rT vscode .vscode` like specified above. After that, you can use `Run and Debug`
@@ -108,4 +114,5 @@ configuration variables in your `settings.json`:
 - `"cortex-debug.gdbPath.osx"`
 
 The provided VS Code configurations also provide an integrated RTT logger, which you can access
-via the terminal at `RTT Ch:0 console`.
+via the terminal at `RTT Ch:0 console`. In order for the RTT block address detection to
+work properly, `objdump-multiarch` and `nm-multiarch` need to be installed.

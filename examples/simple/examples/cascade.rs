@@ -48,7 +48,7 @@ fn main() -> ! {
     let mut cascade_target_1 =
         CountDownTimer::new(&mut dp.sysconfig, 50.MHz(), dp.tim4).auto_deactivate(true);
     cascade_target_1
-        .cascade_0_source(CascadeSource::TimBase, Some(3))
+        .cascade_0_source(CascadeSource::Tim(3))
         .expect("Configuring cascade source for TIM4 failed");
     let mut csd_cfg = CascadeCtrl {
         enb_start_src_csd0: true,
@@ -75,7 +75,7 @@ fn main() -> ! {
         CountDownTimer::new(&mut dp.sysconfig, 50.MHz(), dp.tim5).auto_deactivate(true);
     // Set TIM4 as cascade source
     cascade_target_2
-        .cascade_1_source(CascadeSource::TimBase, Some(4))
+        .cascade_1_source(CascadeSource::Tim(4))
         .expect("Configuring cascade source for TIM5 failed");
 
     csd_cfg = CascadeCtrl::default();

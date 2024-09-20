@@ -9,19 +9,19 @@ use core::convert::Infallible;
 
 use cortex_m_rt::entry;
 use embedded_hal::digital::OutputPin;
-use embedded_hal::spi::{SpiBus, SpiDevice};
+use embedded_hal::spi::{SpiBus, SpiDevice, MODE_0};
 use embedded_hal::{delay::DelayNs, spi};
 use max116xx_10bit::VoltageRefMode;
 use max116xx_10bit::{AveragingConversions, AveragingResults};
 use panic_rtt_target as _;
 use rtt_target::{rprintln, rtt_init_print};
-use va108xx_hal::spi::{NoneT, OptionalHwCs};
+use va108xx_hal::spi::{OptionalHwCs, SpiClkConfig};
 use va108xx_hal::timer::CountDownTimer;
 use va108xx_hal::{
     gpio::PinsA,
     pac::{self, interrupt},
     prelude::*,
-    spi::{Spi, SpiBase, SpiConfig, TransferConfig},
+    spi::{Spi, SpiBase, SpiConfig},
     timer::{default_ms_irq_handler, set_up_ms_tick, DelayMs, IrqCfg},
 };
 use va108xx_hal::{port_mux, FunSel, PortSel};
@@ -103,6 +103,8 @@ impl<Delay: DelayNs, HwCs: OptionalHwCs<pac::Spib>> SpiDevice for SpiWithHwCs<De
     }
 }
 
+const SYS_CLK: Hertz = Hertz::from_raw(50_000_000);
+
 #[entry]
 fn main() -> ! {
     rtt_init_print!();
@@ -113,7 +115,7 @@ fn main() -> ! {
         IrqCfg::new(pac::Interrupt::OC0, true, true),
         &mut dp.sysconfig,
         Some(&mut dp.irqsel),
-        50.MHz(),
+        SYS_CLK,
         dp.tim0,
     );
     let delay = DelayMs::new(tim0).unwrap();
@@ -122,7 +124,10 @@ fn main() -> ! {
     }
 
     let pinsa = PinsA::new(&mut dp.sysconfig, None, dp.porta);
-    let spi_cfg = SpiConfig::default();
+    let spi_cfg = SpiConfig::default()
+        .clk_cfg(SpiClkConfig::from_clk(SYS_CLK, 3.MHz()).unwrap())
+        .mode(MODE_0)
+        .blockmode(true);
     let (sck, mosi, miso) = (
         pinsa.pa20.into_funsel_2(),
         pinsa.pa19.into_funsel_2(),
@@ -141,14 +146,12 @@ fn main() -> ! {
         .set_high()
         .expect("Setting accelerometer chip select high failed");
 
-    let transfer_cfg = TransferConfig::<NoneT>::new(3.MHz(), spi::MODE_0, None, true, false);
     let spi = Spi::new(
         &mut dp.sysconfig,
         50.MHz(),
         dp.spib,
         (sck, miso, mosi),
         spi_cfg,
-        Some(&transfer_cfg.downgrade()),
     )
     .downgrade();
     let delay_provider = CountDownTimer::new(&mut dp.sysconfig, 50.MHz(), dp.tim1);

@@ -5,7 +5,7 @@
 #[rtic::app(device = pac)]
 mod app {
     use panic_rtt_target as _;
-    use rtic_monotonics::systick::Systick;
+    use rtic_example::SYSCLK_FREQ;
     use rtt_target::{rprintln, rtt_init_default, set_print_channel};
     use va108xx_hal::{
         clock::{set_clk_div_register, FilterClkSel},
@@ -16,6 +16,8 @@ mod app {
     };
     use vorago_reb1::button::Button;
     use vorago_reb1::leds::Leds;
+
+    rtic_monotonics::systick_monotonic!(Mono, 1_000);
 
     #[derive(Debug, PartialEq)]
     pub enum PressMode {
@@ -44,17 +46,11 @@ mod app {
     struct Shared {}
 
     #[init]
-    fn init(ctx: init::Context) -> (Shared, Local) {
+    fn init(cx: init::Context) -> (Shared, Local) {
         let channels = rtt_init_default!();
         set_print_channel(channels.up.0);
         rprintln!("-- Vorago Button IRQ Example --");
-        // Initialize the systick interrupt & obtain the token to prove that we did
-        let systick_mono_token = rtic_monotonics::create_systick_token!();
-        Systick::start(
-            ctx.core.SYST,
-            Hertz::from(50.MHz()).raw(),
-            systick_mono_token,
-        );
+        Mono::start(cx.core.SYST, SYSCLK_FREQ.raw());
 
         let mode = match CFG_MODE {
             // Ask mode from user via RTT
@@ -64,7 +60,7 @@ mod app {
         };
         rprintln!("Using {:?} mode", mode);
 
-        let mut dp = ctx.device;
+        let mut dp = cx.device;
         let pinsa = PinsA::new(&mut dp.sysconfig, Some(dp.ioconfig), dp.porta);
         let edge_irq = match mode {
             PressMode::Toggle => InterruptEdge::HighToLow,
@@ -117,12 +113,10 @@ mod app {
         let mode = cx.local.mode;
         if *mode == PressMode::Toggle {
             leds[0].toggle();
+        } else if button.released() {
+            leds[0].off();
         } else {
-            if button.released() {
-                leds[0].off();
-            } else {
-                leds[0].on();
-            }
+            leds[0].on();
         }
     }
 
@@ -138,14 +132,11 @@ mod app {
         let mut read;
         loop {
             read = down_channel.read(&mut read_buf);
-            for i in 0..read {
-                let val = read_buf[i] as char;
-                if val == '0' || val == '1' {
-                    return if val == '0' {
-                        PressMode::Toggle
-                    } else {
-                        PressMode::Keep
-                    };
+            for &byte in &read_buf[..read] {
+                match byte as char {
+                    '0' => return PressMode::Toggle,
+                    '1' => return PressMode::Keep,
+                    _ => continue, // Ignore other characters
                 }
             }
         }

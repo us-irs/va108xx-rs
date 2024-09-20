@@ -20,7 +20,7 @@
             "runToEntryPoint": "main",
             "rttConfig": {
                 "enabled": true,
-                "address": "0x10000000",
+                "address": "auto",
                 "decoders": [
                     {
                         "port": 0,
@@ -44,7 +44,7 @@
             "runToEntryPoint": "main",
             "rttConfig": {
                 "enabled": true,
-                "address": "0x10000000",
+                "address": "auto",
                 "decoders": [
                     {
                         "port": 0,
@@ -68,7 +68,7 @@
             "runToEntryPoint": "main",
             "rttConfig": {
                 "enabled": true,
-                "address": "0x10000000",
+                "address": "auto",
                 "decoders": [
                     {
                         "port": 0,
@@ -92,7 +92,7 @@
             "runToEntryPoint": "main",
             "rttConfig": {
                 "enabled": true,
-                "address": "0x10000000",
+                "address": "auto",
                 "decoders": [
                     {
                         "port": 0,
@@ -116,7 +116,7 @@
             "runToEntryPoint": "main",
             "rttConfig": {
                 "enabled": true,
-                "address": "0x10000000",
+                "address": "auto",
                 "decoders": [
                     {
                         "port": 0,
@@ -129,7 +129,7 @@
         {
             "type": "cortex-debug",
             "request": "launch",
-            "name": "Debug UART",
+            "name": "UART Example",
             "servertype": "jlink",
             "cwd": "${workspaceRoot}",
             "device": "Cortex-M0",
@@ -140,7 +140,7 @@
             "runToEntryPoint": "main",
             "rttConfig": {
                 "enabled": true,
-                "address": "0x10000000",
+                "address": "auto",
                 "decoders": [
                     {
                         "port": 0,
@@ -164,7 +164,7 @@
             "runToEntryPoint": "main",
             "rttConfig": {
                 "enabled": true,
-                "address": "0x10000000",
+                "address": "auto",
                 "decoders": [
                     {
                         "port": 0,
@@ -188,7 +188,7 @@
             "runToEntryPoint": "main",
             "rttConfig": {
                 "enabled": true,
-                "address": "0x10000000",
+                "address": "auto",
                 "decoders": [
                     {
                         "port": 0,
@@ -212,7 +212,7 @@
             "runToEntryPoint": "main",
             "rttConfig": {
                 "enabled": true,
-                "address": "0x10000000",
+                "address": "auto",
                 "decoders": [
                     {
                         "port": 0,
@@ -236,7 +236,7 @@
             "runToEntryPoint": "main",
             "rttConfig": {
                 "enabled": true,
-                "address": "0x10000000",
+                "address": "auto",
                 "decoders": [
                     {
                         "port": 0,
@@ -284,7 +284,7 @@
             "runToEntryPoint": "main",
             "rttConfig": {
                 "enabled": true,
-                "address": "0x10000000",
+                "address": "auto",
                 "decoders": [
                     {
                         "port": 0,
@@ -321,7 +321,7 @@
             "runToEntryPoint": "main",
             "rttConfig": {
                 "enabled": true,
-                "address": "0x10000000",
+                "address": "auto",
                 "decoders": [
                     {
                         "port": 0,
@@ -340,12 +340,84 @@
             "device": "Cortex-M0",
             "svdFile": "./va108xx/svd/va108xx.svd.patched",
             "preLaunchTask": "rust: cargo build uart irq",
-            "executable": "${workspaceFolder}/target/thumbv6m-none-eabi/debug/examples/uart-irq-rtic",
+            "executable": "${workspaceFolder}/target/thumbv6m-none-eabi/debug/uart-rtic",
             "interface": "jtag",
             "runToEntryPoint": "main",
             "rttConfig": {
                 "enabled": true,
-                "address": "0x10000000",
+                "address": "auto",
+                "decoders": [
+                    {
+                        "port": 0,
+                        "timestamp": true,
+                        "type": "console"
+                    }
+                ]
+            }
+        },
+        {
+            "type": "cortex-debug",
+            "request": "launch",
+            "name": "REB1 NVM Example",
+            "servertype": "jlink",
+            "cwd": "${workspaceRoot}",
+            "device": "Cortex-M0",
+            "svdFile": "./va108xx/svd/va108xx.svd.patched",
+            "preLaunchTask": "reb1-nvm",
+            "executable": "${workspaceFolder}/target/thumbv6m-none-eabi/debug/examples/nvm",
+            "interface": "jtag",
+            "runToEntryPoint": "main",
+            "rttConfig": {
+                "enabled": true,
+                "address": "auto",
+                "decoders": [
+                    {
+                        "port": 0,
+                        "timestamp": true,
+                        "type": "console"
+                    }
+                ]
+            }
+        },
+        {
+            "type": "cortex-debug",
+            "request": "launch",
+            "name": "RTIC Example",
+            "servertype": "jlink",
+            "cwd": "${workspaceRoot}",
+            "device": "Cortex-M0",
+            "svdFile": "./va108xx/svd/va108xx.svd.patched",
+            "preLaunchTask": "rtic-example",
+            "executable": "${workspaceFolder}/target/thumbv6m-none-eabi/debug/rtic-example",
+            "interface": "jtag",
+            "runToEntryPoint": "main",
+            "rttConfig": {
+                "enabled": true,
+                "address": "auto",
+                "decoders": [
+                    {
+                        "port": 0,
+                        "timestamp": true,
+                        "type": "console"
+                    }
+                ]
+            }
+        },
+        {
+            "type": "cortex-debug",
+            "request": "launch",
+            "name": "Embassy Example",
+            "servertype": "jlink",
+            "cwd": "${workspaceRoot}",
+            "device": "Cortex-M0",
+            "svdFile": "./va108xx/svd/va108xx.svd.patched",
+            "preLaunchTask": "embassy-example",
+            "executable": "${workspaceFolder}/target/thumbv6m-none-eabi/debug/embassy-example",
+            "interface": "jtag",
+            "runToEntryPoint": "main",
+            "rttConfig": {
+                "enabled": true,
+                "address": "auto",
                 "decoders": [
                     {
                         "port": 0,
