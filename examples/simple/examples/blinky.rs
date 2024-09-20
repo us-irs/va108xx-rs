@@ -16,8 +16,8 @@ use va108xx_hal::{
     gpio::PinsA,
     pac::{self, interrupt},
     prelude::*,
-    pwm::{default_ms_irq_handler, set_up_ms_tick, CountDownTimer},
     timer::DelayMs,
+    timer::{default_ms_irq_handler, set_up_ms_tick, CountdownTimer},
     IrqCfg,
 };
 
@@ -32,7 +32,7 @@ fn main() -> ! {
         dp.tim0,
     ))
     .unwrap();
-    let mut delay_tim1 = CountDownTimer::new(&mut dp.sysconfig, 50.MHz(), dp.tim1);
+    let mut delay_tim1 = CountdownTimer::new(&mut dp.sysconfig, 50.MHz(), dp.tim1);
     let porta = PinsA::new(&mut dp.sysconfig, Some(dp.ioconfig), dp.porta);
     let mut led1 = porta.pa10.into_readable_push_pull_output();
     let mut led2 = porta.pa7.into_readable_push_pull_output();

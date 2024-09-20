@@ -16,7 +16,7 @@ use max116xx_10bit::{AveragingConversions, AveragingResults};
 use panic_rtt_target as _;
 use rtt_target::{rprintln, rtt_init_print};
 use va108xx_hal::spi::{OptionalHwCs, SpiClkConfig};
-use va108xx_hal::timer::CountDownTimer;
+use va108xx_hal::timer::CountdownTimer;
 use va108xx_hal::{
     gpio::PinsA,
     pac::{self, interrupt},
@@ -154,7 +154,7 @@ fn main() -> ! {
         spi_cfg,
     )
     .downgrade();
-    let delay_provider = CountDownTimer::new(&mut dp.sysconfig, 50.MHz(), dp.tim1);
+    let delay_provider = CountdownTimer::new(&mut dp.sysconfig, 50.MHz(), dp.tim1);
     let spi_with_hwcs = SpiWithHwCs::new(spi, pinsa.pa17.into_funsel_2(), delay_provider);
     match EXAMPLE_MODE {
         ExampleMode::NotUsingEoc => spi_example_externally_clocked(spi_with_hwcs, delay),
@@ -162,7 +162,7 @@ fn main() -> ! {
             spi_example_internally_clocked(spi_with_hwcs, delay, pinsa.pa14.into_floating_input());
         }
         ExampleMode::NotUsingEocWithDelay => {
-            let delay_us = CountDownTimer::new(&mut dp.sysconfig, 50.MHz(), dp.tim2);
+            let delay_us = CountdownTimer::new(&mut dp.sysconfig, 50.MHz(), dp.tim2);
             spi_example_externally_clocked_with_delay(spi_with_hwcs, delay, delay_us);
         }
     }

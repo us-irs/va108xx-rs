@@ -17,13 +17,13 @@ use va108xx_hal::{
     prelude::*,
     timer::{
         default_ms_irq_handler, set_up_ms_delay_provider, CascadeCtrl, CascadeSource,
-        CountDownTimer, Event, IrqCfg,
+        CountdownTimer, Event, IrqCfg,
     },
 };
 
-static CSD_TGT_1: Mutex<RefCell<Option<CountDownTimer<pac::Tim4>>>> =
+static CSD_TGT_1: Mutex<RefCell<Option<CountdownTimer<pac::Tim4>>>> =
     Mutex::new(RefCell::new(None));
-static CSD_TGT_2: Mutex<RefCell<Option<CountDownTimer<pac::Tim5>>>> =
+static CSD_TGT_2: Mutex<RefCell<Option<CountdownTimer<pac::Tim5>>>> =
     Mutex::new(RefCell::new(None));
 
 #[entry]
@@ -36,7 +36,7 @@ fn main() -> ! {
 
     // Will be started periodically to trigger a cascade
     let mut cascade_triggerer =
-        CountDownTimer::new(&mut dp.sysconfig, 50.MHz(), dp.tim3).auto_disable(true);
+        CountdownTimer::new(&mut dp.sysconfig, 50.MHz(), dp.tim3).auto_disable(true);
     cascade_triggerer.listen(
         Event::TimeOut,
         IrqCfg::new(pac::Interrupt::OC1, true, false),
@@ -46,7 +46,7 @@ fn main() -> ! {
 
     // First target for cascade
     let mut cascade_target_1 =
-        CountDownTimer::new(&mut dp.sysconfig, 50.MHz(), dp.tim4).auto_deactivate(true);
+        CountdownTimer::new(&mut dp.sysconfig, 50.MHz(), dp.tim4).auto_deactivate(true);
     cascade_target_1
         .cascade_0_source(CascadeSource::Tim(3))
         .expect("Configuring cascade source for TIM4 failed");
@@ -72,7 +72,7 @@ fn main() -> ! {
 
     // Activated by first cascade target
     let mut cascade_target_2 =
-        CountDownTimer::new(&mut dp.sysconfig, 50.MHz(), dp.tim5).auto_deactivate(true);
+        CountdownTimer::new(&mut dp.sysconfig, 50.MHz(), dp.tim5).auto_deactivate(true);
     // Set TIM4 as cascade source
     cascade_target_2
         .cascade_1_source(CascadeSource::Tim(4))

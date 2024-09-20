@@ -225,6 +225,30 @@
         {
             "type": "cortex-debug",
             "request": "launch",
+            "name": "UART Echo with RTIC",
+            "servertype": "jlink",
+            "cwd": "${workspaceRoot}",
+            "device": "Cortex-M0",
+            "svdFile": "./va108xx/svd/va108xx-base.svd.patched",
+            "preLaunchTask": "uart-echo-rtic-example",
+            "executable": "${workspaceFolder}/target/thumbv6m-none-eabi/debug/uart-echo-rtic",
+            "interface": "jtag",
+            "runToEntryPoint": "main",
+            "rttConfig": {
+                "enabled": true,
+                "address": "auto",
+                "decoders": [
+                    {
+                        "port": 0,
+                        "timestamp": true,
+                        "type": "console"
+                    }
+                ]
+            }
+        },
+        {
+            "type": "cortex-debug",
+            "request": "launch",
             "name": "PWM Example",
             "servertype": "jlink",
             "cwd": "${workspaceRoot}",
@@ -303,7 +327,7 @@
             "device": "Cortex-M0",
             "svdFile": "./va108xx/svd/va108xx.svd.patched",
             "preLaunchTask": "blinky-hal",
-            "executable": "${workspaceFolder}/target/thumbv6m-none-eabi/debug/examples/adxl343-accelerometer",
+            "executable": "${workspaceFolder}/target/thumbv6m-none-eabi/debug/examples/blinky",
             "interface": "jtag",
             "runToEntryPoint": "main",
         },
@@ -413,6 +437,54 @@
             "svdFile": "./va108xx/svd/va108xx.svd.patched",
             "preLaunchTask": "embassy-example",
             "executable": "${workspaceFolder}/target/thumbv6m-none-eabi/debug/embassy-example",
+            "interface": "jtag",
+            "runToEntryPoint": "main",
+            "rttConfig": {
+                "enabled": true,
+                "address": "auto",
+                "decoders": [
+                    {
+                        "port": 0,
+                        "timestamp": true,
+                        "type": "console"
+                    }
+                ]
+            }
+        },
+        {
+            "type": "cortex-debug",
+            "request": "launch",
+            "name": "Bootloader",
+            "servertype": "jlink",
+            "cwd": "${workspaceRoot}",
+            "device": "Cortex-M0",
+            "svdFile": "./va108xx/svd/va108xx.svd.patched",
+            "preLaunchTask": "bootloader",
+            "executable": "${workspaceFolder}/target/thumbv6m-none-eabi/release/bootloader",
+            "interface": "jtag",
+            "runToEntryPoint": "main",
+            "rttConfig": {
+                "enabled": true,
+                "address": "auto",
+                "decoders": [
+                    {
+                        "port": 0,
+                        "timestamp": true,
+                        "type": "console"
+                    }
+                ]
+            }
+        },
+        {
+            "type": "cortex-debug",
+            "request": "launch",
+            "name": "Flashloader",
+            "servertype": "jlink",
+            "cwd": "${workspaceRoot}",
+            "device": "Cortex-M0",
+            "svdFile": "./va108xx/svd/va108xx.svd.patched",
+            "preLaunchTask": "flashloader",
+            "executable": "${workspaceFolder}/target/thumbv6m-none-eabi/release/flashloader",
             "interface": "jtag",
             "runToEntryPoint": "main",
             "rttConfig": {

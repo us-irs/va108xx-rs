@@ -12,7 +12,7 @@ use va108xx_hal::{
     pac::{self, interrupt},
     prelude::*,
     time::Hertz,
-    timer::{default_ms_irq_handler, set_up_ms_tick, CountDownTimer, Event, IrqCfg, MS_COUNTER},
+    timer::{default_ms_irq_handler, set_up_ms_tick, CountdownTimer, Event, IrqCfg, MS_COUNTER},
 };
 
 #[allow(dead_code)]
@@ -72,7 +72,7 @@ fn main() -> ! {
                 dp.tim0,
             );
             let mut second_timer =
-                CountDownTimer::new(&mut dp.sysconfig, get_sys_clock().unwrap(), dp.tim1);
+                CountdownTimer::new(&mut dp.sysconfig, get_sys_clock().unwrap(), dp.tim1);
             second_timer.listen(
                 Event::TimeOut,
                 IrqCfg::new(interrupt::OC1, true, true),

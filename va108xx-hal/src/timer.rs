@@ -371,7 +371,7 @@ unsafe impl TimRegInterface for TimDynRegister {
 //==================================================================================================
 
 /// Hardware timers
-pub struct CountDownTimer<TIM: ValidTim> {
+pub struct CountdownTimer<TIM: ValidTim> {
     tim: TimRegister<TIM>,
     curr_freq: Hertz,
     irq_cfg: Option<IrqCfg>,
@@ -395,17 +395,17 @@ pub fn disable_tim_clk(syscfg: &mut pac::Sysconfig, idx: u8) {
         .modify(|r, w| unsafe { w.bits(r.bits() & !(1 << idx)) });
 }
 
-unsafe impl<TIM: ValidTim> TimRegInterface for CountDownTimer<TIM> {
+unsafe impl<TIM: ValidTim> TimRegInterface for CountdownTimer<TIM> {
     fn tim_id(&self) -> u8 {
         TIM::TIM_ID
     }
 }
 
-impl<TIM: ValidTim> CountDownTimer<TIM> {
+impl<TIM: ValidTim> CountdownTimer<TIM> {
     /// Configures a TIM peripheral as a periodic count down timer
     pub fn new(syscfg: &mut pac::Sysconfig, sys_clk: impl Into<Hertz>, tim: TIM) -> Self {
         enable_tim_clk(syscfg, TIM::TIM_ID);
-        let cd_timer = CountDownTimer {
+        let cd_timer = CountdownTimer {
             tim: unsafe { TimRegister::new(tim) },
             sys_clk: sys_clk.into(),
             irq_cfg: None,
@@ -614,7 +614,7 @@ impl<TIM: ValidTim> CountDownTimer<TIM> {
 }
 
 /// CountDown implementation for TIMx
-impl<TIM: ValidTim> CountDownTimer<TIM> {
+impl<TIM: ValidTim> CountdownTimer<TIM> {
     #[inline]
     pub fn start<T>(&mut self, timeout: T)
     where
@@ -647,7 +647,7 @@ impl<TIM: ValidTim> CountDownTimer<TIM> {
     }
 }
 
-impl<TIM: ValidTim> embedded_hal::delay::DelayNs for CountDownTimer<TIM> {
+impl<TIM: ValidTim> embedded_hal::delay::DelayNs for CountdownTimer<TIM> {
     fn delay_ns(&mut self, ns: u32) {
         let ticks = (u64::from(ns)) * (u64::from(self.sys_clk.raw())) / 1_000_000_000;
 
@@ -709,8 +709,8 @@ pub fn set_up_ms_tick<TIM: ValidTim>(
     irq_sel: Option<&mut pac::Irqsel>,
     sys_clk: impl Into<Hertz>,
     tim0: TIM,
-) -> CountDownTimer<TIM> {
-    let mut ms_timer = CountDownTimer::new(sys_cfg, sys_clk, tim0);
+) -> CountdownTimer<TIM> {
+    let mut ms_timer = CountdownTimer::new(sys_cfg, sys_clk, tim0);
     ms_timer.listen(timer::Event::TimeOut, irq_cfg, irq_sel, Some(sys_cfg));
     ms_timer.start(1000.Hz());
     ms_timer
@@ -720,8 +720,8 @@ pub fn set_up_ms_delay_provider<TIM: ValidTim>(
     sys_cfg: &mut pac::Sysconfig,
     sys_clk: impl Into<Hertz>,
     tim: TIM,
-) -> CountDownTimer<TIM> {
-    let mut provider = CountDownTimer::new(sys_cfg, sys_clk, tim);
+) -> CountdownTimer<TIM> {
+    let mut provider = CountdownTimer::new(sys_cfg, sys_clk, tim);
     provider.start(1000.Hz());
     provider
 }
@@ -745,10 +745,10 @@ pub fn get_ms_ticks() -> u32 {
 // Delay implementations
 //==================================================================================================
 
-pub struct DelayMs(CountDownTimer<pac::Tim0>);
+pub struct DelayMs(CountdownTimer<pac::Tim0>);
 
 impl DelayMs {
-    pub fn new(timer: CountDownTimer<pac::Tim0>) -> Option<Self> {
+    pub fn new(timer: CountdownTimer<pac::Tim0>) -> Option<Self> {
         if timer.curr_freq() != Hertz::from_raw(1000) || !timer.listening() {
             return None;
         }
