@@ -301,6 +301,9 @@ pub struct TransferConfig {
     /// the BMSTOP bit is set on a dataword. A frame is defined as CSn being active for the
     /// duration of multiple data words
     pub blockmode: bool,
+    /// Only used when blockmode is used. The SCK will be stalled until an explicit stop bit
+    /// is set on a written word.
+    pub bmstall: bool,
     pub hw_cs: HwChipSelectId,
 }
 
@@ -309,6 +312,7 @@ impl TransferConfigWithHwcs<NoneT> {
         clk_cfg: Option<SpiClkConfig>,
         mode: Option<Mode>,
         blockmode: bool,
+        bmstall: bool,
         sod: bool,
     ) -> Self {
         TransferConfigWithHwcs {
@@ -318,6 +322,7 @@ impl TransferConfigWithHwcs<NoneT> {
                 mode,
                 sod,
                 blockmode,
+                bmstall,
                 hw_cs: HwChipSelectId::Invalid,
             },
         }
@@ -330,6 +335,7 @@ impl<HwCs: HwCsProvider> TransferConfigWithHwcs<HwCs> {
         mode: Option<Mode>,
         hw_cs: Option<HwCs>,
         blockmode: bool,
+        bmstall: bool,
         sod: bool,
     ) -> Self {
         TransferConfigWithHwcs {
@@ -339,6 +345,7 @@ impl<HwCs: HwCsProvider> TransferConfigWithHwcs<HwCs> {
                 mode,
                 sod,
                 blockmode,
+                bmstall,
                 hw_cs: HwCs::CS_ID,
             },
         }
@@ -418,6 +425,11 @@ impl SpiConfig {
 
     pub fn blockmode(mut self, enable: bool) -> Self {
         self.blockmode = enable;
+        self
+    }
+
+    pub fn bmstall(mut self, enable: bool) -> Self {
+        self.bmstall = enable;
         self
     }
 
@@ -744,12 +756,8 @@ where
             } else {
                 w.sod().clear_bit();
             }
-            if transfer_cfg.cfg.blockmode {
-                w.blockmode().set_bit();
-            } else {
-                w.blockmode().clear_bit();
-            }
-            w
+            w.blockmode().bit(transfer_cfg.cfg.blockmode);
+            w.bmstall().bit(transfer_cfg.cfg.bmstall)
         });
     }
 
