@@ -125,6 +125,7 @@ fn main() -> ! {
                     Some(spi_clk_cfg),
                     Some(SPI_MODE),
                     BLOCKMODE,
+                    true,
                     false,
                 );
                 spi.cfg_transfer(&transfer_cfg);
@@ -138,6 +139,7 @@ fn main() -> ! {
                     Some(SPI_MODE),
                     Some(hw_cs_pin),
                     BLOCKMODE,
+                    true,
                     false,
                 );
                 spi.cfg_transfer(&transfer_cfg);
