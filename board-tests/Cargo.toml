@@ -14,7 +14,6 @@ embedded-hal-nb = "1"
 embedded-io = "0.6"
 
 [dependencies.va108xx-hal]
-version = "0.7"
 path = "../va108xx-hal"
 features = ["rt"]
 

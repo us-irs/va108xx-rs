@@ -21,7 +21,7 @@ bitfield = "0.17"
 version = "0.3"
 
 [dependencies.va108xx-hal]
-version = ">=0.7, <0.8"
+version = ">=0.7, <=0.8"
 path = "../va108xx-hal"
 features = ["rt"]
 

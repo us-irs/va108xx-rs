@@ -3,7 +3,8 @@
 //! ## Examples
 //!
 //! - [UART simple example](https://egit.irs.uni-stuttgart.de/rust/va108xx-rs/src/branch/main/examples/simple/examples/uart.rs)
-//! - [UART with IRQ and RTIC](https://egit.irs.uni-stuttgart.de/rust/va108xx-rs/src/branch/va108xx-update-package/examples/rtic/src/bin/uart-rtic.rs)
+//! - [UART with IRQ and RTIC](https://egit.irs.uni-stuttgart.de/rust/va108xx-rs/src/branch/main/examples/rtic/src/bin/uart-echo-rtic.rs)
+//! - [Flashloader exposing a CCSDS interface via UART](https://egit.irs.uni-stuttgart.de/rust/va108xx-rs/src/branch/main/flashloader)
 use core::{convert::Infallible, ops::Deref};
 use fugit::RateExtU32;
 use va108xx::Uarta;
@@ -863,7 +864,7 @@ impl<Uart: Instance> Tx<Uart> {
     ///
     /// This does not necesarily mean that the FIFO can process another word because it might be
     /// full.
-    /// Use the [Self::read_fifo] function to write a word to the FIFO reliably using the [nb]
+    /// Use the [Self::write_fifo] function to write a word to the FIFO reliably using the [nb]
     /// API.
     #[inline(always)]
     pub fn write_fifo_unchecked(&self, data: u32) {
@@ -916,7 +917,7 @@ impl<Uart: Instance> embedded_io::Write for Tx<Uart> {
 
 /// Serial receiver, using interrupts to offload reading to the hardware.
 ///
-/// You can use [Rx::to_rx_with_irq] to convert a normal [Rx] structure into this structure.
+/// You can use [Rx::into_rx_with_irq] to convert a normal [Rx] structure into this structure.
 /// This structure provides two distinct ways to read the UART RX using interrupts. It should
 /// be noted that the interrupt service routine (ISR) still has to be provided by the user. However,
 /// this structure provides API calls which can be used inside the ISRs to simplify the reading
