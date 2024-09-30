@@ -8,6 +8,8 @@ and this project adheres to [Semantic Versioning](http://semver.org/).
 
 ## [unreleased]
 
+## [v0.8.0] 2024-09-30
+
 ## Changed
 
 - Improves `CascardSource` handling and general API when chosing cascade sources.
