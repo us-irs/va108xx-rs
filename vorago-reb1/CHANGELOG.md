@@ -8,7 +8,10 @@ and this project adheres to [Semantic Versioning](http://semver.org/).
 
 ## [unreleased]
 
+## [v0.6.0] 2024-09-30
+
 - Added M95M01 EEPROM module/API
+- Update `va108xx-hal` dependency to range >=v0.8, <0.9
 
 ## [v0.5.1] 2024-07-04
 

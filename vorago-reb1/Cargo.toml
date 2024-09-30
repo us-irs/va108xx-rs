@@ -1,6 +1,6 @@
 [package]
 name = "vorago-reb1"
-version = "0.5.1"
+version = "0.6.0"
 authors = ["Robin Mueller <muellerr@irs.uni-stuttgart.de>"]
 edition = "2021"
 description = "Board Support Crate for the Vorago REB1 development board"
@@ -21,8 +21,7 @@ bitfield = "0.17"
 version = "0.3"
 
 [dependencies.va108xx-hal]
-version = ">=0.7, <=0.8"
-path = "../va108xx-hal"
+version = ">=0.8, <0.9"
 features = ["rt"]
 
 [features]
