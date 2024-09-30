@@ -10,6 +10,8 @@
 use core::convert::Infallible;
 use embedded_hal::spi::SpiBus;
 
+pub const PAGE_SIZE: usize = 256;
+
 bitfield::bitfield! {
     pub struct StatusReg(u8);
     impl Debug;
@@ -41,7 +43,7 @@ use regs::*;
 use va108xx_hal::{
     pac,
     prelude::*,
-    spi::{RomMiso, RomMosi, RomSck, Spi, SpiConfig, BMSTART_BMSTOP_MASK},
+    spi::{RomMiso, RomMosi, RomSck, Spi, SpiClkConfig, SpiConfig, BMSTART_BMSTOP_MASK},
 };
 
 pub type RomSpi = Spi<pac::Spic, (RomSck, RomMiso, RomMosi), u8>;
@@ -53,6 +55,9 @@ pub struct M95M01 {
     pub spi: RomSpi,
 }
 
+#[derive(Debug, PartialEq, Eq)]
+pub struct PageBoundaryExceededError;
+
 impl M95M01 {
     pub fn new(syscfg: &mut pac::Sysconfig, sys_clk: impl Into<Hertz>, spi: pac::Spic) -> Self {
         let spi = RomSpi::new(
@@ -60,7 +65,7 @@ impl M95M01 {
             sys_clk,
             spi,
             (RomSck, RomMiso, RomMosi),
-            SpiConfig::default(),
+            SpiConfig::default().clk_cfg(SpiClkConfig::new(2, 4)),
         );
         let mut spi_dev = Self { spi };
         spi_dev.clear_block_protection().unwrap();
@@ -105,7 +110,7 @@ impl M95M01 {
         self.spi.write(&[WRSR, reg.0])
     }
 
-    fn common_init_write_and_read(&mut self, address: u32, reg: u8) -> Result<(), Infallible> {
+    fn common_init_write_and_read(&mut self, address: usize, reg: u8) -> Result<(), Infallible> {
         nb::block!(self.writes_are_done())?;
         self.spi.flush()?;
         if reg == WRITE {
@@ -114,41 +119,78 @@ impl M95M01 {
         } else {
             self.spi.write_fifo_unchecked(READ as u32);
         }
-        self.spi.write_fifo_unchecked((address >> 16) & 0xff);
-        self.spi.write_fifo_unchecked((address >> 8) & 0xff);
-        self.spi.write_fifo_unchecked(address & 0xff);
+        self.spi.write_fifo_unchecked((address as u32 >> 16) & 0xff);
+        self.spi
+            .write_fifo_unchecked((address as u32 & 0x00ff00) >> 8);
+        self.spi.write_fifo_unchecked(address as u32 & 0xff);
         Ok(())
     }
 
-    fn common_read(&mut self, address: u32) -> Result<(), Infallible> {
+    fn common_read(&mut self, address: usize) -> Result<(), Infallible> {
         self.common_init_write_and_read(address, READ)?;
         for _ in 0..4 {
             // Pump the FIFO.
             self.spi.write_fifo_unchecked(0);
             // Ignore the first 4 bytes.
-            self.spi.read_fifo_unchecked();
+            nb::block!(self.spi.read_fifo())?;
         }
         Ok(())
     }
 
-    pub fn write(&mut self, address: u32, data: &[u8]) -> Result<(), Infallible> {
-        self.common_init_write_and_read(address, WRITE)?;
+    pub fn write(&mut self, mut address: usize, mut data: &[u8]) -> Result<(), Infallible> {
+        // Loop until all data is written
+        while !data.is_empty() {
+            // Calculate the page and the offset within the page from the address
+            let page = address / PAGE_SIZE;
+            let offset = address % PAGE_SIZE;
+
+            // Calculate how much space is left in the current page
+            let space_left = PAGE_SIZE - offset;
+
+            // Determine how much data to write in the current page
+            let to_write = data.len().min(space_left);
+
+            // Write the current portion of the data
+            self.write_page(page, offset, &data[..to_write]).unwrap();
+
+            // Update the address and data for the next iteration
+            address += to_write;
+            data = &data[to_write..];
+        }
+
+        Ok(())
+    }
+
+    pub fn write_page(
+        &mut self,
+        page: usize,
+        offset: usize,
+        data: &[u8],
+    ) -> Result<(), PageBoundaryExceededError> {
+        // Check that the total data to be written does not exceed the page boundary
+        if offset + data.len() > PAGE_SIZE {
+            return Err(PageBoundaryExceededError);
+        }
+
+        self.common_init_write_and_read(page * PAGE_SIZE + offset, WRITE)
+            .unwrap();
         for val in data.iter().take(data.len() - 1) {
-            nb::block!(self.spi.write_fifo(*val as u32))?;
-            self.spi.read_fifo_unchecked();
+            nb::block!(self.spi.write_fifo(*val as u32)).unwrap();
+            nb::block!(self.spi.read_fifo()).unwrap();
         }
         nb::block!(self
             .spi
-            .write_fifo(*data.last().unwrap() as u32 | BMSTART_BMSTOP_MASK))?;
-        self.spi.flush()?;
-        nb::block!(self.writes_are_done())?;
+            .write_fifo(*data.last().unwrap() as u32 | BMSTART_BMSTOP_MASK))
+        .unwrap();
+        self.spi.flush().unwrap();
+        nb::block!(self.writes_are_done()).unwrap();
         Ok(())
     }
 
-    pub fn read(&mut self, address: u32, buf: &mut [u8]) -> Result<(), Infallible> {
+    pub fn read(&mut self, address: usize, buf: &mut [u8]) -> Result<(), Infallible> {
         self.common_read(address)?;
         for val in buf.iter_mut() {
-            nb::block!(self.spi.write_fifo(0))?;
+            self.spi.write_fifo_unchecked(0);
             *val = (nb::block!(self.spi.read_fifo()).unwrap() & 0xff) as u8;
         }
         nb::block!(self.spi.write_fifo(BMSTART_BMSTOP_MASK))?;
@@ -156,10 +198,10 @@ impl M95M01 {
         Ok(())
     }
 
-    pub fn verify(&mut self, address: u32, data: &[u8]) -> Result<bool, Infallible> {
+    pub fn verify(&mut self, address: usize, data: &[u8]) -> Result<bool, Infallible> {
         self.common_read(address)?;
         for val in data.iter() {
-            nb::block!(self.spi.write_fifo(0))?;
+            self.spi.write_fifo_unchecked(0);
             let read_val = (nb::block!(self.spi.read_fifo()).unwrap() & 0xff) as u8;
             if read_val != *val {
                 return Ok(false);

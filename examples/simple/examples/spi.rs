@@ -15,8 +15,8 @@ use va108xx_hal::{
     gpio::{PinsA, PinsB},
     pac::{self, interrupt},
     prelude::*,
-    pwm::{default_ms_irq_handler, set_up_ms_tick},
     spi::{self, Spi, SpiBase, SpiClkConfig, TransferConfigWithHwcs},
+    timer::{default_ms_irq_handler, set_up_ms_tick},
     IrqCfg,
 };
 

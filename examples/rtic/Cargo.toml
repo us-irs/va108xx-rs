@@ -9,16 +9,11 @@ cortex-m-rt = "0.7"
 embedded-hal = "1"
 embedded-io = "0.6"
 rtt-target = { version = "0.5" }
+panic-rtt-target = { version = "0.1" }
+
 # Even though we do not use this directly, we need to activate this feature explicitely
 # so that RTIC compiles because thumv6 does not have CAS operations natively.
 portable-atomic = { version = "1", features = ["unsafe-assume-single-core"]}
-panic-rtt-target = { version = "0.1" }
-
-[dependencies.va108xx-hal]
-path = "../../va108xx-hal"
-
-[dependencies.vorago-reb1]
-path = "../../vorago-reb1"
 
 [dependencies.rtic]
 version = "2"
@@ -31,3 +26,19 @@ features = ["cortex-m-systick"]
 [dependencies.rtic-sync]
 version = "1.3"
 features = ["defmt-03"]
+
+[dependencies.once_cell]
+version = "1"
+default-features = false
+features = ["critical-section"]
+
+[dependencies.ringbuf]
+version = "0.4.7"
+default-features = false
+features = ["portable-atomic"]
+
+[dependencies.va108xx-hal]
+path = "../../va108xx-hal"
+
+[dependencies.vorago-reb1]
+path = "../../vorago-reb1"

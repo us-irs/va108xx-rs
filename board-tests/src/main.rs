@@ -17,7 +17,7 @@ use va108xx_hal::{
     pac::{self, interrupt},
     prelude::*,
     time::Hertz,
-    timer::{default_ms_irq_handler, set_up_ms_tick, CountDownTimer, IrqCfg},
+    timer::{default_ms_irq_handler, set_up_ms_tick, CountdownTimer, IrqCfg},
 };
 
 #[allow(dead_code)]
@@ -168,7 +168,7 @@ fn main() -> ! {
                 ms_timer.delay_ms(500);
             }
 
-            let mut delay_timer = CountDownTimer::new(&mut dp.sysconfig, 50.MHz(), dp.tim1);
+            let mut delay_timer = CountdownTimer::new(&mut dp.sysconfig, 50.MHz(), dp.tim1);
             let mut pa0 = pinsa.pa0.into_readable_push_pull_output();
             for _ in 0..5 {
                 led1.toggle().ok();

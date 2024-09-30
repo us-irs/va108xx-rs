@@ -19,6 +19,11 @@ This workspace contains the following released crates:
 
 It also contains the following helper crates:
 
+- The [`bootloader`](https://egit.irs.uni-stuttgart.de/rust/va108xx-rs/src/branch/main/bootloader)
+  crate contains a sample bootloader strongly based on the one provided by Vorago.
+- The [`flashloader`](https://egit.irs.uni-stuttgart.de/rust/va108xx-rs/src/branch/main/flashloader)
+  crate contains a sample flashloader which is able to update the redundant images in the NVM which
+  is compatible to the provided bootloader as well.
 - The [`board-tests`](https://egit.irs.uni-stuttgart.de/rust/va108xx-rs/src/branch/main/board-tests)
   contains an application which can be used to test the libraries on the board.
 - The [`examples`](https://egit.irs.uni-stuttgart.de/rust/va108xx-rs/src/branch/main/examples)

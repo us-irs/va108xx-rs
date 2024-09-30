@@ -15,6 +15,8 @@ and this project adheres to [Semantic Versioning](http://semver.org/).
 - Improve and fix SPI abstractions. Add new low level interface. The primary SPI constructor now
   only expects a configuration structure and the transfer configuration needs to be applied in a
   separate step.
+- Removed complete `timer` module re-export in `pwm` module
+- `CountDownTimer` renamed to `CountdownTimer`
 
 ## Fixes
 
