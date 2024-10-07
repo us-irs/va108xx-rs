@@ -8,6 +8,10 @@ and this project adheres to [Semantic Versioning](http://semver.org/).
 
 ## [unreleased]
 
+## [v0.9.0] 2024-10-07
+
+- Deleted some HAL re-exports in the PWM module
+
 ## [v0.8.0] 2024-09-30
 
 ## Changed
