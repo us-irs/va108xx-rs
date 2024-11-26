@@ -16,3 +16,5 @@ Cargo.lock
 # JetBrains IDEs
 /.idea
 *.iml
+
+/Embed.toml

@@ -9,6 +9,7 @@ variants:
     core_access_options: !Arm
       ap: 0
       psel: 0x0
+      jtag_tap: 1
   memory_map:
   - !Ram
     name: DRAM
@@ -22,9 +23,11 @@ variants:
     range:
       start: 0x0
       end: 0x20000
-    is_boot_memory: true
     cores:
     - main
+    access:
+      write: false
+      boot: true
   flash_algorithms:
   - va108xx_fm25v20a_fram_128kb_prog
   - va108xx_m95m01_128kb_prog
@@ -37,6 +40,7 @@ variants:
     core_access_options: !Arm
       ap: 0
       psel: 0x0
+      jtag_tap: 1
   memory_map:
   - !Ram
     name: DRAM
@@ -50,9 +54,11 @@ variants:
     range:
       start: 0x0
       end: 0x20000
-    is_boot_memory: true
     cores:
     - main
+    access:
+      write: false
+      boot: true
 flash_algorithms:
 - name: va108xx_fm25v20a_fram_128kb_prog
   description: VA108_FM25V20A_FRAM_128KB
