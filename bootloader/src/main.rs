@@ -5,6 +5,7 @@ use bootloader::NvmInterface;
 use cortex_m_rt::entry;
 use crc::{Crc, CRC_16_IBM_3740};
 use embedded_hal::delay::DelayNs;
+use num_enum::TryFromPrimitive;
 #[cfg(not(feature = "rtt-panic"))]
 use panic_halt as _;
 #[cfg(feature = "rtt-panic")]
@@ -59,8 +60,9 @@ const APP_B_SIZE_ADDR: u32 = APP_B_END_ADDR - 8;
 // Four bytes reserved, even when only 2 byte CRC is used. Leaves flexibility to switch to CRC32.
 // 0x1FFFC
 const APP_B_CRC_ADDR: u32 = APP_B_END_ADDR - 4;
-// 0x20000
-pub const APP_B_END_ADDR: u32 = NVM_SIZE;
+// 0x20000. 8 bytes at end of EEPROM reserved for preferred image parameter. This reserved
+// size should be a multiple of 8 due to alignment requirements.
+pub const APP_B_END_ADDR: u32 = NVM_SIZE - 8;
 pub const APP_IMG_SZ: u32 = (APP_B_END_ADDR - APP_A_START_ADDR) / 2;
 
 static_assertions::const_assert!((APP_B_END_ADDR - BOOTLOADER_END_ADDR) % 2 == 0);
@@ -68,13 +70,15 @@ static_assertions::const_assert!((APP_B_END_ADDR - BOOTLOADER_END_ADDR) % 2 == 0
 pub const VECTOR_TABLE_OFFSET: u32 = 0x0;
 pub const VECTOR_TABLE_LEN: u32 = 0xC0;
 pub const RESET_VECTOR_OFFSET: u32 = 0x4;
+pub const PREFERRED_SLOT_OFFSET: u32 = 0x20000 - 1;
 
 const CRC_ALGO: Crc<u16> = Crc::<u16>::new(&CRC_16_IBM_3740);
 
-#[derive(Debug, Copy, Clone, PartialEq, Eq)]
+#[derive(Debug, Copy, Clone, PartialEq, Eq, TryFromPrimitive)]
+#[repr(u8)]
 enum AppSel {
-    A,
-    B,
+    A = 0,
+    B = 1,
 }
 
 pub struct NvmWrapper(pub M95M01);
@@ -154,10 +158,24 @@ fn main() -> ! {
     // Check bootloader's CRC (and write it if blank)
     check_own_crc(&dp.sysconfig, &cp, &mut nvm, &mut timer);
 
-    if check_app_crc(AppSel::A) {
-        boot_app(&dp.sysconfig, &cp, AppSel::A, &mut timer)
-    } else if check_app_crc(AppSel::B) {
-        boot_app(&dp.sysconfig, &cp, AppSel::B, &mut timer)
+    // This is technically read from the EEPROM. We assume that the full 128 kB were copied
+    // from the EEPROM to the code RAM and read the boot slot from the code ram directly.
+    let preferred_app = AppSel::try_from(unsafe {
+        (PREFERRED_SLOT_OFFSET as *const u8)
+            .read_unaligned()
+            .to_be()
+    })
+    .unwrap_or(AppSel::A);
+    let other_app = if preferred_app == AppSel::A {
+        AppSel::B
+    } else {
+        AppSel::A
+    };
+
+    if check_app_crc(preferred_app) {
+        boot_app(&dp.sysconfig, &cp, preferred_app, &mut timer)
+    } else if check_app_crc(other_app) {
+        boot_app(&dp.sysconfig, &cp, other_app, &mut timer)
     } else {
         if DEBUG_PRINTOUTS && RTT_PRINTOUT {
             rprintln!("both images corrupt! booting image A");

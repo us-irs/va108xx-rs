@@ -9,14 +9,15 @@ The bootloader uses the following memory map:
 
 | Address | Notes | Size |
 | ------ | ---- |  ---- |
-| 0x0 | Bootloader start | code up to 0x3FFC bytes |
-| 0x2FFE | Bootloader CRC | word |
-| 0x3000 | App image A start | code up to 0xE7F8 (~58K) bytes |
+| 0x0 | Bootloader start | code up to 0x2FFE bytes |
+| 0x2FFE | Bootloader CRC | half-word |
+| 0x3000 | App image A start | code up to 0xE7F4 (~59K) bytes |
 | 0x117F8 | App image A CRC check length | word |
 | 0x117FC | App image A CRC check value | word |
-| 0x11800 | App image B start | code up to 0xE7F8 (~58K) bytes |
-| 0x1FFF8 | App image B CRC check length | word |
-| 0x1FFFC | App image B CRC check value | word |
+| 0x117FC | App image B start | code up to 0xE7F4 (~59K) bytes |
+| 0x1FFF0 | App image B CRC check length | word |
+| 0x1FFF4 | App image B CRC check value | word |
+| 0x1FFF8 | Reserved section, contains boot select parameter | 8 bytes |
 | 0x20000 | End of NVM | end  |
 
 ## Additional Information
@@ -35,13 +36,16 @@ The bootloader performs the following steps:
 1. The application will calculate the checksum of itself if the bootloader CRC is blank (all zeroes
    or all ones). If the CRC is not blank and the checksum check fails, it will immediately boot
    application image A. Otherwise, it proceeds to the next step.
-2. Check the checksum of App A. If that checksum is valid, it will boot App A. If not, it will
-   proceed to the next step.
-3. Check the checksum of App B. If that checksum is valid, it will boot App B. If not, it will
-   boot App A as the fallback image.
+2. Read the boot slot from a reserved section at the end of the EEPROM. It is assumed that the full
+   128 kB are copied from the ST EEPROM to the code RAM at startup. The boot slot is read from
+   the code RAM directly.
+3. Check the checksum of the boot slot. If that checksum is valid, it will boot that slot. If not,
+   it will proceed to the next step.
+4. Check the checksum of the other slot . If that checksum is valid, it will boot that slot. If
+   not, it will boot App A as the fallback image.
 
-You could adapt and combine this bootloader with a non-volatile memory to select a prefered app
-image, which would be a first step towards an updatable flight software.
+In your actual production application, a command to update the preferred boot slot could be exposed
+to allow performing software updates in a safe way.
 
 Please note that you *MUST* compile the application at slot A and slot B with an appropriate
 `memory.x` file where the base address of the `FLASH` was adapted according to the base address
