@@ -1,7 +1,7 @@
 /* Special linker script for application slot A with an offset at address 0x3000 */
 MEMORY
 {
-	FLASH : ORIGIN = 0x00003000, LENGTH = 0xE800
+	FLASH : ORIGIN = 0x00003000, LENGTH = 0xE7FC
 	RAM : ORIGIN = 0x10000000, LENGTH = 0x08000 /* 32K */
 }
 
