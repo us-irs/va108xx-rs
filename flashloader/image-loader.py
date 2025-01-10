@@ -30,20 +30,21 @@ BOOTLOADER_CRC_ADDR = BOOTLOADER_END_ADDR - 2
 BOOTLOADER_MAX_SIZE = BOOTLOADER_END_ADDR - BOOTLOADER_START_ADDR - 2
 
 APP_A_START_ADDR = 0x3000
-APP_A_END_ADDR = 0x11800
+APP_B_END_ADDR = 0x20000 - 8
+IMG_SLOT_SIZE = (APP_B_END_ADDR - APP_A_START_ADDR) // 2
+
+APP_A_END_ADDR = APP_A_START_ADDR + IMG_SLOT_SIZE
 # The actual size of the image which is relevant for CRC calculation.
 APP_A_SIZE_ADDR = APP_A_END_ADDR - 8
 APP_A_CRC_ADDR = APP_A_END_ADDR - 4
 APP_A_MAX_SIZE = APP_A_END_ADDR - APP_A_START_ADDR - 8
 
 APP_B_START_ADDR = APP_A_END_ADDR
-APP_B_END_ADDR = 0x20000
 # The actual size of the image which is relevant for CRC calculation.
 APP_B_SIZE_ADDR = APP_B_END_ADDR - 8
 APP_B_CRC_ADDR = APP_B_END_ADDR - 4
 APP_B_MAX_SIZE = APP_A_END_ADDR - APP_A_START_ADDR - 8
 
-APP_IMG_SZ = (APP_B_END_ADDR - APP_A_START_ADDR) // 2
 
 CHUNK_SIZE = 400
 
@@ -58,6 +59,7 @@ PING_PAYLOAD_SIZE = 0
 class ActionId(enum.IntEnum):
     CORRUPT_APP_A = 128
     CORRUPT_APP_B = 129
+    SET_BOOT_SLOT = 130
 
 
 _LOGGER = logging.getLogger(__name__)
@@ -78,10 +80,36 @@ class Target(enum.Enum):
     APP_B = 2
 
 
+class AppSel(enum.IntEnum):
+    APP_A = 0
+    APP_B = 1
+
+
 class ImageLoader:
     def __init__(self, com_if: ComInterface, verificator: PusVerificator) -> None:
         self.com_if = com_if
         self.verificator = verificator
+
+    def handle_boot_sel_cmd(self, target: AppSel):
+        _LOGGER.info("Sending ping command")
+        action_tc = PusTc(
+            apid=0x00,
+            service=PusService.S8_FUNC_CMD,
+            subservice=ActionId.SET_BOOT_SLOT,
+            seq_count=SEQ_PROVIDER.get_and_increment(),
+            app_data=bytes([target]),
+        )
+        self.verificator.add_tc(action_tc)
+        self.com_if.send(bytes(action_tc.pack()))
+        data_available = self.com_if.data_available(0.4)
+        if not data_available:
+            _LOGGER.warning("no reply received for boot image selection command")
+        for reply in self.com_if.receive():
+            result = self.verificator.add_tm(
+                Service1Tm.from_tm(PusTm.unpack(reply, 0), UnpackParams(0))
+            )
+            if result is not None and result.completed:
+                _LOGGER.info("received boot image selection command confirmation")
 
     def handle_ping_cmd(self):
         _LOGGER.info("Sending ping command")
@@ -106,7 +134,6 @@ class ImageLoader:
                 _LOGGER.info("received ping completion reply")
 
     def handle_corruption_cmd(self, target: Target):
-
         if target == Target.BOOTLOADER:
             _LOGGER.error("can not corrupt bootloader")
         if target == Target.APP_A:
@@ -131,7 +158,8 @@ class ImageLoader:
         _LOGGER.info("Parsing ELF file for loadable sections")
         total_size = 0
         loadable_segments, total_size = create_loadable_segments(target, file_path)
-        segments_info_str(target, loadable_segments, total_size, file_path)
+        check_segments(target, total_size)
+        print_segments_info(target, loadable_segments, total_size, file_path)
         result = self._perform_flashing_algorithm(loadable_segments)
         if result != 0:
             return result
@@ -251,6 +279,9 @@ def main() -> int:
         prog="image-loader", description="Python VA416XX Image Loader Application"
     )
     parser.add_argument("-p", "--ping", action="store_true", help="Send ping command")
+    parser.add_argument(
+        "-s", "--sel", choices=["a", "b"], help="Set boot slot (Slot A or B)"
+    )
     parser.add_argument("-c", "--corrupt", action="store_true", help="Corrupt a target")
     parser.add_argument(
         "-t",
@@ -286,6 +317,14 @@ def main() -> int:
         target = Target.APP_A
     elif args.target == "b":
         target = Target.APP_B
+
+    boot_sel = None
+    if args.sel:
+        if args.sel == "a":
+            boot_sel = AppSel.APP_A
+        elif args.sel == "b":
+            boot_sel = AppSel.APP_B
+
     image_loader = ImageLoader(com_if, verificator)
     file_path = None
     result = -1
@@ -293,6 +332,8 @@ def main() -> int:
         image_loader.handle_ping_cmd()
         com_if.close()
         return 0
+    if args.sel and boot_sel is not None:
+        image_loader.handle_boot_sel_cmd(boot_sel)
     if target:
         if not args.corrupt:
             if not args.path:
@@ -307,9 +348,9 @@ def main() -> int:
             return -1
         image_loader.handle_corruption_cmd(target)
     else:
-        assert file_path is not None
-        assert target is not None
-        result = image_loader.handle_flash_cmd(target, file_path)
+        if file_path is not None:
+            assert target is not None
+            result = image_loader.handle_flash_cmd(target, file_path)
 
     com_if.close()
     return result
@@ -377,7 +418,22 @@ def create_loadable_segments(
     return loadable_segments, total_size
 
 
-def segments_info_str(
+def check_segments(
+    target: Target,
+    total_size: int,
+):
+    # Set context string and perform basic sanity checks.
+    if target == Target.BOOTLOADER and total_size > BOOTLOADER_MAX_SIZE:
+        raise ValueError(
+            f"provided bootloader app larger than allowed {total_size} bytes"
+        )
+    elif target == Target.APP_A and total_size > APP_A_MAX_SIZE:
+        raise ValueError(f"provided App A larger than allowed {total_size} bytes")
+    elif target == Target.APP_B and total_size > APP_B_MAX_SIZE:
+        raise ValueError(f"provided App B larger than allowed {total_size} bytes")
+
+
+def print_segments_info(
     target: Target,
     loadable_segments: List[LoadableSegment],
     total_size: int,
@@ -385,21 +441,10 @@ def segments_info_str(
 ):
     # Set context string and perform basic sanity checks.
     if target == Target.BOOTLOADER:
-        if total_size > BOOTLOADER_MAX_SIZE:
-            _LOGGER.error(
-                f"provided bootloader app larger than allowed {total_size} bytes"
-            )
-            return -1
         context_str = "Bootloader"
     elif target == Target.APP_A:
-        if total_size > APP_A_MAX_SIZE:
-            _LOGGER.error(f"provided App A larger than allowed {total_size} bytes")
-            return -1
         context_str = "App Slot A"
     elif target == Target.APP_B:
-        if total_size > APP_B_MAX_SIZE:
-            _LOGGER.error(f"provided App B larger than allowed {total_size} bytes")
-            return -1
         context_str = "App Slot B"
     _LOGGER.info(f"Flashing {context_str} with image {file_path} (size {total_size})")
     for idx, segment in enumerate(loadable_segments):

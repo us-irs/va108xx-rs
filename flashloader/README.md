@@ -60,6 +60,15 @@ to write it to slot A.
 You can use
 
 ```sh
+./image-loader.py -s a
+```
+
+to select the Slot A as a boot slot. The boot slot is stored in a reserved section in EEPROM
+and will be read and used by the bootloader to determine which slot to boot.
+
+You can use
+
+```sh
 ./image-loader.py -c -t a
 ```
 

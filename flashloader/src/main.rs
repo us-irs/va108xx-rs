@@ -3,6 +3,7 @@
 #![no_main]
 #![no_std]
 
+use num_enum::TryFromPrimitive;
 use once_cell::sync::Lazy;
 use panic_rtt_target as _;
 use ringbuf::{
@@ -26,6 +27,14 @@ const RX_DEBUGGING: bool = false;
 pub enum ActionId {
     CorruptImageA = 128,
     CorruptImageB = 129,
+    SetBootSlot = 130,
+}
+
+#[derive(Debug, Copy, Clone, PartialEq, Eq, TryFromPrimitive)]
+#[repr(u8)]
+enum AppSel {
+    A = 0,
+    B = 1,
 }
 
 // Larger buffer for TC to be able to hold the possibly large memory write packets.
@@ -58,9 +67,11 @@ pub struct DataConsumer<const BUF_SIZE: usize, const SIZES_LEN: usize> {
 }
 
 pub const APP_A_START_ADDR: u32 = 0x3000;
-pub const APP_A_END_ADDR: u32 = 0x11800;
+pub const APP_A_END_ADDR: u32 = 0x117FC;
 pub const APP_B_START_ADDR: u32 = APP_A_END_ADDR;
 pub const APP_B_END_ADDR: u32 = 0x20000;
+
+pub const PREFERRED_SLOT_OFFSET: u32 = 0x20000 - 1;
 
 #[rtic::app(device = pac, dispatchers = [OC20, OC21, OC22])]
 mod app {
@@ -345,6 +356,26 @@ mod app {
             if pus_tc.subservice() == ActionId::CorruptImageB as u8 {
                 rprintln!("corrupting App Image B");
                 corrupt_image(APP_B_START_ADDR);
+            }
+            if pus_tc.subservice() == ActionId::SetBootSlot as u8 {
+                if pus_tc.app_data().is_empty() {
+                    log::warn!(target: "TC Handler", "App data for preferred image command too short");
+                }
+                let app_sel_result = AppSel::try_from(pus_tc.app_data()[0]);
+                if app_sel_result.is_err() {
+                    log::warn!("Invalid app selection value: {}", pus_tc.app_data()[0]);
+                }
+                log::info!(target: "TC Handler", "received boot selection command with app select: {:?}", app_sel_result.unwrap());
+                cx.local
+                    .nvm
+                    .write(PREFERRED_SLOT_OFFSET as usize, &[pus_tc.app_data()[0]])
+                    .expect("writing to NVM failed");
+                let tm = cx
+                    .local
+                    .verif_reporter
+                    .completion_success(cx.local.src_data_buf, started_token, 0, 0, &[])
+                    .expect("completion success failed");
+                write_and_send(&tm);
             }
         }
         if pus_tc.service() == PusServiceId::Test as u8 && pus_tc.subservice() == 1 {
