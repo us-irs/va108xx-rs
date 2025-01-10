@@ -12,7 +12,7 @@ use ringbuf::StaticRb;
 const RX_RING_BUF_SIZE: usize = 1024;
 
 // Ring buffers to handling variable sized telemetry
-static mut RINGBUF: Lazy<StaticRb<u8, RX_RING_BUF_SIZE>> =
+static RINGBUF: Lazy<StaticRb<u8, RX_RING_BUF_SIZE>> =
     Lazy::new(StaticRb::<u8, RX_RING_BUF_SIZE>::default);
 
 #[rtic::app(device = pac, dispatchers = [OC4])]
@@ -71,7 +71,7 @@ mod app {
 
         rx.start();
 
-        let (data_producer, data_consumer) = unsafe { RINGBUF.split_ref() };
+        let (data_producer, data_consumer) = RINGBUF.split_ref();
         echo_handler::spawn().unwrap();
         (
             Shared {},

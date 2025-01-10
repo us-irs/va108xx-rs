@@ -45,15 +45,15 @@ const BUF_RB_SIZE_TM: usize = 256;
 const SIZES_RB_SIZE_TM: usize = 16;
 
 // Ring buffers to handling variable sized telemetry
-static mut BUF_RB_TM: Lazy<StaticRb<u8, BUF_RB_SIZE_TM>> =
+static BUF_RB_TM: Lazy<StaticRb<u8, BUF_RB_SIZE_TM>> =
     Lazy::new(StaticRb::<u8, BUF_RB_SIZE_TM>::default);
-static mut SIZES_RB_TM: Lazy<StaticRb<usize, SIZES_RB_SIZE_TM>> =
+static SIZES_RB_TM: Lazy<StaticRb<usize, SIZES_RB_SIZE_TM>> =
     Lazy::new(StaticRb::<usize, SIZES_RB_SIZE_TM>::default);
 
 // Ring buffers to handling variable sized telecommands
-static mut BUF_RB_TC: Lazy<StaticRb<u8, BUF_RB_SIZE_TC>> =
+static BUF_RB_TC: Lazy<StaticRb<u8, BUF_RB_SIZE_TC>> =
     Lazy::new(StaticRb::<u8, BUF_RB_SIZE_TC>::default);
-static mut SIZES_RB_TC: Lazy<StaticRb<usize, SIZES_RB_SIZE_TC>> =
+static SIZES_RB_TC: Lazy<StaticRb<usize, SIZES_RB_SIZE_TC>> =
     Lazy::new(StaticRb::<usize, SIZES_RB_SIZE_TC>::default);
 
 pub struct DataProducer<const BUF_SIZE: usize, const SIZES_LEN: usize> {
@@ -149,11 +149,11 @@ mod app {
 
         let verif_reporter = VerificationReportCreator::new(0).unwrap();
 
-        let (buf_prod_tm, buf_cons_tm) = unsafe { BUF_RB_TM.split_ref() };
-        let (sizes_prod_tm, sizes_cons_tm) = unsafe { SIZES_RB_TM.split_ref() };
+        let (buf_prod_tm, buf_cons_tm) = BUF_RB_TM.split_ref();
+        let (sizes_prod_tm, sizes_cons_tm) = SIZES_RB_TM.split_ref();
 
-        let (buf_prod_tc, buf_cons_tc) = unsafe { BUF_RB_TC.split_ref() };
-        let (sizes_prod_tc, sizes_cons_tc) = unsafe { SIZES_RB_TC.split_ref() };
+        let (buf_prod_tc, buf_cons_tc) = BUF_RB_TC.split_ref();
+        let (sizes_prod_tc, sizes_cons_tc) = SIZES_RB_TC.split_ref();
 
         let mut rx_context = IrqContextTimeoutOrMaxSize::new(MAX_TC_FRAME_SIZE);
         rx.read_fixed_len_or_timeout_based_using_irq(&mut rx_context)
