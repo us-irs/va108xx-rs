@@ -35,8 +35,6 @@ features = ["critical-section"]
 [dependencies.ringbuf]
 version = "0.4.7"
 default-features = false
-git = "https://github.com/robamu/ringbuf.git"
-branch = "remove-mut-on-split-ref"
 features = ["portable-atomic"]
 
 [dependencies.va108xx-hal]
