@@ -5,25 +5,17 @@
 #![no_main]
 #![no_std]
 
-use once_cell::sync::Lazy;
 use ringbuf::StaticRb;
 
 // Larger buffer for TC to be able to hold the possibly large memory write packets.
 const RX_RING_BUF_SIZE: usize = 1024;
-
-// Ring buffers to handling variable sized telemetry
-static RINGBUF: Lazy<StaticRb<u8, RX_RING_BUF_SIZE>> =
-    Lazy::new(StaticRb::<u8, RX_RING_BUF_SIZE>::default);
 
 #[rtic::app(device = pac, dispatchers = [OC4])]
 mod app {
     use super::*;
     use embedded_io::Write;
     use panic_rtt_target as _;
-    use ringbuf::{
-        traits::{Consumer, Observer, Producer, SplitRef},
-        CachingCons, StaticProd,
-    };
+    use ringbuf::traits::{Consumer, Observer, Producer};
     use rtic_example::SYSCLK_FREQ;
     use rtic_monotonics::Monotonic;
     use rtt_target::{rprintln, rtt_init_print};
@@ -36,14 +28,14 @@ mod app {
 
     #[local]
     struct Local {
-        data_producer: StaticProd<'static, u8, RX_RING_BUF_SIZE>,
-        data_consumer: CachingCons<&'static StaticRb<u8, RX_RING_BUF_SIZE>>,
         rx: RxWithIrq<pac::Uarta>,
         tx: Tx<pac::Uarta>,
     }
 
     #[shared]
-    struct Shared {}
+    struct Shared {
+        rb: StaticRb<u8, RX_RING_BUF_SIZE>,
+    }
 
     rtic_monotonics::systick_monotonic!(Mono, 1_000);
 
@@ -71,13 +63,12 @@ mod app {
 
         rx.start();
 
-        let (data_producer, data_consumer) = RINGBUF.split_ref();
         echo_handler::spawn().unwrap();
         (
-            Shared {},
+            Shared {
+                rb: StaticRb::default(),
+            },
             Local {
-                data_producer,
-                data_consumer,
                 rx,
                 tx,
             },
@@ -94,24 +85,23 @@ mod app {
 
     #[task(
         binds = OC3,
-        shared = [],
+        shared = [rb],
         local = [
             rx,
-            data_producer
         ],
     )]
-    fn reception_task(cx: reception_task::Context) {
+    fn reception_task(mut cx: reception_task::Context) {
         let mut buf: [u8; 16] = [0; 16];
         let mut ringbuf_full = false;
         let result = cx.local.rx.irq_handler(&mut buf);
         if result.bytes_read > 0 && result.errors.is_none() {
-            if cx.local.data_producer.vacant_len() < result.bytes_read {
-                ringbuf_full = true;
-            } else {
-                cx.local
-                    .data_producer
-                    .push_slice(&buf[0..result.bytes_read]);
-            }
+            cx.shared.rb.lock(|rb| {
+                if rb.vacant_len() < result.bytes_read {
+                    ringbuf_full = true;
+                } else {
+                    rb.push_slice(&buf[0..result.bytes_read]);
+                }
+            });
         }
         if ringbuf_full {
             // Could also drop oldest data, but that would require the consumer to be shared.
@@ -119,24 +109,23 @@ mod app {
         }
     }
 
-    #[task(shared = [], local = [
+    #[task(shared = [rb], local = [
         buf: [u8; RX_RING_BUF_SIZE] = [0; RX_RING_BUF_SIZE],
-        data_consumer,
+
         tx
     ], priority=1)]
-    async fn echo_handler(cx: echo_handler::Context) {
+    async fn echo_handler(mut cx: echo_handler::Context) {
         loop {
-            let bytes_to_read = cx.local.data_consumer.occupied_len();
-            if bytes_to_read > 0 {
-                let actual_read_bytes = cx
-                    .local
-                    .data_consumer
-                    .pop_slice(&mut cx.local.buf[0..bytes_to_read]);
-                cx.local
-                    .tx
-                    .write_all(&cx.local.buf[0..actual_read_bytes])
-                    .expect("Failed to write to TX");
-            }
+            cx.shared.rb.lock(|rb| {
+                let bytes_to_read = rb.occupied_len();
+                if bytes_to_read > 0 {
+                    let actual_read_bytes = rb.pop_slice(&mut cx.local.buf[0..bytes_to_read]);
+                    cx.local
+                        .tx
+                        .write_all(&cx.local.buf[0..actual_read_bytes])
+                        .expect("Failed to write to TX");
+                }
+            });
             Mono::delay(50.millis()).await;
         }
     }
