@@ -158,14 +158,10 @@ fn main() -> ! {
     // Check bootloader's CRC (and write it if blank)
     check_own_crc(&dp.sysconfig, &cp, &mut nvm, &mut timer);
 
-    // This is technically read from the EEPROM. We assume that the full 128 kB were copied
-    // from the EEPROM to the code RAM and read the boot slot from the code ram directly.
-    let preferred_app = AppSel::try_from(unsafe {
-        (PREFERRED_SLOT_OFFSET as *const u8)
-            .read_unaligned()
-            .to_be()
-    })
-    .unwrap_or(AppSel::A);
+    let mut preferred_app_raw = [0; 1];
+    nvm.read(PREFERRED_SLOT_OFFSET as usize, &mut preferred_app_raw)
+        .expect("reading preferred slot failed");
+    let preferred_app = AppSel::try_from(preferred_app_raw[0]).unwrap_or(AppSel::A);
     let other_app = if preferred_app == AppSel::A {
         AppSel::B
     } else {

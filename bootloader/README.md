@@ -36,9 +36,8 @@ The bootloader performs the following steps:
 1. The application will calculate the checksum of itself if the bootloader CRC is blank (all zeroes
    or all ones). If the CRC is not blank and the checksum check fails, it will immediately boot
    application image A. Otherwise, it proceeds to the next step.
-2. Read the boot slot from a reserved section at the end of the EEPROM. It is assumed that the full
-   128 kB are copied from the ST EEPROM to the code RAM at startup. The boot slot is read from
-   the code RAM directly.
+2. Read the boot slot from a reserved section at the end of the EEPROM. If no valid value is read,
+   select boot slot A.
 3. Check the checksum of the boot slot. If that checksum is valid, it will boot that slot. If not,
    it will proceed to the next step.
 4. Check the checksum of the other slot . If that checksum is valid, it will boot that slot. If
