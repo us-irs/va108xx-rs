@@ -10,14 +10,12 @@ use core::marker::PhantomData;
 
 use crate::pac;
 use crate::time::Hertz;
-use crate::timer::{
-    TimAndPinRegister, TimDynRegister, TimPin, TimRegInterface, ValidTim, ValidTimAndPin,
-};
+use crate::timer::{TimDynRegister, TimPin, TimRegInterface, ValidTim, ValidTimAndPin};
 use crate::{clock::enable_peripheral_clock, gpio::DynPinId};
 
 const DUTY_MAX: u16 = u16::MAX;
 
-pub struct PwmBase {
+pub struct PwmCommon {
     sys_clk: Hertz,
     /// For PWMB, this is the upper limit
     current_duty: u16,
@@ -36,122 +34,12 @@ pub struct PwmA {}
 pub struct PwmB {}
 
 //==================================================================================================
-// Common
-//==================================================================================================
-
-macro_rules! pwm_common_func {
-    () => {
-        #[inline]
-        fn enable_pwm_a(&mut self) {
-            self.reg
-                .reg()
-                .ctrl()
-                .modify(|_, w| unsafe { w.status_sel().bits(StatusSelPwm::PwmA as u8) });
-        }
-
-        #[inline]
-        fn enable_pwm_b(&mut self) {
-            self.reg
-                .reg()
-                .ctrl()
-                .modify(|_, w| unsafe { w.status_sel().bits(StatusSelPwm::PwmB as u8) });
-        }
-
-        #[inline]
-        pub fn get_period(&self) -> Hertz {
-            self.pwm_base.current_period
-        }
-
-        #[inline]
-        pub fn set_period(&mut self, period: impl Into<Hertz>) {
-            self.pwm_base.current_period = period.into();
-            // Avoid division by 0
-            if self.pwm_base.current_period.raw() == 0 {
-                return;
-            }
-            self.pwm_base.current_rst_val =
-                self.pwm_base.sys_clk.raw() / self.pwm_base.current_period.raw();
-            self.reg
-                .reg()
-                .rst_value()
-                .write(|w| unsafe { w.bits(self.pwm_base.current_rst_val) });
-        }
-
-        #[inline]
-        pub fn disable(&mut self) {
-            self.reg.reg().ctrl().modify(|_, w| w.enable().clear_bit());
-        }
-
-        #[inline]
-        pub fn enable(&mut self) {
-            self.reg.reg().ctrl().modify(|_, w| w.enable().set_bit());
-        }
-
-        #[inline]
-        pub fn period(&self) -> Hertz {
-            self.pwm_base.current_period
-        }
-
-        #[inline(always)]
-        pub fn duty(&self) -> u16 {
-            self.pwm_base.current_duty
-        }
-    };
-}
-
-macro_rules! pwmb_func {
-    () => {
-        pub fn pwmb_lower_limit(&self) -> u16 {
-            self.pwm_base.current_lower_limit
-        }
-
-        pub fn pwmb_upper_limit(&self) -> u16 {
-            self.pwm_base.current_duty
-        }
-
-        /// Set the lower limit for PWMB
-        ///
-        /// The PWM signal will be 1 as long as the current RST counter is larger than
-        /// the lower limit. For example, with a lower limit of 0.5 and and an upper limit
-        /// of 0.7, Only a fixed period between 0.5 * period and 0.7 * period will be in a high
-        /// state
-        pub fn set_pwmb_lower_limit(&mut self, duty: u16) {
-            self.pwm_base.current_lower_limit = duty;
-            let pwmb_val: u64 = (self.pwm_base.current_rst_val as u64
-                * self.pwm_base.current_lower_limit as u64)
-                / DUTY_MAX as u64;
-            self.reg
-                .reg()
-                .pwmb_value()
-                .write(|w| unsafe { w.bits(pwmb_val as u32) });
-        }
-
-        /// Set the higher limit for PWMB
-        ///
-        /// The PWM signal will be 1 as long as the current RST counter is smaller than
-        /// the higher limit. For example, with a lower limit of 0.5 and and an upper limit
-        /// of 0.7, Only a fixed period between 0.5 * period and 0.7 * period will be in a high
-        /// state
-        pub fn set_pwmb_upper_limit(&mut self, duty: u16) {
-            self.pwm_base.current_duty = duty;
-            let pwma_val: u64 = (self.pwm_base.current_rst_val as u64
-                * self.pwm_base.current_duty as u64)
-                / DUTY_MAX as u64;
-            self.reg
-                .reg()
-                .pwma_value()
-                .write(|w| unsafe { w.bits(pwma_val as u32) });
-        }
-    };
-}
-
-//==================================================================================================
 // Strongly typed PWM pin
 //==================================================================================================
 
 pub struct PwmPin<Pin: TimPin, Tim: ValidTim, Mode = PwmA> {
-    reg: TimAndPinRegister<Pin, Tim>,
-    pwm_base: PwmBase,
+    pin_and_tim: (Pin, Tim),
+    inner: ReducedPwmPin<Mode>,
     mode: PhantomData<Mode>,
 }
 
@@ -163,34 +51,82 @@ where
     pub fn new(
         sys_cfg: &mut pac::Sysconfig,
         sys_clk: impl Into<Hertz> + Copy,
-        tim_and_pin: (Pin, Tim),
+        pin_and_tim: (Pin, Tim),
         initial_period: impl Into<Hertz> + Copy,
     ) -> Self {
         let mut pin = PwmPin {
-            pwm_base: PwmBase {
-                current_duty: 0,
-                current_lower_limit: 0,
-                current_period: initial_period.into(),
-                current_rst_val: 0,
-                sys_clk: sys_clk.into(),
-            },
-            reg: unsafe { TimAndPinRegister::new(tim_and_pin.0, tim_and_pin.1) },
+            pin_and_tim,
+            inner: ReducedPwmPin::<Mode>::new(
+                Tim::TIM_ID,
+                Pin::DYN,
+                PwmCommon {
+                    current_duty: 0,
+                    current_lower_limit: 0,
+                    current_period: initial_period.into(),
+                    current_rst_val: 0,
+                    sys_clk: sys_clk.into(),
+                },
+            ),
+            //unsafe { TimAndPin::new(tim_and_pin.0, tim_and_pin.1) },
             mode: PhantomData,
         };
         enable_peripheral_clock(sys_cfg, crate::clock::PeripheralClocks::Gpio);
         enable_peripheral_clock(sys_cfg, crate::clock::PeripheralClocks::Ioconfig);
         sys_cfg
             .tim_clk_enable()
-            .modify(|r, w| unsafe { w.bits(r.bits() | pin.reg.mask_32()) });
+            .modify(|r, w| unsafe { w.bits(r.bits() | pin.pin_and_tim.1.mask_32()) });
         pin.enable_pwm_a();
         pin.set_period(initial_period);
         pin
     }
-    pub fn release(self) -> (Pin, Tim) {
-        self.reg.release()
+
+    pub fn reduce(self) -> ReducedPwmPin<Mode> {
+        self.inner
     }
 
-    pwm_common_func!();
+    pub fn release(self) -> (Pin, Tim) {
+        self.pin_and_tim
+    }
+
+    #[inline]
+    fn enable_pwm_a(&mut self) {
+        self.inner.enable_pwm_a();
+    }
+
+    #[inline]
+    fn enable_pwm_b(&mut self) {
+        self.inner.enable_pwm_b();
+    }
+
+    #[inline]
+    pub fn get_period(&self) -> Hertz {
+        self.inner.get_period()
+    }
+
+    #[inline]
+    pub fn set_period(&mut self, period: impl Into<Hertz>) {
+        self.inner.set_period(period);
+    }
+
+    #[inline]
+    pub fn disable(&mut self) {
+        self.inner.disable();
+    }
+
+    #[inline]
+    pub fn enable(&mut self) {
+        self.inner.enable();
+    }
+
+    #[inline]
+    pub fn period(&self) -> Hertz {
+        self.inner.period()
+    }
+
+    #[inline(always)]
+    pub fn duty(&self) -> u16 {
+        self.inner.duty()
+    }
 }
 
 impl<Pin: TimPin, Tim: ValidTim> From<PwmPin<Pin, Tim, PwmA>> for PwmPin<Pin, Tim, PwmB>
@@ -199,9 +135,9 @@ where
 {
     fn from(other: PwmPin<Pin, Tim, PwmA>) -> Self {
         let mut pwmb = Self {
-            reg: other.reg,
-            pwm_base: other.pwm_base,
             mode: PhantomData,
+            pin_and_tim: other.pin_and_tim,
+            inner: other.inner.into(),
         };
         pwmb.enable_pwm_b();
         pwmb
@@ -213,13 +149,13 @@ where
     (PIN, TIM): ValidTimAndPin<PIN, TIM>,
 {
     fn from(other: PwmPin<PIN, TIM, PwmB>) -> Self {
-        let mut pwmb = Self {
-            reg: other.reg,
-            pwm_base: other.pwm_base,
+        let mut pwma = Self {
             mode: PhantomData,
+            pin_and_tim: other.pin_and_tim,
+            inner: other.inner.into(),
         };
-        pwmb.enable_pwm_a();
-        pwmb
+        pwma.enable_pwm_a();
+        pwma
     }
 }
 
@@ -263,33 +199,105 @@ where
 
 /// Reduced version where type information is deleted
 pub struct ReducedPwmPin<Mode = PwmA> {
-    reg: TimDynRegister,
-    pwm_base: PwmBase,
-    pin_id: DynPinId,
+    dyn_reg: TimDynRegister,
+    common: PwmCommon,
     mode: PhantomData<Mode>,
 }
 
-impl<PIN: TimPin, TIM: ValidTim> From<PwmPin<PIN, TIM>> for ReducedPwmPin<PwmA> {
-    fn from(pwm_pin: PwmPin<PIN, TIM>) -> Self {
-        ReducedPwmPin {
-            reg: TimDynRegister::from(pwm_pin.reg),
-            pwm_base: pwm_pin.pwm_base,
-            pin_id: PIN::DYN,
+impl<Mode> ReducedPwmPin<Mode> {
+    pub(crate) fn new(tim_id: u8, pin_id: DynPinId, common: PwmCommon) -> Self {
+        Self {
+            dyn_reg: TimDynRegister { tim_id, pin_id },
+            common,
             mode: PhantomData,
         }
     }
 }
+/*
+impl<Pin: TimPin, Tim: ValidTim> From<PwmPin<Pin, Tim>> for ReducedPwmPin<PwmA> {
+    fn from(pwm_pin: PwmPin<Pin, Tim>) -> Self {
+        ReducedPwmPin {
+            dyn_reg: TimDynRegister {
 
-impl<MODE> ReducedPwmPin<MODE> {
-    pwm_common_func!();
+
+            }
+            // ::from(pwm_pin.reg),
+            common: pwm_pin.pwm_base,
+            pin_id: Pin::DYN,
+            mode: PhantomData,
+        }
+    }
+}
+*/
+
+impl<Mode> ReducedPwmPin<Mode> {
+    #[inline]
+    fn enable_pwm_a(&mut self) {
+        self.dyn_reg
+            .reg_block()
+            .ctrl()
+            .modify(|_, w| unsafe { w.status_sel().bits(StatusSelPwm::PwmA as u8) });
+    }
+
+    #[inline]
+    fn enable_pwm_b(&mut self) {
+        self.dyn_reg
+            .reg_block()
+            .ctrl()
+            .modify(|_, w| unsafe { w.status_sel().bits(StatusSelPwm::PwmB as u8) });
+    }
+
+    #[inline]
+    pub fn get_period(&self) -> Hertz {
+        self.common.current_period
+    }
+
+    #[inline]
+    pub fn set_period(&mut self, period: impl Into<Hertz>) {
+        self.common.current_period = period.into();
+        // Avoid division by 0
+        if self.common.current_period.raw() == 0 {
+            return;
+        }
+        self.common.current_rst_val = self.common.sys_clk.raw() / self.common.current_period.raw();
+        self.dyn_reg
+            .reg_block()
+            .rst_value()
+            .write(|w| unsafe { w.bits(self.common.current_rst_val) });
+    }
+
+    #[inline]
+    pub fn disable(&mut self) {
+        self.dyn_reg
+            .reg_block()
+            .ctrl()
+            .modify(|_, w| w.enable().clear_bit());
+    }
+
+    #[inline]
+    pub fn enable(&mut self) {
+        self.dyn_reg
+            .reg_block()
+            .ctrl()
+            .modify(|_, w| w.enable().set_bit());
+    }
+
+    #[inline]
+    pub fn period(&self) -> Hertz {
+        self.common.current_period
+    }
+
+    #[inline(always)]
+    pub fn duty(&self) -> u16 {
+        self.common.current_duty
+    }
 }
 
 impl From<ReducedPwmPin<PwmA>> for ReducedPwmPin<PwmB> {
     fn from(other: ReducedPwmPin<PwmA>) -> Self {
         let mut pwmb = Self {
-            reg: other.reg,
-            pwm_base: other.pwm_base,
-            pin_id: other.pin_id,
+            dyn_reg: other.dyn_reg,
+            common: other.common,
             mode: PhantomData,
         };
         pwmb.enable_pwm_b();
@@ -300,9 +308,8 @@ impl From<ReducedPwmPin<PwmA>> for ReducedPwmPin<PwmB> {
 impl From<ReducedPwmPin<PwmB>> for ReducedPwmPin<PwmA> {
     fn from(other: ReducedPwmPin<PwmB>) -> Self {
         let mut pwmb = Self {
-            reg: other.reg,
-            pwm_base: other.pwm_base,
-            pin_id: other.pin_id,
+            dyn_reg: other.dyn_reg,
+            common: other.common,
             mode: PhantomData,
         };
         pwmb.enable_pwm_a();
@@ -314,15 +321,83 @@ impl From<ReducedPwmPin<PwmB>> for ReducedPwmPin<PwmA> {
 // PWMB implementations
 //==================================================================================================
 
-impl<PIN: TimPin, TIM: ValidTim> PwmPin<PIN, TIM, PwmB>
+impl<Pin: TimPin, Tim: ValidTim> PwmPin<Pin, Tim, PwmB>
 where
-    (PIN, TIM): ValidTimAndPin<PIN, TIM>,
+    (Pin, Tim): ValidTimAndPin<Pin, Tim>,
 {
-    pwmb_func!();
+    pub fn pwmb_lower_limit(&self) -> u16 {
+        self.inner.pwmb_lower_limit()
+    }
+
+    pub fn pwmb_upper_limit(&self) -> u16 {
+        self.inner.pwmb_upper_limit()
+    }
+
+    /// Set the lower limit for PWMB
+    ///
+    /// The PWM signal will be 1 as long as the current RST counter is larger than
+    /// the lower limit. For example, with a lower limit of 0.5 and and an upper limit
+    /// of 0.7, Only a fixed period between 0.5 * period and 0.7 * period will be in a high
+    /// state
+    pub fn set_pwmb_lower_limit(&mut self, duty: u16) {
+        self.inner.set_pwmb_lower_limit(duty);
+    }
+
+    /// Set the higher limit for PWMB
+    ///
+    /// The PWM signal will be 1 as long as the current RST counter is smaller than
+    /// the higher limit. For example, with a lower limit of 0.5 and and an upper limit
+    /// of 0.7, Only a fixed period between 0.5 * period and 0.7 * period will be in a high
+    /// state
+    pub fn set_pwmb_upper_limit(&mut self, duty: u16) {
+        self.inner.set_pwmb_upper_limit(duty);
+    }
 }
 
 impl ReducedPwmPin<PwmB> {
-    pwmb_func!();
+    #[inline(always)]
+    pub fn pwmb_lower_limit(&self) -> u16 {
+        self.common.current_lower_limit
+    }
+
+    #[inline(always)]
+    pub fn pwmb_upper_limit(&self) -> u16 {
+        self.common.current_duty
+    }
+
+    /// Set the lower limit for PWMB
+    ///
+    /// The PWM signal will be 1 as long as the current RST counter is larger than
+    /// the lower limit. For example, with a lower limit of 0.5 and and an upper limit
+    /// of 0.7, Only a fixed period between 0.5 * period and 0.7 * period will be in a high
+    /// state
+    #[inline(always)]
+    pub fn set_pwmb_lower_limit(&mut self, duty: u16) {
+        self.common.current_lower_limit = duty;
+        let pwmb_val: u64 = (self.common.current_rst_val as u64
+            * self.common.current_lower_limit as u64)
+            / DUTY_MAX as u64;
+        self.dyn_reg
+            .reg_block()
+            .pwmb_value()
+            .write(|w| unsafe { w.bits(pwmb_val as u32) });
+    }
+
+    /// Set the higher limit for PWMB
+    ///
+    /// The PWM signal will be 1 as long as the current RST counter is smaller than
+    /// the higher limit. For example, with a lower limit of 0.5 and and an upper limit
+    /// of 0.7, Only a fixed period between 0.5 * period and 0.7 * period will be in a high
+    /// state
+    pub fn set_pwmb_upper_limit(&mut self, duty: u16) {
+        self.common.current_duty = duty;
+        let pwma_val: u64 = (self.common.current_rst_val as u64 * self.common.current_duty as u64)
+            / DUTY_MAX as u64;
+        self.dyn_reg
+            .reg_block()
+            .pwma_value()
+            .write(|w| unsafe { w.bits(pwma_val as u32) });
+    }
 }
 
 //==================================================================================================
@@ -345,12 +420,12 @@ impl embedded_hal::pwm::SetDutyCycle for ReducedPwmPin {
 
     #[inline]
     fn set_duty_cycle(&mut self, duty: u16) -> Result<(), Self::Error> {
-        self.pwm_base.current_duty = duty;
-        let pwma_val: u64 = (self.pwm_base.current_rst_val as u64
-            * (DUTY_MAX as u64 - self.pwm_base.current_duty as u64))
+        self.common.current_duty = duty;
+        let pwma_val: u64 = (self.common.current_rst_val as u64
+            * (DUTY_MAX as u64 - self.common.current_duty as u64))
             / DUTY_MAX as u64;
-        self.reg
-            .reg()
+        self.dyn_reg
+            .reg_block()
             .pwma_value()
             .write(|w| unsafe { w.bits(pwma_val as u32) });
         Ok(())
@@ -365,15 +440,7 @@ impl<Pin: TimPin, Tim: ValidTim> embedded_hal::pwm::SetDutyCycle for PwmPin<Pin,
 
     #[inline]
     fn set_duty_cycle(&mut self, duty: u16) -> Result<(), Self::Error> {
-        self.pwm_base.current_duty = duty;
-        let pwma_val: u64 = (self.pwm_base.current_rst_val as u64
-            * (DUTY_MAX as u64 - self.pwm_base.current_duty as u64))
-            / DUTY_MAX as u64;
-        self.reg
-            .reg()
-            .pwma_value()
-            .write(|w| unsafe { w.bits(pwma_val as u32) });
-        Ok(())
+        self.inner.set_duty_cycle(duty)
     }
 }
 

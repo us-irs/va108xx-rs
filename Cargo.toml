@@ -1,9 +1,10 @@
 [workspace]
 resolver = "2"
 members = [
-	"vorago-reb1",
-	"va108xx",
-	"va108xx-hal",
+  "vorago-reb1",
+  "va108xx",
+  "va108xx-hal",
+  "va108xx-embassy",
   "examples/simple",
   "examples/rtic",
   "examples/embassy",
@@ -22,7 +23,7 @@ codegen-units = 1
 debug = 2
 debug-assertions = true # <-
 incremental = false
-# 1 instead of 0, the flashloader is too larger otherwise.. 
+# 1 instead of 0, the flashloader is too larger otherwise..
 # opt-level = 1         # <-
 overflow-checks = true  # <-
 

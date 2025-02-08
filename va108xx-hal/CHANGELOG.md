@@ -15,6 +15,8 @@ and this project adheres to [Semantic Versioning](http://semver.org/).
   methods which mutable modify the pin instead of consuming and returning it.
 - Add `downgrade` method for `Pin` and `upgrade` method for `DynPin` as explicit conversion
   methods.
+- Add new `get_tim_raw` unsafe method to retrieve TIM peripheral blocks.
+- Simplified PWM module implementation.
 
 ## [v0.8.0] 2024-09-30
 

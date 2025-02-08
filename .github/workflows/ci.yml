@@ -10,8 +10,8 @@ jobs:
       - uses: dtolnay/rust-toolchain@stable
         with:
           targets: "thumbv6m-none-eabi"
-      - run: cargo check --target thumbv6m-none-eabi --release
-      - run: cargo check --target thumbv6m-none-eabi --examples --release
+      - run: cargo check --target thumbv6m-none-eabi
+      - run: cargo check --target thumbv6m-none-eabi --examples
 
   test:
     name: Run Tests

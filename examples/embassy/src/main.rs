@@ -5,6 +5,16 @@ use embassy_time::{Duration, Instant, Ticker};
 use embedded_hal::digital::StatefulOutputPin;
 use panic_rtt_target as _;
 use rtt_target::{rprintln, rtt_init_print};
+use va108xx_embassy::embassy;
+
+cfg_if::cfg_if! {
+    if #[cfg(feature = "custom-irqs")] {
+        use va108xx_embassy::embassy_time_driver_irqs;
+        use va108xx_hal::pac::interrupt;
+        embassy_time_driver_irqs!(timekeeper_irq = OC23, alarm_irq = OC24);
+    }
+}
+
 use va108xx_hal::{gpio::PinsA, pac, prelude::*};
 
 const SYSCLK_FREQ: Hertz = Hertz::from_raw(50_000_000);
@@ -19,14 +29,28 @@ async fn main(_spawner: Spawner) {
 
     // Safety: Only called once here.
     unsafe {
-        embassy_example::init(
-            &mut dp.sysconfig,
-            &dp.irqsel,
-            SYSCLK_FREQ,
-            dp.tim23,
-            dp.tim22,
-        )
-    };
+        cfg_if::cfg_if! {
+            if #[cfg(not(feature = "custom-irqs"))] {
+                embassy::init(
+                    &mut dp.sysconfig,
+                    &dp.irqsel,
+                    SYSCLK_FREQ,
+                    dp.tim23,
+                    dp.tim22,
+                );
+            } else {
+                embassy::init_with_custom_irqs(
+                    &mut dp.sysconfig,
+                    &dp.irqsel,
+                    SYSCLK_FREQ,
+                    dp.tim23,
+                    dp.tim22,
+                    pac::Interrupt::OC23,
+                    pac::Interrupt::OC24,
+                );
+            }
+        }
+    }
 
     let porta = PinsA::new(&mut dp.sysconfig, Some(dp.ioconfig), dp.porta);
     let mut led0 = porta.pa10.into_readable_push_pull_output();

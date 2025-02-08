@@ -15,32 +15,18 @@ cortex-m = { version = "0.7", features = ["critical-section-single-core"]}
 cortex-m-rt = "0.7"
 nb = "1"
 paste = "1"
+embedded-hal = "1"
 embedded-hal-nb = "1"
 embedded-io = "0.6"
 fugit = "0.3"
 typenum = "1"
 critical-section = "1"
-delegate = "0.12"
+delegate = ">=0.12, <=0.13"
+void = { version = "1", default-features = false }
+once_cell = {version = "1", default-features = false }
+va108xx = { version = "0.3", default-features = false, features = ["critical-section"]}
 
-[dependencies.va108xx]
-version = "0.3"
-default-features = false
-features = ["critical-section"]
-
-[dependencies.embedded-hal]
-version = "1"
-
-[dependencies.void]
-version = "1"
-default-features = false
-
-[dependencies.once_cell]
-version = "1.14"
-default-features = false
-
-[dependencies.defmt]
-version = "0.3"
-optional = true
+defmt = { version = "0.3", optional = true }
 
 [features]
 default = ["rt"]
