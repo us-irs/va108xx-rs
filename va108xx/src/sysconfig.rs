@@ -131,6 +131,8 @@ impl RegisterBlock {
         &self.ioconfig_clkdiv0
     }
     #[doc = "0x4c..0x68 - IO Configuration Clock Divider Register"]
+    #[doc = ""]
+    #[doc = "<div class=\"warning\">`n` is the index of register in the array. `n == 0` corresponds to `IOCONFIG_CLKDIV1` register.</div>"]
     #[inline(always)]
     pub const fn ioconfig_clkdiv(&self, n: usize) -> &IoconfigClkdiv {
         &self.ioconfig_clkdiv[n]
@@ -232,7 +234,7 @@ impl RegisterBlock {
         &self.perid
     }
 }
-#[doc = "RST_STAT (rw) register accessor: System Reset Status\n\nYou can [`read`](crate::generic::Reg::read) this register and get [`rst_stat::R`].  You can [`reset`](crate::generic::Reg::reset), [`write`](crate::generic::Reg::write), [`write_with_zero`](crate::generic::Reg::write_with_zero) this register using [`rst_stat::W`]. You can also [`modify`](crate::generic::Reg::modify) this register. See [API](https://docs.rs/svd2rust/#read--modify--write-api).\n\nFor information about available fields see [`mod@rst_stat`]
+#[doc = "RST_STAT (rw) register accessor: System Reset Status\n\nYou can [`read`](crate::Reg::read) this register and get [`rst_stat::R`]. You can [`reset`](crate::Reg::reset), [`write`](crate::Reg::write), [`write_with_zero`](crate::Reg::write_with_zero) this register using [`rst_stat::W`]. You can also [`modify`](crate::Reg::modify) this register. See [API](https://docs.rs/svd2rust/#read--modify--write-api).\n\nFor information about available fields see [`mod@rst_stat`]
 module"]
 #[doc(alias = "RST_STAT")]
 pub type RstStat = crate::Reg<rst_stat::RstStatSpec>;
@@ -242,13 +244,13 @@ pub use rst_stat as rst_cntl_rom;
 pub use rst_stat as rst_cntl_ram;
 pub use RstStat as RstCntlRom;
 pub use RstStat as RstCntlRam;
-#[doc = "ROM_PROT (rw) register accessor: ROM Protection Configuration\n\nYou can [`read`](crate::generic::Reg::read) this register and get [`rom_prot::R`].  You can [`reset`](crate::generic::Reg::reset), [`write`](crate::generic::Reg::write), [`write_with_zero`](crate::generic::Reg::write_with_zero) this register using [`rom_prot::W`]. You can also [`modify`](crate::generic::Reg::modify) this register. See [API](https://docs.rs/svd2rust/#read--modify--write-api).\n\nFor information about available fields see [`mod@rom_prot`]
+#[doc = "ROM_PROT (rw) register accessor: ROM Protection Configuration\n\nYou can [`read`](crate::Reg::read) this register and get [`rom_prot::R`]. You can [`reset`](crate::Reg::reset), [`write`](crate::Reg::write), [`write_with_zero`](crate::Reg::write_with_zero) this register using [`rom_prot::W`]. You can also [`modify`](crate::Reg::modify) this register. See [API](https://docs.rs/svd2rust/#read--modify--write-api).\n\nFor information about available fields see [`mod@rom_prot`]
 module"]
 #[doc(alias = "ROM_PROT")]
 pub type RomProt = crate::Reg<rom_prot::RomProtSpec>;
 #[doc = "ROM Protection Configuration"]
 pub mod rom_prot;
-#[doc = "ROM_SCRUB (rw) register accessor: ROM Scrub Period Configuration\n\nYou can [`read`](crate::generic::Reg::read) this register and get [`rom_scrub::R`].  You can [`reset`](crate::generic::Reg::reset), [`write`](crate::generic::Reg::write), [`write_with_zero`](crate::generic::Reg::write_with_zero) this register using [`rom_scrub::W`]. You can also [`modify`](crate::generic::Reg::modify) this register. See [API](https://docs.rs/svd2rust/#read--modify--write-api).\n\nFor information about available fields see [`mod@rom_scrub`]
+#[doc = "ROM_SCRUB (rw) register accessor: ROM Scrub Period Configuration\n\nYou can [`read`](crate::Reg::read) this register and get [`rom_scrub::R`]. You can [`reset`](crate::Reg::reset), [`write`](crate::Reg::write), [`write_with_zero`](crate::Reg::write_with_zero) this register using [`rom_scrub::W`]. You can also [`modify`](crate::Reg::modify) this register. See [API](https://docs.rs/svd2rust/#read--modify--write-api).\n\nFor information about available fields see [`mod@rom_scrub`]
 module"]
 #[doc(alias = "ROM_SCRUB")]
 pub type RomScrub = crate::Reg<rom_scrub::RomScrubSpec>;
@@ -256,13 +258,13 @@ pub type RomScrub = crate::Reg<rom_scrub::RomScrubSpec>;
 pub mod rom_scrub;
 pub use rom_scrub as ram_scrub;
 pub use RomScrub as RamScrub;
-#[doc = "ROM_TRAP_ADDR (rw) register accessor: ROM Trap Address\n\nYou can [`read`](crate::generic::Reg::read) this register and get [`rom_trap_addr::R`].  You can [`reset`](crate::generic::Reg::reset), [`write`](crate::generic::Reg::write), [`write_with_zero`](crate::generic::Reg::write_with_zero) this register using [`rom_trap_addr::W`]. You can also [`modify`](crate::generic::Reg::modify) this register. See [API](https://docs.rs/svd2rust/#read--modify--write-api).\n\nFor information about available fields see [`mod@rom_trap_addr`]
+#[doc = "ROM_TRAP_ADDR (rw) register accessor: ROM Trap Address\n\nYou can [`read`](crate::Reg::read) this register and get [`rom_trap_addr::R`]. You can [`reset`](crate::Reg::reset), [`write`](crate::Reg::write), [`write_with_zero`](crate::Reg::write_with_zero) this register using [`rom_trap_addr::W`]. You can also [`modify`](crate::Reg::modify) this register. See [API](https://docs.rs/svd2rust/#read--modify--write-api).\n\nFor information about available fields see [`mod@rom_trap_addr`]
 module"]
 #[doc(alias = "ROM_TRAP_ADDR")]
 pub type RomTrapAddr = crate::Reg<rom_trap_addr::RomTrapAddrSpec>;
 #[doc = "ROM Trap Address"]
 pub mod rom_trap_addr;
-#[doc = "ROM_TRAP_SYND (rw) register accessor: ROM Trap Syndrome\n\nYou can [`read`](crate::generic::Reg::read) this register and get [`rom_trap_synd::R`].  You can [`reset`](crate::generic::Reg::reset), [`write`](crate::generic::Reg::write), [`write_with_zero`](crate::generic::Reg::write_with_zero) this register using [`rom_trap_synd::W`]. You can also [`modify`](crate::generic::Reg::modify) this register. See [API](https://docs.rs/svd2rust/#read--modify--write-api).\n\nFor information about available fields see [`mod@rom_trap_synd`]
+#[doc = "ROM_TRAP_SYND (rw) register accessor: ROM Trap Syndrome\n\nYou can [`read`](crate::Reg::read) this register and get [`rom_trap_synd::R`]. You can [`reset`](crate::Reg::reset), [`write`](crate::Reg::write), [`write_with_zero`](crate::Reg::write_with_zero) this register using [`rom_trap_synd::W`]. You can also [`modify`](crate::Reg::modify) this register. See [API](https://docs.rs/svd2rust/#read--modify--write-api).\n\nFor information about available fields see [`mod@rom_trap_synd`]
 module"]
 #[doc(alias = "ROM_TRAP_SYND")]
 pub type RomTrapSynd = crate::Reg<rom_trap_synd::RomTrapSyndSpec>;
@@ -272,7 +274,7 @@ pub use rom_trap_addr as ram_trap_addr;
 pub use rom_trap_synd as ram_trap_synd;
 pub use RomTrapAddr as RamTrapAddr;
 pub use RomTrapSynd as RamTrapSynd;
-#[doc = "IRQ_ENB (rw) register accessor: Enable EDAC Error Interrupt Register\n\nYou can [`read`](crate::generic::Reg::read) this register and get [`irq_enb::R`].  You can [`reset`](crate::generic::Reg::reset), [`write`](crate::generic::Reg::write), [`write_with_zero`](crate::generic::Reg::write_with_zero) this register using [`irq_enb::W`]. You can also [`modify`](crate::generic::Reg::modify) this register. See [API](https://docs.rs/svd2rust/#read--modify--write-api).\n\nFor information about available fields see [`mod@irq_enb`]
+#[doc = "IRQ_ENB (rw) register accessor: Enable EDAC Error Interrupt Register\n\nYou can [`read`](crate::Reg::read) this register and get [`irq_enb::R`]. You can [`reset`](crate::Reg::reset), [`write`](crate::Reg::write), [`write_with_zero`](crate::Reg::write_with_zero) this register using [`irq_enb::W`]. You can also [`modify`](crate::Reg::modify) this register. See [API](https://docs.rs/svd2rust/#read--modify--write-api).\n\nFor information about available fields see [`mod@irq_enb`]
 module"]
 #[doc(alias = "IRQ_ENB")]
 pub type IrqEnb = crate::Reg<irq_enb::IrqEnbSpec>;
@@ -284,7 +286,7 @@ pub use irq_enb as irq_clr;
 pub use IrqEnb as IrqRaw;
 pub use IrqEnb as IrqEnd;
 pub use IrqEnb as IrqClr;
-#[doc = "RAM_SBE (rw) register accessor: Count of RAM EDAC Single Bit Errors\n\nYou can [`read`](crate::generic::Reg::read) this register and get [`ram_sbe::R`].  You can [`reset`](crate::generic::Reg::reset), [`write`](crate::generic::Reg::write), [`write_with_zero`](crate::generic::Reg::write_with_zero) this register using [`ram_sbe::W`]. You can also [`modify`](crate::generic::Reg::modify) this register. See [API](https://docs.rs/svd2rust/#read--modify--write-api).\n\nFor information about available fields see [`mod@ram_sbe`]
+#[doc = "RAM_SBE (rw) register accessor: Count of RAM EDAC Single Bit Errors\n\nYou can [`read`](crate::Reg::read) this register and get [`ram_sbe::R`]. You can [`reset`](crate::Reg::reset), [`write`](crate::Reg::write), [`write_with_zero`](crate::Reg::write_with_zero) this register using [`ram_sbe::W`]. You can also [`modify`](crate::Reg::modify) this register. See [API](https://docs.rs/svd2rust/#read--modify--write-api).\n\nFor information about available fields see [`mod@ram_sbe`]
 module"]
 #[doc(alias = "RAM_SBE")]
 pub type RamSbe = crate::Reg<ram_sbe::RamSbeSpec>;
@@ -296,79 +298,79 @@ pub use ram_sbe as rom_mbe;
 pub use RamSbe as RamMbe;
 pub use RamSbe as RomSbe;
 pub use RamSbe as RomMbe;
-#[doc = "IOCONFIG_CLKDIV0 (r) register accessor: IO Configuration Clock Divider Register\n\nYou can [`read`](crate::generic::Reg::read) this register and get [`ioconfig_clkdiv0::R`].  See [API](https://docs.rs/svd2rust/#read--modify--write-api).\n\nFor information about available fields see [`mod@ioconfig_clkdiv0`]
+#[doc = "IOCONFIG_CLKDIV0 (r) register accessor: IO Configuration Clock Divider Register\n\nYou can [`read`](crate::Reg::read) this register and get [`ioconfig_clkdiv0::R`]. See [API](https://docs.rs/svd2rust/#read--modify--write-api).\n\nFor information about available fields see [`mod@ioconfig_clkdiv0`]
 module"]
 #[doc(alias = "IOCONFIG_CLKDIV0")]
 pub type IoconfigClkdiv0 = crate::Reg<ioconfig_clkdiv0::IoconfigClkdiv0Spec>;
 #[doc = "IO Configuration Clock Divider Register"]
 pub mod ioconfig_clkdiv0;
-#[doc = "IOCONFIG_CLKDIV (rw) register accessor: IO Configuration Clock Divider Register\n\nYou can [`read`](crate::generic::Reg::read) this register and get [`ioconfig_clkdiv::R`].  You can [`reset`](crate::generic::Reg::reset), [`write`](crate::generic::Reg::write), [`write_with_zero`](crate::generic::Reg::write_with_zero) this register using [`ioconfig_clkdiv::W`]. You can also [`modify`](crate::generic::Reg::modify) this register. See [API](https://docs.rs/svd2rust/#read--modify--write-api).\n\nFor information about available fields see [`mod@ioconfig_clkdiv`]
+#[doc = "IOCONFIG_CLKDIV (rw) register accessor: IO Configuration Clock Divider Register\n\nYou can [`read`](crate::Reg::read) this register and get [`ioconfig_clkdiv::R`]. You can [`reset`](crate::Reg::reset), [`write`](crate::Reg::write), [`write_with_zero`](crate::Reg::write_with_zero) this register using [`ioconfig_clkdiv::W`]. You can also [`modify`](crate::Reg::modify) this register. See [API](https://docs.rs/svd2rust/#read--modify--write-api).\n\nFor information about available fields see [`mod@ioconfig_clkdiv`]
 module"]
 #[doc(alias = "IOCONFIG_CLKDIV")]
 pub type IoconfigClkdiv = crate::Reg<ioconfig_clkdiv::IoconfigClkdivSpec>;
 #[doc = "IO Configuration Clock Divider Register"]
 pub mod ioconfig_clkdiv;
-#[doc = "ROM_RETRIES (r) register accessor: ROM BOOT Retry count\n\nYou can [`read`](crate::generic::Reg::read) this register and get [`rom_retries::R`].  See [API](https://docs.rs/svd2rust/#read--modify--write-api).\n\nFor information about available fields see [`mod@rom_retries`]
+#[doc = "ROM_RETRIES (r) register accessor: ROM BOOT Retry count\n\nYou can [`read`](crate::Reg::read) this register and get [`rom_retries::R`]. See [API](https://docs.rs/svd2rust/#read--modify--write-api).\n\nFor information about available fields see [`mod@rom_retries`]
 module"]
 #[doc(alias = "ROM_RETRIES")]
 pub type RomRetries = crate::Reg<rom_retries::RomRetriesSpec>;
 #[doc = "ROM BOOT Retry count"]
 pub mod rom_retries;
-#[doc = "REFRESH_CONFIG (rw) register accessor: Register Refresh Control\n\nYou can [`read`](crate::generic::Reg::read) this register and get [`refresh_config::R`].  You can [`reset`](crate::generic::Reg::reset), [`write`](crate::generic::Reg::write), [`write_with_zero`](crate::generic::Reg::write_with_zero) this register using [`refresh_config::W`]. You can also [`modify`](crate::generic::Reg::modify) this register. See [API](https://docs.rs/svd2rust/#read--modify--write-api).\n\nFor information about available fields see [`mod@refresh_config`]
+#[doc = "REFRESH_CONFIG (rw) register accessor: Register Refresh Control\n\nYou can [`read`](crate::Reg::read) this register and get [`refresh_config::R`]. You can [`reset`](crate::Reg::reset), [`write`](crate::Reg::write), [`write_with_zero`](crate::Reg::write_with_zero) this register using [`refresh_config::W`]. You can also [`modify`](crate::Reg::modify) this register. See [API](https://docs.rs/svd2rust/#read--modify--write-api).\n\nFor information about available fields see [`mod@refresh_config`]
 module"]
 #[doc(alias = "REFRESH_CONFIG")]
 pub type RefreshConfig = crate::Reg<refresh_config::RefreshConfigSpec>;
 #[doc = "Register Refresh Control"]
 pub mod refresh_config;
-#[doc = "TIM_RESET (rw) register accessor: TIM Reset Control\n\nYou can [`read`](crate::generic::Reg::read) this register and get [`tim_reset::R`].  You can [`reset`](crate::generic::Reg::reset), [`write`](crate::generic::Reg::write), [`write_with_zero`](crate::generic::Reg::write_with_zero) this register using [`tim_reset::W`]. You can also [`modify`](crate::generic::Reg::modify) this register. See [API](https://docs.rs/svd2rust/#read--modify--write-api).\n\nFor information about available fields see [`mod@tim_reset`]
+#[doc = "TIM_RESET (rw) register accessor: TIM Reset Control\n\nYou can [`read`](crate::Reg::read) this register and get [`tim_reset::R`]. You can [`reset`](crate::Reg::reset), [`write`](crate::Reg::write), [`write_with_zero`](crate::Reg::write_with_zero) this register using [`tim_reset::W`]. You can also [`modify`](crate::Reg::modify) this register. See [API](https://docs.rs/svd2rust/#read--modify--write-api).\n\nFor information about available fields see [`mod@tim_reset`]
 module"]
 #[doc(alias = "TIM_RESET")]
 pub type TimReset = crate::Reg<tim_reset::TimResetSpec>;
 #[doc = "TIM Reset Control"]
 pub mod tim_reset;
-#[doc = "TIM_CLK_ENABLE (rw) register accessor: TIM Enable Control\n\nYou can [`read`](crate::generic::Reg::read) this register and get [`tim_clk_enable::R`].  You can [`reset`](crate::generic::Reg::reset), [`write`](crate::generic::Reg::write), [`write_with_zero`](crate::generic::Reg::write_with_zero) this register using [`tim_clk_enable::W`]. You can also [`modify`](crate::generic::Reg::modify) this register. See [API](https://docs.rs/svd2rust/#read--modify--write-api).\n\nFor information about available fields see [`mod@tim_clk_enable`]
+#[doc = "TIM_CLK_ENABLE (rw) register accessor: TIM Enable Control\n\nYou can [`read`](crate::Reg::read) this register and get [`tim_clk_enable::R`]. You can [`reset`](crate::Reg::reset), [`write`](crate::Reg::write), [`write_with_zero`](crate::Reg::write_with_zero) this register using [`tim_clk_enable::W`]. You can also [`modify`](crate::Reg::modify) this register. See [API](https://docs.rs/svd2rust/#read--modify--write-api).\n\nFor information about available fields see [`mod@tim_clk_enable`]
 module"]
 #[doc(alias = "TIM_CLK_ENABLE")]
 pub type TimClkEnable = crate::Reg<tim_clk_enable::TimClkEnableSpec>;
 #[doc = "TIM Enable Control"]
 pub mod tim_clk_enable;
-#[doc = "PERIPHERAL_RESET (rw) register accessor: Peripheral Reset Control\n\nYou can [`read`](crate::generic::Reg::read) this register and get [`peripheral_reset::R`].  You can [`reset`](crate::generic::Reg::reset), [`write`](crate::generic::Reg::write), [`write_with_zero`](crate::generic::Reg::write_with_zero) this register using [`peripheral_reset::W`]. You can also [`modify`](crate::generic::Reg::modify) this register. See [API](https://docs.rs/svd2rust/#read--modify--write-api).\n\nFor information about available fields see [`mod@peripheral_reset`]
+#[doc = "PERIPHERAL_RESET (rw) register accessor: Peripheral Reset Control\n\nYou can [`read`](crate::Reg::read) this register and get [`peripheral_reset::R`]. You can [`reset`](crate::Reg::reset), [`write`](crate::Reg::write), [`write_with_zero`](crate::Reg::write_with_zero) this register using [`peripheral_reset::W`]. You can also [`modify`](crate::Reg::modify) this register. See [API](https://docs.rs/svd2rust/#read--modify--write-api).\n\nFor information about available fields see [`mod@peripheral_reset`]
 module"]
 #[doc(alias = "PERIPHERAL_RESET")]
 pub type PeripheralReset = crate::Reg<peripheral_reset::PeripheralResetSpec>;
 #[doc = "Peripheral Reset Control"]
 pub mod peripheral_reset;
-#[doc = "PERIPHERAL_CLK_ENABLE (rw) register accessor: Peripheral Enable Control\n\nYou can [`read`](crate::generic::Reg::read) this register and get [`peripheral_clk_enable::R`].  You can [`reset`](crate::generic::Reg::reset), [`write`](crate::generic::Reg::write), [`write_with_zero`](crate::generic::Reg::write_with_zero) this register using [`peripheral_clk_enable::W`]. You can also [`modify`](crate::generic::Reg::modify) this register. See [API](https://docs.rs/svd2rust/#read--modify--write-api).\n\nFor information about available fields see [`mod@peripheral_clk_enable`]
+#[doc = "PERIPHERAL_CLK_ENABLE (rw) register accessor: Peripheral Enable Control\n\nYou can [`read`](crate::Reg::read) this register and get [`peripheral_clk_enable::R`]. You can [`reset`](crate::Reg::reset), [`write`](crate::Reg::write), [`write_with_zero`](crate::Reg::write_with_zero) this register using [`peripheral_clk_enable::W`]. You can also [`modify`](crate::Reg::modify) this register. See [API](https://docs.rs/svd2rust/#read--modify--write-api).\n\nFor information about available fields see [`mod@peripheral_clk_enable`]
 module"]
 #[doc(alias = "PERIPHERAL_CLK_ENABLE")]
 pub type PeripheralClkEnable = crate::Reg<peripheral_clk_enable::PeripheralClkEnableSpec>;
 #[doc = "Peripheral Enable Control"]
 pub mod peripheral_clk_enable;
-#[doc = "LOCKUP_RESET (rw) register accessor: Lockup Reset Configuration\n\nYou can [`read`](crate::generic::Reg::read) this register and get [`lockup_reset::R`].  You can [`reset`](crate::generic::Reg::reset), [`write`](crate::generic::Reg::write), [`write_with_zero`](crate::generic::Reg::write_with_zero) this register using [`lockup_reset::W`]. You can also [`modify`](crate::generic::Reg::modify) this register. See [API](https://docs.rs/svd2rust/#read--modify--write-api).\n\nFor information about available fields see [`mod@lockup_reset`]
+#[doc = "LOCKUP_RESET (rw) register accessor: Lockup Reset Configuration\n\nYou can [`read`](crate::Reg::read) this register and get [`lockup_reset::R`]. You can [`reset`](crate::Reg::reset), [`write`](crate::Reg::write), [`write_with_zero`](crate::Reg::write_with_zero) this register using [`lockup_reset::W`]. You can also [`modify`](crate::Reg::modify) this register. See [API](https://docs.rs/svd2rust/#read--modify--write-api).\n\nFor information about available fields see [`mod@lockup_reset`]
 module"]
 #[doc(alias = "LOCKUP_RESET")]
 pub type LockupReset = crate::Reg<lockup_reset::LockupResetSpec>;
 #[doc = "Lockup Reset Configuration"]
 pub mod lockup_reset;
-#[doc = "EF_CONFIG (r) register accessor: EFuse Config Register\n\nYou can [`read`](crate::generic::Reg::read) this register and get [`ef_config::R`].  See [API](https://docs.rs/svd2rust/#read--modify--write-api).\n\nFor information about available fields see [`mod@ef_config`]
+#[doc = "EF_CONFIG (r) register accessor: EFuse Config Register\n\nYou can [`read`](crate::Reg::read) this register and get [`ef_config::R`]. See [API](https://docs.rs/svd2rust/#read--modify--write-api).\n\nFor information about available fields see [`mod@ef_config`]
 module"]
 #[doc(alias = "EF_CONFIG")]
 pub type EfConfig = crate::Reg<ef_config::EfConfigSpec>;
 #[doc = "EFuse Config Register"]
 pub mod ef_config;
-#[doc = "EF_ID (r) register accessor: EFuse ID Register\n\nYou can [`read`](crate::generic::Reg::read) this register and get [`ef_id::R`].  See [API](https://docs.rs/svd2rust/#read--modify--write-api).\n\nFor information about available fields see [`mod@ef_id`]
+#[doc = "EF_ID (r) register accessor: EFuse ID Register\n\nYou can [`read`](crate::Reg::read) this register and get [`ef_id::R`]. See [API](https://docs.rs/svd2rust/#read--modify--write-api).\n\nFor information about available fields see [`mod@ef_id`]
 module"]
 #[doc(alias = "EF_ID")]
 pub type EfId = crate::Reg<ef_id::EfIdSpec>;
 #[doc = "EFuse ID Register"]
 pub mod ef_id;
-#[doc = "PROCID (r) register accessor: Processor ID Register\n\nYou can [`read`](crate::generic::Reg::read) this register and get [`procid::R`].  See [API](https://docs.rs/svd2rust/#read--modify--write-api).\n\nFor information about available fields see [`mod@procid`]
+#[doc = "PROCID (r) register accessor: Processor ID Register\n\nYou can [`read`](crate::Reg::read) this register and get [`procid::R`]. See [API](https://docs.rs/svd2rust/#read--modify--write-api).\n\nFor information about available fields see [`mod@procid`]
 module"]
 #[doc(alias = "PROCID")]
 pub type Procid = crate::Reg<procid::ProcidSpec>;
 #[doc = "Processor ID Register"]
 pub mod procid;
-#[doc = "PERID (r) register accessor: Peripheral ID Register\n\nYou can [`read`](crate::generic::Reg::read) this register and get [`perid::R`].  See [API](https://docs.rs/svd2rust/#read--modify--write-api).\n\nFor information about available fields see [`mod@perid`]
+#[doc = "PERID (r) register accessor: Peripheral ID Register\n\nYou can [`read`](crate::Reg::read) this register and get [`perid::R`]. See [API](https://docs.rs/svd2rust/#read--modify--write-api).\n\nFor information about available fields see [`mod@perid`]
 module"]
 #[doc(alias = "PERID")]
 pub type Perid = crate::Reg<perid::PeridSpec>;

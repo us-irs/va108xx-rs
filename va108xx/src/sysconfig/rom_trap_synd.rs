@@ -16,12 +16,11 @@ impl R {
 impl W {
     #[doc = "Bits 0:19 - Trap Syndrom Bits"]
     #[inline(always)]
-    #[must_use]
     pub fn synd(&mut self) -> SyndW<RomTrapSyndSpec> {
         SyndW::new(self, 0)
     }
 }
-#[doc = "ROM Trap Syndrome\n\nYou can [`read`](crate::generic::Reg::read) this register and get [`rom_trap_synd::R`](R).  You can [`reset`](crate::generic::Reg::reset), [`write`](crate::generic::Reg::write), [`write_with_zero`](crate::generic::Reg::write_with_zero) this register using [`rom_trap_synd::W`](W). You can also [`modify`](crate::generic::Reg::modify) this register. See [API](https://docs.rs/svd2rust/#read--modify--write-api)."]
+#[doc = "ROM Trap Syndrome\n\nYou can [`read`](crate::Reg::read) this register and get [`rom_trap_synd::R`](R). You can [`reset`](crate::Reg::reset), [`write`](crate::Reg::write), [`write_with_zero`](crate::Reg::write_with_zero) this register using [`rom_trap_synd::W`](W). You can also [`modify`](crate::Reg::modify) this register. See [API](https://docs.rs/svd2rust/#read--modify--write-api)."]
 pub struct RomTrapSyndSpec;
 impl crate::RegisterSpec for RomTrapSyndSpec {
     type Ux = u32;

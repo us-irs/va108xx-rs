@@ -5,7 +5,7 @@ impl core::fmt::Debug for R {
         write!(f, "{}", self.bits())
     }
 }
-#[doc = "IO Configuration Clock Divider Register\n\nYou can [`read`](crate::generic::Reg::read) this register and get [`ioconfig_clkdiv0::R`](R).  See [API](https://docs.rs/svd2rust/#read--modify--write-api)."]
+#[doc = "IO Configuration Clock Divider Register\n\nYou can [`read`](crate::Reg::read) this register and get [`ioconfig_clkdiv0::R`](R). See [API](https://docs.rs/svd2rust/#read--modify--write-api)."]
 pub struct IoconfigClkdiv0Spec;
 impl crate::RegisterSpec for IoconfigClkdiv0Spec {
     type Ux = u32;

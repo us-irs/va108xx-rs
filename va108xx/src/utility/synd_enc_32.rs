@@ -5,7 +5,7 @@ impl core::fmt::Debug for R {
         write!(f, "{}", self.bits())
     }
 }
-#[doc = "Synd 32 bit Encoded Syndrome\n\nYou can [`read`](crate::generic::Reg::read) this register and get [`synd_enc_32::R`](R).  See [API](https://docs.rs/svd2rust/#read--modify--write-api)."]
+#[doc = "Synd 32 bit Encoded Syndrome\n\nYou can [`read`](crate::Reg::read) this register and get [`synd_enc_32::R`](R). See [API](https://docs.rs/svd2rust/#read--modify--write-api)."]
 pub struct SyndEnc32Spec;
 impl crate::RegisterSpec for SyndEnc32Spec {
     type Ux = u32;
