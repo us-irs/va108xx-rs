@@ -68,10 +68,7 @@ mod app {
             Shared {
                 rb: StaticRb::default(),
             },
-            Local {
-                rx,
-                tx,
-            },
+            Local { rx, tx },
         )
     }
 

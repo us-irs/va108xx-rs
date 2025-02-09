@@ -72,6 +72,7 @@
 //! and [`StatefulOutputPin`].
 use super::dynpin::{DynAlternate, DynGroup, DynInput, DynOutput, DynPinId, DynPinMode};
 use super::reg::RegisterInterface;
+use super::DynPin;
 use crate::{
     pac::{Irqsel, Porta, Portb, Sysconfig},
     typelevel::Sealed,
@@ -321,8 +322,8 @@ macro_rules! pin_id {
 
 /// A type-level GPIO pin, parameterized by [PinId] and [PinMode] types
 pub struct Pin<I: PinId, M: PinMode> {
-    pub(in crate::gpio) regs: Registers<I>,
-    mode: PhantomData<M>,
+    inner: DynPin,
+    phantom: PhantomData<(I, M)>,
 }
 
 impl<I: PinId, M: PinMode> Pin<I, M> {
@@ -336,8 +337,8 @@ impl<I: PinId, M: PinMode> Pin<I, M> {
     #[inline]
     pub(crate) unsafe fn new() -> Pin<I, M> {
         Pin {
-            regs: Registers::new(),
-            mode: PhantomData,
+            inner: DynPin::new(I::DYN, M::DYN),
+            phantom: PhantomData,
         }
     }
 
@@ -347,7 +348,7 @@ impl<I: PinId, M: PinMode> Pin<I, M> {
         // Only modify registers if we are actually changing pin mode
         // This check should compile away
         if N::DYN != M::DYN {
-            self.regs.change_mode::<N>();
+            self.inner.regs.change_mode(N::DYN);
         }
         // Safe because we drop the existing Pin
         unsafe { Pin::new() }
@@ -407,31 +408,78 @@ impl<I: PinId, M: PinMode> Pin<I, M> {
         self.into_mode()
     }
 
-    common_reg_if_functions!();
+    #[inline]
+    pub fn datamask(&self) -> bool {
+        self.inner.datamask()
+    }
+
+    #[inline]
+    pub fn clear_datamask(&mut self) {
+        self.inner.clear_datamask()
+    }
+
+    #[inline]
+    pub fn set_datamask(&mut self) {
+        self.inner.set_datamask()
+    }
+
+    #[inline]
+    pub fn is_high_masked(&self) -> Result<bool, crate::gpio::IsMaskedError> {
+        self.inner.is_high_masked()
+    }
+
+    #[inline]
+    pub fn is_low_masked(&self) -> Result<bool, crate::gpio::IsMaskedError> {
+        self.inner.is_low_masked()
+    }
+
+    #[inline]
+    pub fn set_high_masked(&mut self) -> Result<(), crate::gpio::IsMaskedError> {
+        self.inner.set_high_masked()
+    }
+
+    #[inline]
+    pub fn set_low_masked(&mut self) -> Result<(), crate::gpio::IsMaskedError> {
+        self.inner.set_low_masked()
+    }
+
+    #[inline]
+    pub fn downgrade(self) -> DynPin {
+        self.inner
+    }
+
+    fn irq_enb(
+        &mut self,
+        irq_cfg: crate::IrqCfg,
+        syscfg: Option<&mut va108xx::Sysconfig>,
+        irqsel: Option<&mut va108xx::Irqsel>,
+    ) {
+        self.inner.irq_enb(irq_cfg, syscfg, irqsel);
+    }
 
     #[inline]
     pub(crate) fn _set_high(&mut self) {
-        self.regs.write_pin(true)
+        self.inner.regs.write_pin(true)
     }
 
     #[inline]
     pub(crate) fn _set_low(&mut self) {
-        self.regs.write_pin(false)
+        self.inner.regs.write_pin(false)
     }
 
     #[inline]
     pub(crate) fn _toggle_with_toggle_reg(&mut self) {
-        self.regs.toggle();
+        self.inner.regs.toggle();
     }
 
     #[inline]
     pub(crate) fn _is_low(&self) -> bool {
-        !self.regs.read_pin()
+        !self.inner.regs.read_pin()
     }
 
     #[inline]
     pub(crate) fn _is_high(&self) -> bool {
-        self.regs.read_pin()
+        self.inner.regs.read_pin()
     }
 }
 
@@ -524,27 +572,25 @@ impl<P: AnyPin> AsMut<P> for SpecificPin<P> {
 
 impl<I: PinId, C: InputConfig> Pin<I, Input<C>> {
     pub fn interrupt_edge(
-        mut self,
+        &mut self,
         edge_type: InterruptEdge,
         irq_cfg: IrqCfg,
         syscfg: Option<&mut Sysconfig>,
         irqsel: Option<&mut Irqsel>,
-    ) -> Self {
-        self.regs.interrupt_edge(edge_type);
+    ) {
+        self.inner.regs.interrupt_edge(edge_type);
         self.irq_enb(irq_cfg, syscfg, irqsel);
-        self
     }
 
     pub fn interrupt_level(
-        mut self,
+        &mut self,
         level_type: InterruptLevel,
         irq_cfg: IrqCfg,
         syscfg: Option<&mut Sysconfig>,
         irqsel: Option<&mut Irqsel>,
-    ) -> Self {
-        self.regs.interrupt_level(level_type);
+    ) {
+        self.inner.regs.interrupt_level(level_type);
         self.irq_enb(irq_cfg, syscfg, irqsel);
-        self
     }
 }
 
@@ -556,7 +602,7 @@ impl<I: PinId, C: OutputConfig> Pin<I, Output<C>> {
     ///  - Delay 1 + Delay 2: 3
     #[inline]
     pub fn delay(self, delay_1: bool, delay_2: bool) -> Self {
-        self.regs.delay(delay_1, delay_2);
+        self.inner.regs.delay(delay_1, delay_2);
         self
     }
 
@@ -568,42 +614,38 @@ impl<I: PinId, C: OutputConfig> Pin<I, Output<C>> {
     /// See p.52 of the programmers guide for more information.
     /// When configured for pulse mode, a given pin will set the non-default state for exactly
     /// one clock cycle before returning to the configured default state
-    pub fn pulse_mode(self, enable: bool, default_state: PinState) -> Self {
-        self.regs.pulse_mode(enable, default_state);
-        self
+    pub fn pulse_mode(&mut self, enable: bool, default_state: PinState) {
+        self.inner.regs.pulse_mode(enable, default_state);
     }
 
     pub fn interrupt_edge(
-        mut self,
+        &mut self,
         edge_type: InterruptEdge,
         irq_cfg: IrqCfg,
         syscfg: Option<&mut Sysconfig>,
         irqsel: Option<&mut Irqsel>,
-    ) -> Self {
-        self.regs.interrupt_edge(edge_type);
+    ) {
+        self.inner.regs.interrupt_edge(edge_type);
         self.irq_enb(irq_cfg, syscfg, irqsel);
-        self
     }
 
     pub fn interrupt_level(
-        mut self,
+        &mut self,
         level_type: InterruptLevel,
         irq_cfg: IrqCfg,
         syscfg: Option<&mut Sysconfig>,
         irqsel: Option<&mut Irqsel>,
-    ) -> Self {
-        self.regs.interrupt_level(level_type);
+    ) {
+        self.inner.regs.interrupt_level(level_type);
         self.irq_enb(irq_cfg, syscfg, irqsel);
-        self
     }
 }
 
 impl<I: PinId, C: InputConfig> Pin<I, Input<C>> {
     /// See p.37 and p.38 of the programmers guide for more information.
     #[inline]
-    pub fn filter_type(self, filter: FilterType, clksel: FilterClkSel) -> Self {
-        self.regs.filter_type(filter, clksel);
-        self
+    pub fn filter_type(&mut self, filter: FilterType, clksel: FilterClkSel) {
+        self.inner.regs.filter_type(filter, clksel);
     }
 }
 
@@ -676,47 +718,6 @@ where
     #[inline]
     fn is_low(&mut self) -> Result<bool, Self::Error> {
         Ok(self._is_low())
-    }
-}
-
-//==================================================================================================
-//  Registers
-//==================================================================================================
-
-/// Provide a safe register interface for [`Pin`]s
-///
-/// This `struct` takes ownership of a [`PinId`] and provides an API to
-/// access the corresponding registers.
-pub(in crate::gpio) struct Registers<I: PinId> {
-    id: PhantomData<I>,
-}
-
-// [`Registers`] takes ownership of the [`PinId`], and [`Pin`] guarantees that
-// each pin is a singleton, so this implementation is safe.
-unsafe impl<I: PinId> RegisterInterface for Registers<I> {
-    #[inline]
-    fn id(&self) -> DynPinId {
-        I::DYN
-    }
-}
-
-impl<I: PinId> Registers<I> {
-    /// Create a new instance of [`Registers`]
-    ///
-    /// # Safety
-    ///
-    /// Users must never create two simultaneous instances of this `struct` with
-    /// the same [`PinId`]
-    #[inline]
-    unsafe fn new() -> Self {
-        Registers { id: PhantomData }
-    }
-
-    /// Provide a type-level equivalent for the
-    /// [`RegisterInterface::change_mode`] method.
-    #[inline]
-    pub(in crate::gpio) fn change_mode<M: PinMode>(&mut self) {
-        RegisterInterface::change_mode(self, M::DYN);
     }
 }
 
