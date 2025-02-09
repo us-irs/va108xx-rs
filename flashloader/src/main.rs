@@ -110,7 +110,7 @@ mod app {
         let mut dp = cx.device;
         let nvm = M95M01::new(&mut dp.sysconfig, SYSCLK_FREQ, dp.spic);
 
-        let gpioa = PinsA::new(&mut dp.sysconfig, Some(dp.ioconfig), dp.porta);
+        let gpioa = PinsA::new(&mut dp.sysconfig, dp.porta);
         let tx = gpioa.pa9.into_funsel_2();
         let rx = gpioa.pa8.into_funsel_2();
 

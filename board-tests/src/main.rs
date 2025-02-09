@@ -44,8 +44,8 @@ fn main() -> ! {
     rprintln!("-- VA108xx Test Application --");
     let mut dp = pac::Peripherals::take().unwrap();
     let cp = cortex_m::Peripherals::take().unwrap();
-    let pinsa = PinsA::new(&mut dp.sysconfig, None, dp.porta);
-    let pinsb = PinsB::new(&mut dp.sysconfig, Some(dp.ioconfig), dp.portb);
+    let pinsa = PinsA::new(&mut dp.sysconfig, dp.porta);
+    let pinsb = PinsB::new(&mut dp.sysconfig, dp.portb);
     let mut led1 = pinsa.pa10.into_readable_push_pull_output();
     let test_case = TestCase::DelayMs;
 

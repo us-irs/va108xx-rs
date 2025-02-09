@@ -59,8 +59,9 @@
 use super::{
     pin::{FilterType, InterruptEdge, InterruptLevel, Pin, PinId, PinMode, PinState},
     reg::RegisterInterface,
+    InputDynPinAsync,
 };
-use crate::{clock::FilterClkSel, pac, FunSel, IrqCfg};
+use crate::{clock::FilterClkSel, enable_interrupt, pac, FunSel, IrqCfg};
 
 //==================================================================================================
 //  DynPinMode configurations
@@ -104,7 +105,7 @@ pub type DynAlternate = FunSel;
 #[derive(Debug, PartialEq, Eq, thiserror::Error)]
 #[cfg_attr(feature = "defmt", derive(defmt::Format))]
 #[error("Invalid pin type for operation: {0:?}")]
-pub struct InvalidPinTypeError(DynPinMode);
+pub struct InvalidPinTypeError(pub DynPinMode);
 
 impl embedded_hal::digital::Error for InvalidPinTypeError {
     fn kind(&self) -> embedded_hal::digital::ErrorKind {
@@ -173,16 +174,14 @@ pub struct DynPinId {
 ///
 /// This `struct` takes ownership of a [`DynPinId`] and provides an API to
 /// access the corresponding regsiters.
-pub(crate) struct DynRegisters {
-    id: DynPinId,
-}
+pub(crate) struct DynRegisters(DynPinId);
 
 // [`DynRegisters`] takes ownership of the [`DynPinId`], and [`DynPin`]
 // guarantees that each pin is a singleton, so this implementation is safe.
 unsafe impl RegisterInterface for DynRegisters {
     #[inline]
     fn id(&self) -> DynPinId {
-        self.id
+        self.0
     }
 }
 
@@ -195,7 +194,7 @@ impl DynRegisters {
     /// the same [`DynPinId`]
     #[inline]
     unsafe fn new(id: DynPinId) -> Self {
-        DynRegisters { id }
+        DynRegisters(id)
     }
 }
 
@@ -231,7 +230,7 @@ impl DynPin {
     /// Return a copy of the pin ID
     #[inline]
     pub fn id(&self) -> DynPinId {
-        self.regs.id
+        self.regs.0
     }
 
     /// Return a copy of the pin mode
@@ -248,6 +247,11 @@ impl DynPin {
             self.regs.change_mode(mode);
             self.mode = mode;
         }
+    }
+
+    #[inline]
+    pub fn is_input_pin(&self) -> bool {
+        matches!(self.mode, DynPinMode::Input(_))
     }
 
     #[inline]
@@ -342,6 +346,11 @@ impl DynPin {
         self.regs.write_pin_masked(false)
     }
 
+    #[inline]
+    pub fn edge_has_occurred(&mut self) -> bool {
+        self.regs.edge_has_occurred()
+    }
+
     pub(crate) fn irq_enb(
         &mut self,
         irq_cfg: crate::IrqCfg,
@@ -368,6 +377,9 @@ impl DynPin {
                     }
                 }
             }
+        }
+        if irq_cfg.enable {
+            unsafe { enable_interrupt(irq_cfg.irq) };
         }
     }
 
@@ -512,12 +524,21 @@ impl DynPin {
     /// or refuse to perform it.
     #[inline]
     pub fn upgrade<I: PinId, M: PinMode>(self) -> Result<Pin<I, M>, InvalidPinTypeError> {
-        if self.regs.id == I::DYN && self.mode == M::DYN {
+        if self.regs.0 == I::DYN && self.mode == M::DYN {
             // The `DynPin` is consumed, so it is safe to replace it with the
             // corresponding `Pin`
             return Ok(unsafe { Pin::new() });
         }
         Err(InvalidPinTypeError(self.mode))
+    }
+
+    /// Convert the pin into an async pin. The pin can be converted back by calling
+    /// [InputDynPinAsync::release]
+    pub fn into_async_input(
+        self,
+        irq: crate::pac::Interrupt,
+    ) -> Result<InputDynPinAsync, InvalidPinTypeError> {
+        InputDynPinAsync::new(self, irq)
     }
 }
 

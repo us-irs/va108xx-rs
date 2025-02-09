@@ -23,6 +23,7 @@ and this project adheres to [Semantic Versioning](http://semver.org/).
 - `InvalidPinTypeError` now wraps the pin mode.
 - I2C `TimingCfg` constructor now returns explicit error instead of generic Error.
   Removed the timing configuration error type from the generic I2C error enumeration.
+- `PinsA` and `PinsB` constructor do not expect an optional `pac::Ioconfig` argument anymore.
 
 ## Added
 

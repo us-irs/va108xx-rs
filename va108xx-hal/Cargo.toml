@@ -16,6 +16,7 @@ cortex-m-rt = "0.7"
 nb = "1"
 paste = "1"
 embedded-hal = "1"
+embedded-hal-async = "1"
 embedded-hal-nb = "1"
 embedded-io = "0.6"
 fugit = "0.3"
@@ -26,6 +27,8 @@ thiserror = { version = "2", default-features = false }
 void = { version = "1", default-features = false }
 once_cell = {version = "1", default-features = false }
 va108xx = { version = "0.3", default-features = false, features = ["critical-section"]}
+portable-atomic = { version = "1", features = ["unsafe-assume-single-core"]}
+embassy-sync = "0.6"
 
 defmt = { version = "0.3", optional = true }
 

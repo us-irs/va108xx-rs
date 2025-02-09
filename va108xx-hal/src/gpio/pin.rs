@@ -72,7 +72,7 @@
 //! and [`StatefulOutputPin`].
 use super::dynpin::{DynAlternate, DynGroup, DynInput, DynOutput, DynPinId, DynPinMode};
 use super::reg::RegisterInterface;
-use super::DynPin;
+use super::{DynPin, InputPinAsync};
 use crate::{
     pac::{Irqsel, Porta, Portb, Sysconfig},
     typelevel::Sealed,
@@ -342,6 +342,10 @@ impl<I: PinId, M: PinMode> Pin<I, M> {
         }
     }
 
+    pub fn id(&self) -> DynPinId {
+        self.inner.id()
+    }
+
     /// Convert the pin to the requested [`PinMode`]
     #[inline]
     pub fn into_mode<N: PinMode>(mut self) -> Pin<I, N> {
@@ -571,6 +575,12 @@ impl<P: AnyPin> AsMut<P> for SpecificPin<P> {
 //==================================================================================================
 
 impl<I: PinId, C: InputConfig> Pin<I, Input<C>> {
+    /// Convert the pin into an async pin. The pin can be converted back by calling
+    /// [InputPinAsync::release]
+    pub fn into_async_input(self, irq: crate::pac::Interrupt) -> InputPinAsync<I, C> {
+        InputPinAsync::new(self, irq)
+    }
+
     pub fn interrupt_edge(
         &mut self,
         edge_type: InterruptEdge,
@@ -732,7 +742,6 @@ macro_rules! pins {
         paste!(
             /// Collection of all the individual [`Pin`]s for a given port (PORTA or PORTB)
             pub struct $PinsName {
-                iocfg: Option<va108xx::Ioconfig>,
                 port: $Port,
                 $(
                     #[doc = "Pin " $Id]
@@ -747,7 +756,6 @@ macro_rules! pins {
                 #[inline]
                 pub fn new(
                     syscfg: &mut va108xx::Sysconfig,
-                    iocfg: Option<va108xx::Ioconfig>,
                     port: $Port
                 ) -> $PinsName {
                     syscfg.peripheral_clk_enable().modify(|_, w| {
@@ -756,7 +764,7 @@ macro_rules! pins {
                         w.ioconfig().set_bit()
                     });
                     $PinsName {
-                        iocfg,
+                        //iocfg,
                         port,
                         // Safe because we only create one `Pin` per `PinId`
                         $(
@@ -773,8 +781,8 @@ macro_rules! pins {
                 }
 
                 /// Consumes the Pins struct and returns the port definitions
-                pub fn release(self) -> (Option<va108xx::Ioconfig>, $Port) {
-                    (self.iocfg, self.port)
+                pub fn release(self) -> $Port {
+                    self.port
                 }
             }
         );
