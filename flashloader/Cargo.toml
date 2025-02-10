@@ -9,55 +9,24 @@ cortex-m-rt = "0.7"
 embedded-hal = "1"
 embedded-hal-nb = "1"
 embedded-io = "0.6"
-panic-rtt-target = { version = "0.1.3" }
-rtt-target = { version = "0.5" }
+panic-rtt-target = "0.2"
+rtt-target = "0.6"
 num_enum = { version = "0.7", default-features = false }
 log = "0.4"
 crc = "3"
-
-[dependencies.satrs]
-version = "0.2"
-default-features = false
-
-[dependencies.rtt-log]
-version = "0.4"
-
-[dependencies.ringbuf]
-version = "0.4.7"
-default-features = false
-features = ["portable-atomic"]
-
-[dependencies.once_cell]
-version = "1"
-default-features = false
-features = ["critical-section"]
-
-[dependencies.spacepackets]
-version = "0.11"
-default-features = false
-
-[dependencies.cobs]
-git = "https://github.com/robamu/cobs.rs.git"
-branch = "all_features"
-default-features = false
-
+cobs = { version = "0.3", default-features = false }
+satrs = { version = "0.2", default-features = false }
+rtt-log = "0.5"
+ringbuf = { version = "0.4.7", default-features = false, features = ["portable-atomic"] }
+once_cell = { version = "1", default-features = false, features = ["critical-section"] }
+spacepackets = { version = "0.11", default-features = false }
 # Even though we do not use this directly, we need to activate this feature explicitely
 # so that RTIC compiles because thumv6 does not have CAS operations natively.
-[dependencies.portable-atomic]
-version = "1"
-features = ["unsafe-assume-single-core"]
+portable-atomic = {version = "1", features = ["unsafe-assume-single-core"]}
 
-[dependencies.rtic]
-version = "2"
-features = ["thumbv6-backend"]
-
-[dependencies.rtic-monotonics]
-version = "2"
-features = ["cortex-m-systick"]
-
-[dependencies.rtic-sync]
-version = "1"
-features = ["defmt-03"]
+rtic = { version = "2", features = ["thumbv6-backend"] }
+rtic-monotonics = { version = "2", features = ["cortex-m-systick"] }
+rtic-sync = {version = "1", features = ["defmt-03"]}
 
 [dependencies.va108xx-hal]
 path = "../va108xx-hal"

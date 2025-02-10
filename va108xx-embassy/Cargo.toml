@@ -1,0 +1,27 @@
+[package]
+name = "va108xx-embassy"
+version = "0.1.0"
+edition = "2021"
+
+[dependencies]
+critical-section = "1"
+portable-atomic = { version = "1", features = ["unsafe-assume-single-core"]}
+
+embassy-sync = "0.6"
+embassy-executor = "0.7"
+embassy-time-driver = "0.2"
+embassy-time-queue-utils = "0.1"
+
+once_cell = { version = "1", default-features = false, features = ["critical-section"] }
+
+[dependencies.va108xx-hal]
+path = "../va108xx-hal"
+
+[features]
+default = ["irq-oc30-oc31"]
+irqs-in-lib = []
+# This determines the reserved interrupt functions for the embassy time drivers. Only one
+# is allowed to be selected!
+irq-oc28-oc29 = ["irqs-in-lib"]
+irq-oc29-oc30 = ["irqs-in-lib"]
+irq-oc30-oc31 = ["irqs-in-lib"]

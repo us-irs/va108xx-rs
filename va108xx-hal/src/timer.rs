@@ -26,6 +26,48 @@ use fugit::RateExtU32;
 const IRQ_DST_NONE: u32 = 0xffffffff;
 pub static MS_COUNTER: Mutex<Cell<u32>> = Mutex::new(Cell::new(0));
 
+/// Get the peripheral block of a TIM peripheral given the index.
+///
+/// This function panics if the given index is greater than 23.
+///
+/// # Safety
+///
+/// This returns a direct handle to the peripheral block, which allows to circumvent ownership
+/// rules for the peripheral block. You have to ensure that the retrieved peripheral block is not
+/// used by any other software component.
+#[inline(always)]
+pub const unsafe fn get_tim_raw(tim_idx: usize) -> &'static pac::tim0::RegisterBlock {
+    match tim_idx {
+        0 => unsafe { &*pac::Tim0::ptr() },
+        1 => unsafe { &*pac::Tim1::ptr() },
+        2 => unsafe { &*pac::Tim2::ptr() },
+        3 => unsafe { &*pac::Tim3::ptr() },
+        4 => unsafe { &*pac::Tim4::ptr() },
+        5 => unsafe { &*pac::Tim5::ptr() },
+        6 => unsafe { &*pac::Tim6::ptr() },
+        7 => unsafe { &*pac::Tim7::ptr() },
+        8 => unsafe { &*pac::Tim8::ptr() },
+        9 => unsafe { &*pac::Tim9::ptr() },
+        10 => unsafe { &*pac::Tim10::ptr() },
+        11 => unsafe { &*pac::Tim11::ptr() },
+        12 => unsafe { &*pac::Tim12::ptr() },
+        13 => unsafe { &*pac::Tim13::ptr() },
+        14 => unsafe { &*pac::Tim14::ptr() },
+        15 => unsafe { &*pac::Tim15::ptr() },
+        16 => unsafe { &*pac::Tim16::ptr() },
+        17 => unsafe { &*pac::Tim17::ptr() },
+        18 => unsafe { &*pac::Tim18::ptr() },
+        19 => unsafe { &*pac::Tim19::ptr() },
+        20 => unsafe { &*pac::Tim20::ptr() },
+        21 => unsafe { &*pac::Tim21::ptr() },
+        22 => unsafe { &*pac::Tim22::ptr() },
+        23 => unsafe { &*pac::Tim23::ptr() },
+        _ => {
+            panic!("invalid alarm timer index")
+        }
+    }
+}
+
 //==================================================================================================
 // Defintions
 //==================================================================================================
@@ -248,7 +290,7 @@ pub type TimRegBlock = tim0::RegisterBlock;
 /// implementations should be overridden. The implementing type must also have
 /// "control" over the corresponding pin ID, i.e. it must guarantee that a each
 /// pin ID is a singleton.
-pub(super) unsafe trait TimRegInterface {
+pub unsafe trait TimRegInterface {
     fn tim_id(&self) -> u8;
 
     const PORT_BASE: *const tim0::RegisterBlock = pac::Tim0::ptr() as *const _;
@@ -256,7 +298,7 @@ pub(super) unsafe trait TimRegInterface {
     /// All 24 TIM blocks are identical. This helper functions returns the correct
     /// memory mapped peripheral depending on the TIM ID.
     #[inline(always)]
-    fn reg(&self) -> &TimRegBlock {
+    fn reg_block(&self) -> &TimRegBlock {
         unsafe { &*Self::PORT_BASE.offset(self.tim_id() as isize) }
     }
 
@@ -293,70 +335,16 @@ pub(super) unsafe trait TimRegInterface {
     }
 }
 
-/// Provide a safe register interface for [`ValidTimAndPin`]s
-///
-/// This `struct` takes ownership of a [`ValidTimAndPin`] and provides an API to
-/// access the corresponding registers.
-pub(super) struct TimAndPinRegister<Pin: TimPin, Tim: ValidTim> {
-    pin: Pin,
-    tim: Tim,
-}
-
-pub(super) struct TimRegister<TIM: ValidTim> {
-    tim: TIM,
-}
-
-impl<TIM: ValidTim> TimRegister<TIM> {
-    #[inline]
-    pub(super) unsafe fn new(tim: TIM) -> Self {
-        TimRegister { tim }
-    }
-
-    pub(super) fn release(self) -> TIM {
-        self.tim
-    }
-}
-
-unsafe impl<TIM: ValidTim> TimRegInterface for TimRegister<TIM> {
+unsafe impl<Tim: ValidTim> TimRegInterface for Tim {
     fn tim_id(&self) -> u8 {
-        TIM::TIM_ID
+        Tim::TIM_ID
     }
 }
 
-impl<PIN: TimPin, TIM: ValidTim> TimAndPinRegister<PIN, TIM>
-where
-    (PIN, TIM): ValidTimAndPin<PIN, TIM>,
-{
-    #[inline]
-    pub(super) unsafe fn new(pin: PIN, tim: TIM) -> Self {
-        TimAndPinRegister { pin, tim }
-    }
-
-    pub(super) fn release(self) -> (PIN, TIM) {
-        (self.pin, self.tim)
-    }
-}
-
-unsafe impl<PIN: TimPin, TIM: ValidTim> TimRegInterface for TimAndPinRegister<PIN, TIM> {
-    #[inline(always)]
-    fn tim_id(&self) -> u8 {
-        TIM::TIM_ID
-    }
-}
-
-pub(super) struct TimDynRegister {
-    tim_id: u8,
+pub(crate) struct TimDynRegister {
+    pub(crate) tim_id: u8,
     #[allow(dead_code)]
-    pin_id: DynPinId,
-}
-
-impl<PIN: TimPin, TIM: ValidTim> From<TimAndPinRegister<PIN, TIM>> for TimDynRegister {
-    fn from(_reg: TimAndPinRegister<PIN, TIM>) -> Self {
-        Self {
-            tim_id: TIM::TIM_ID,
-            pin_id: PIN::DYN,
-        }
-    }
+    pub(crate) pin_id: DynPinId,
 }
 
 unsafe impl TimRegInterface for TimDynRegister {
@@ -371,8 +359,8 @@ unsafe impl TimRegInterface for TimDynRegister {
 //==================================================================================================
 
 /// Hardware timers
-pub struct CountdownTimer<TIM: ValidTim> {
-    tim: TimRegister<TIM>,
+pub struct CountdownTimer<Tim: ValidTim> {
+    tim: Tim,
     curr_freq: Hertz,
     irq_cfg: Option<IrqCfg>,
     sys_clk: Hertz,
@@ -401,12 +389,12 @@ unsafe impl<TIM: ValidTim> TimRegInterface for CountdownTimer<TIM> {
     }
 }
 
-impl<TIM: ValidTim> CountdownTimer<TIM> {
+impl<Tim: ValidTim> CountdownTimer<Tim> {
     /// Configures a TIM peripheral as a periodic count down timer
-    pub fn new(syscfg: &mut pac::Sysconfig, sys_clk: impl Into<Hertz>, tim: TIM) -> Self {
-        enable_tim_clk(syscfg, TIM::TIM_ID);
+    pub fn new(syscfg: &mut pac::Sysconfig, sys_clk: impl Into<Hertz>, tim: Tim) -> Self {
+        enable_tim_clk(syscfg, Tim::TIM_ID);
         let cd_timer = CountdownTimer {
-            tim: unsafe { TimRegister::new(tim) },
+            tim,
             sys_clk: sys_clk.into(),
             irq_cfg: None,
             rst_val: 0,
@@ -416,7 +404,7 @@ impl<TIM: ValidTim> CountdownTimer<TIM> {
         };
         cd_timer
             .tim
-            .reg()
+            .reg_block()
             .ctrl()
             .modify(|_, w| w.enable().set_bit());
         cd_timer
@@ -441,7 +429,7 @@ impl<TIM: ValidTim> CountdownTimer<TIM> {
                     }
                     if let Some(irq_sel) = irq_sel {
                         irq_sel
-                            .tim0(TIM::TIM_ID as usize)
+                            .tim0(Tim::TIM_ID as usize)
                             .write(|w| unsafe { w.bits(irq_cfg.irq as u32) });
                     }
                 }
@@ -460,7 +448,7 @@ impl<TIM: ValidTim> CountdownTimer<TIM> {
             Event::TimeOut => {
                 enable_peripheral_clock(syscfg, PeripheralClocks::Irqsel);
                 irqsel
-                    .tim0(TIM::TIM_ID as usize)
+                    .tim0(Tim::TIM_ID as usize)
                     .write(|w| unsafe { w.bits(IRQ_DST_NONE) });
                 self.disable_interrupt();
                 self.listening = false;
@@ -470,25 +458,37 @@ impl<TIM: ValidTim> CountdownTimer<TIM> {
 
     #[inline(always)]
     pub fn enable_interrupt(&mut self) {
-        self.tim.reg().ctrl().modify(|_, w| w.irq_enb().set_bit());
+        self.tim
+            .reg_block()
+            .ctrl()
+            .modify(|_, w| w.irq_enb().set_bit());
     }
 
     #[inline(always)]
     pub fn disable_interrupt(&mut self) {
-        self.tim.reg().ctrl().modify(|_, w| w.irq_enb().clear_bit());
+        self.tim
+            .reg_block()
+            .ctrl()
+            .modify(|_, w| w.irq_enb().clear_bit());
     }
 
-    pub fn release(self, syscfg: &mut pac::Sysconfig) -> TIM {
-        self.tim.reg().ctrl().write(|w| w.enable().clear_bit());
+    pub fn release(self, syscfg: &mut pac::Sysconfig) -> Tim {
+        self.tim
+            .reg_block()
+            .ctrl()
+            .write(|w| w.enable().clear_bit());
         syscfg
             .tim_clk_enable()
-            .modify(|r, w| unsafe { w.bits(r.bits() & !(1 << TIM::TIM_ID)) });
-        self.tim.release()
+            .modify(|r, w| unsafe { w.bits(r.bits() & !(1 << Tim::TIM_ID)) });
+        self.tim
     }
 
     /// Load the count down timer with a timeout but do not start it.
     pub fn load(&mut self, timeout: impl Into<Hertz>) {
-        self.tim.reg().ctrl().modify(|_, w| w.enable().clear_bit());
+        self.tim
+            .reg_block()
+            .ctrl()
+            .modify(|_, w| w.enable().clear_bit());
         self.curr_freq = timeout.into();
         self.rst_val = self.sys_clk.raw() / self.curr_freq.raw();
         self.set_reload(self.rst_val);
@@ -497,17 +497,23 @@ impl<TIM: ValidTim> CountdownTimer<TIM> {
 
     #[inline(always)]
     pub fn set_reload(&mut self, val: u32) {
-        self.tim.reg().rst_value().write(|w| unsafe { w.bits(val) });
+        self.tim
+            .reg_block()
+            .rst_value()
+            .write(|w| unsafe { w.bits(val) });
     }
 
     #[inline(always)]
     pub fn set_count(&mut self, val: u32) {
-        self.tim.reg().cnt_value().write(|w| unsafe { w.bits(val) });
+        self.tim
+            .reg_block()
+            .cnt_value()
+            .write(|w| unsafe { w.bits(val) });
     }
 
     #[inline(always)]
     pub fn count(&self) -> u32 {
-        self.tim.reg().cnt_value().read().bits()
+        self.tim.reg_block().cnt_value().read().bits()
     }
 
     #[inline(always)]
@@ -518,24 +524,30 @@ impl<TIM: ValidTim> CountdownTimer<TIM> {
                 unsafe { enable_interrupt(irq_cfg.irq) };
             }
         }
-        self.tim.reg().enable().write(|w| unsafe { w.bits(1) });
+        self.tim
+            .reg_block()
+            .enable()
+            .write(|w| unsafe { w.bits(1) });
     }
 
     #[inline(always)]
     pub fn disable(&mut self) {
-        self.tim.reg().enable().write(|w| unsafe { w.bits(0) });
+        self.tim
+            .reg_block()
+            .enable()
+            .write(|w| unsafe { w.bits(0) });
     }
 
     /// Disable the counter, setting both enable and active bit to 0
     pub fn auto_disable(self, enable: bool) -> Self {
         if enable {
             self.tim
-                .reg()
+                .reg_block()
                 .ctrl()
                 .modify(|_, w| w.auto_disable().set_bit());
         } else {
             self.tim
-                .reg()
+                .reg_block()
                 .ctrl()
                 .modify(|_, w| w.auto_disable().clear_bit());
         }
@@ -549,12 +561,12 @@ impl<TIM: ValidTim> CountdownTimer<TIM> {
     pub fn auto_deactivate(self, enable: bool) -> Self {
         if enable {
             self.tim
-                .reg()
+                .reg_block()
                 .ctrl()
                 .modify(|_, w| w.auto_deactivate().set_bit());
         } else {
             self.tim
-                .reg()
+                .reg_block()
                 .ctrl()
                 .modify(|_, w| w.auto_deactivate().clear_bit());
         }
@@ -563,7 +575,7 @@ impl<TIM: ValidTim> CountdownTimer<TIM> {
 
     /// Configure the cascade parameters
     pub fn cascade_control(&mut self, ctrl: CascadeCtrl) {
-        self.tim.reg().csd_ctrl().write(|w| {
+        self.tim.reg_block().csd_ctrl().write(|w| {
             w.csden0().bit(ctrl.enb_start_src_csd0);
             w.csdinv0().bit(ctrl.inv_csd0);
             w.csden1().bit(ctrl.enb_start_src_csd1);
@@ -580,7 +592,7 @@ impl<TIM: ValidTim> CountdownTimer<TIM> {
     pub fn cascade_0_source(&mut self, src: CascadeSource) -> Result<(), InvalidCascadeSourceId> {
         let id = src.id()?;
         self.tim
-            .reg()
+            .reg_block()
             .cascade0()
             .write(|w| unsafe { w.cassel().bits(id) });
         Ok(())
@@ -589,7 +601,7 @@ impl<TIM: ValidTim> CountdownTimer<TIM> {
     pub fn cascade_1_source(&mut self, src: CascadeSource) -> Result<(), InvalidCascadeSourceId> {
         let id = src.id()?;
         self.tim
-            .reg()
+            .reg_block()
             .cascade1()
             .write(|w| unsafe { w.cassel().bits(id) });
         Ok(())
@@ -598,7 +610,7 @@ impl<TIM: ValidTim> CountdownTimer<TIM> {
     pub fn cascade_2_source(&mut self, src: CascadeSource) -> Result<(), InvalidCascadeSourceId> {
         let id = src.id()?;
         self.tim
-            .reg()
+            .reg_block()
             .cascade2()
             .write(|w| unsafe { w.cassel().bits(id) });
         Ok(())
@@ -627,7 +639,7 @@ impl<TIM: ValidTim> CountdownTimer<TIM> {
     /// Return `Ok` if the timer has wrapped. Peripheral will automatically clear the
     /// flag and restart the time if configured correctly
     pub fn wait(&mut self) -> nb::Result<(), void::Void> {
-        let cnt = self.tim.reg().cnt_value().read().bits();
+        let cnt = self.tim.reg_block().cnt_value().read().bits();
         if (cnt > self.last_cnt) || cnt == 0 {
             self.last_cnt = self.rst_val;
             Ok(())
@@ -639,10 +651,13 @@ impl<TIM: ValidTim> CountdownTimer<TIM> {
 
     /// Returns [false] if the timer was not active, and true otherwise.
     pub fn cancel(&mut self) -> bool {
-        if !self.tim.reg().ctrl().read().enable().bit_is_set() {
+        if !self.tim.reg_block().ctrl().read().enable().bit_is_set() {
             return false;
         }
-        self.tim.reg().ctrl().write(|w| w.enable().clear_bit());
+        self.tim
+            .reg_block()
+            .ctrl()
+            .write(|w| w.enable().clear_bit());
         true
     }
 }
