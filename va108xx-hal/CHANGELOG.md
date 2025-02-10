@@ -8,9 +8,13 @@ and this project adheres to [Semantic Versioning](http://semver.org/).
 
 ## [unreleased]
 
-## [v0.9.0] 2024-10-07
+## [v0.9.0]
 
 - Deleted some HAL re-exports in the PWM module
+- GPIO API: Interrupt, pulse and filter and `set_datamask` and `clear_datamask` APIs are now
+  methods which mutable modify the pin instead of consuming and returning it.
+- Add `downgrade` method for `Pin` and `upgrade` method for `DynPin` as explicit conversion
+  methods.
 
 ## [v0.8.0] 2024-09-30
 

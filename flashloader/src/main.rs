@@ -251,10 +251,10 @@ mod app {
             }
             let packet_len = packet_len.unwrap();
             log::info!(target: "TC Handler", "received packet with length {}", packet_len);
-            let popped_packet_len = cx.shared.tc_rb.lock(|rb| {
-                rb.buf
-                    .pop_slice(&mut cx.local.tc_buf[0..packet_len])
-            });
+            let popped_packet_len = cx
+                .shared
+                .tc_rb
+                .lock(|rb| rb.buf.pop_slice(&mut cx.local.tc_buf[0..packet_len]));
             assert_eq!(popped_packet_len, packet_len);
             // Read a telecommand, now handle it.
             handle_valid_pus_tc(&mut cx);
@@ -272,8 +272,7 @@ mod app {
             let written_size = tm.write_to_bytes(cx.local.verif_buf).unwrap();
             cx.shared.tm_rb.lock(|prod| {
                 prod.sizes.try_push(tm.len_written()).unwrap();
-                prod.buf
-                    .push_slice(&cx.local.verif_buf[0..written_size]);
+                prod.buf.push_slice(&cx.local.verif_buf[0..written_size]);
             });
         };
         let token = cx.local.verif_reporter.add_tc(&pus_tc);

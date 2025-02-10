@@ -21,7 +21,7 @@ jobs:
       - uses: dtolnay/rust-toolchain@stable
       - name: Install nextest
         uses: taiki-e/install-action@nextest
-      - run: cargo nextest run --all-features -p va108xx-hal
+      - run: cargo nextest run --all-features -p va108xx-hal --no-tests=pass
       # I think we can skip those on an embedded crate..
       # - run: cargo test --doc -p va108xx-hal
 

@@ -293,7 +293,7 @@ pub(super) unsafe trait RegisterInterface {
 
     /// Only useful for input pins
     #[inline]
-    fn filter_type(&self, filter: FilterType, clksel: FilterClkSel) {
+    fn filter_type(&mut self, filter: FilterType, clksel: FilterClkSel) {
         self.iocfg_port().modify(|_, w| {
             // Safety: Only write to register for this Pin ID
             unsafe {
@@ -331,7 +331,7 @@ pub(super) unsafe trait RegisterInterface {
     /// See p.52 of the programmers guide for more information.
     /// When configured for pulse mode, a given pin will set the non-default state for exactly
     /// one clock cycle before returning to the configured default state
-    fn pulse_mode(&self, enable: bool, default_state: PinState) {
+    fn pulse_mode(&mut self, enable: bool, default_state: PinState) {
         let portreg = self.port_reg();
         unsafe {
             if enable {

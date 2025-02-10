@@ -99,9 +99,11 @@ fn main() -> ! {
         }
         TestCase::TestMask => {
             // Tie PORTA[0] to PORTA[1] for these tests!
-            let input = pinsa.pa1.into_pull_down_input().clear_datamask();
+            let mut input = pinsa.pa1.into_pull_down_input();
+            input.clear_datamask();
             assert!(!input.datamask());
-            let mut out = pinsa.pa0.into_push_pull_output().clear_datamask();
+            let mut out = pinsa.pa0.into_push_pull_output();
+            out.clear_datamask();
             assert!(input.is_low_masked().is_err());
             assert!(out.set_high_masked().is_err());
         }
@@ -119,17 +121,15 @@ fn main() -> ! {
             assert_eq!(PinsB::get_perid(), 0x004007e1);
         }
         TestCase::Pulse => {
-            let mut output_pulsed = pinsa
-                .pa0
-                .into_push_pull_output()
-                .pulse_mode(true, PinState::Low);
+            let mut output_pulsed = pinsa.pa0.into_push_pull_output();
+            output_pulsed.pulse_mode(true, PinState::Low);
             rprintln!("Pulsing high 10 times..");
             output_pulsed.set_low().unwrap();
             for _ in 0..10 {
                 output_pulsed.set_high().unwrap();
                 cortex_m::asm::delay(25_000_000);
             }
-            let mut output_pulsed = output_pulsed.pulse_mode(true, PinState::High);
+            output_pulsed.pulse_mode(true, PinState::High);
             rprintln!("Pulsing low 10 times..");
             for _ in 0..10 {
                 output_pulsed.set_low().unwrap();
