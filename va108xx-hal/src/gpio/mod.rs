@@ -27,10 +27,17 @@
 #[error("The pin is masked")]
 pub struct IsMaskedError;
 
+pub const NUM_PINS_PORT_A: usize = 32;
+pub const NUM_PINS_PORT_B: usize = 24;
+pub const NUM_GPIO_PINS: usize = NUM_PINS_PORT_A + NUM_PINS_PORT_B;
+
 pub mod dynpin;
 pub use dynpin::*;
 
 pub mod pin;
 pub use pin::*;
+
+pub mod asynch;
+pub use asynch::*;
 
 mod reg;

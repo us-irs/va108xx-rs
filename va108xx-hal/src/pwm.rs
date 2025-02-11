@@ -213,22 +213,6 @@ impl<Mode> ReducedPwmPin<Mode> {
         }
     }
 }
-/*
-impl<Pin: TimPin, Tim: ValidTim> From<PwmPin<Pin, Tim>> for ReducedPwmPin<PwmA> {
-    fn from(pwm_pin: PwmPin<Pin, Tim>) -> Self {
-        ReducedPwmPin {
-            dyn_reg: TimDynRegister {
-
-
-            }
-            // ::from(pwm_pin.reg),
-            common: pwm_pin.pwm_base,
-            pin_id: Pin::DYN,
-            mode: PhantomData,
-        }
-    }
-}
-*/
 
 impl<Mode> ReducedPwmPin<Mode> {
     #[inline]

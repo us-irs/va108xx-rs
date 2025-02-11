@@ -52,7 +52,7 @@ async fn main(_spawner: Spawner) {
         }
     }
 
-    let porta = PinsA::new(&mut dp.sysconfig, Some(dp.ioconfig), dp.porta);
+    let porta = PinsA::new(&mut dp.sysconfig, dp.porta);
     let mut led0 = porta.pa10.into_readable_push_pull_output();
     let mut led1 = porta.pa7.into_readable_push_pull_output();
     let mut led2 = porta.pa6.into_readable_push_pull_output();

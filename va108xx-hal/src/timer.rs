@@ -286,7 +286,7 @@ pub type TimRegBlock = tim0::RegisterBlock;
 ///
 /// # Safety
 ///
-/// Users should only implement the [`tim_id`] function. No default function
+/// Users should only implement the [Self::tim_id] function. No default function
 /// implementations should be overridden. The implementing type must also have
 /// "control" over the corresponding pin ID, i.e. it must guarantee that a each
 /// pin ID is a singleton.

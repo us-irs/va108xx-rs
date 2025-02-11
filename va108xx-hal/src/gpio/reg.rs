@@ -73,13 +73,6 @@ impl From<DynPinMode> for ModeFields {
 //==================================================================================================
 
 pub type PortReg = ioconfig::Porta;
-/*
-pub type IocfgPort = ioconfig::Porta;
-#[repr(C)]
-pub(super) struct IocfgPortGroup {
-    port: [IocfgPort; 32],
-}
-*/
 
 /// Provide a safe register interface for pin objects
 ///

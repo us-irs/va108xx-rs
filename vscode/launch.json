@@ -499,5 +499,29 @@
                 ]
             }
         },
+        {
+            "type": "cortex-debug",
+            "request": "launch",
+            "name": "Async GPIO",
+            "servertype": "jlink",
+            "cwd": "${workspaceRoot}",
+            "device": "Cortex-M0",
+            "svdFile": "./va108xx/svd/va108xx.svd.patched",
+            "preLaunchTask": "async-gpio",
+            "executable": "${workspaceFolder}/target/thumbv6m-none-eabi/debug/async-gpio",
+            "interface": "jtag",
+            "runToEntryPoint": "main",
+            "rttConfig": {
+                "enabled": true,
+                "address": "auto",
+                "decoders": [
+                    {
+                        "port": 0,
+                        "timestamp": true,
+                        "type": "console"
+                    }
+                ]
+            }
+        },
     ]
 }
