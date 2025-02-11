@@ -22,8 +22,9 @@
 //!
 //! - [Blinky example](https://egit.irs.uni-stuttgart.de/rust/va108xx-rs/src/branch/main/examples/simple/examples/blinky.rs)
 
-#[derive(Debug, PartialEq, Eq)]
+#[derive(Debug, PartialEq, Eq, thiserror::Error)]
 #[cfg_attr(feature = "defmt", derive(defmt::Format))]
+#[error("The pin is masked")]
 pub struct IsMaskedError;
 
 pub mod dynpin;

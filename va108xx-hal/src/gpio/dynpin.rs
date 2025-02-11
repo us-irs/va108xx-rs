@@ -75,7 +75,7 @@ pub enum DynDisabled {
 }
 
 /// Value-level `enum` for input configurations
-#[derive(PartialEq, Eq, Clone, Copy)]
+#[derive(Debug, PartialEq, Eq, Clone, Copy)]
 pub enum DynInput {
     Floating,
     PullDown,
@@ -83,7 +83,7 @@ pub enum DynInput {
 }
 
 /// Value-level `enum` for output configurations
-#[derive(PartialEq, Eq, Clone, Copy)]
+#[derive(Debug, PartialEq, Eq, Clone, Copy)]
 pub enum DynOutput {
     PushPull,
     OpenDrain,
@@ -101,9 +101,10 @@ pub type DynAlternate = FunSel;
 ///
 /// [`DynPin`]s are not tracked and verified at compile-time, so run-time
 /// operations are fallible. This `enum` represents the corresponding errors.
-#[derive(Debug, PartialEq, Eq)]
+#[derive(Debug, PartialEq, Eq, thiserror::Error)]
 #[cfg_attr(feature = "defmt", derive(defmt::Format))]
-pub struct InvalidPinTypeError;
+#[error("Invalid pin type for operation: {0:?}")]
+pub struct InvalidPinTypeError(DynPinMode);
 
 impl embedded_hal::digital::Error for InvalidPinTypeError {
     fn kind(&self) -> embedded_hal::digital::ErrorKind {
@@ -116,7 +117,7 @@ impl embedded_hal::digital::Error for InvalidPinTypeError {
 //==================================================================================================
 
 /// Value-level `enum` representing pin modes
-#[derive(PartialEq, Eq, Clone, Copy)]
+#[derive(Debug, PartialEq, Eq, Clone, Copy)]
 pub enum DynPinMode {
     Input(DynInput),
     Output(DynOutput),
@@ -382,7 +383,7 @@ impl DynPin {
                 self.regs.delay(delay_1, delay_2);
                 Ok(self)
             }
-            _ => Err(InvalidPinTypeError),
+            _ => Err(InvalidPinTypeError(self.mode)),
         }
     }
 
@@ -400,7 +401,7 @@ impl DynPin {
                 self.regs.pulse_mode(enable, default_state);
                 Ok(())
             }
-            _ => Err(InvalidPinTypeError),
+            _ => Err(InvalidPinTypeError(self.mode)),
         }
     }
 
@@ -416,7 +417,7 @@ impl DynPin {
                 self.regs.filter_type(filter, clksel);
                 Ok(())
             }
-            _ => Err(InvalidPinTypeError),
+            _ => Err(InvalidPinTypeError(self.mode)),
         }
     }
 
@@ -434,7 +435,7 @@ impl DynPin {
                 self.irq_enb(irq_cfg, syscfg, irqsel);
                 Ok(())
             }
-            _ => Err(InvalidPinTypeError),
+            _ => Err(InvalidPinTypeError(self.mode)),
         }
     }
 
@@ -452,7 +453,7 @@ impl DynPin {
                 self.irq_enb(irq_cfg, syscfg, irqsel);
                 Ok(())
             }
-            _ => Err(InvalidPinTypeError),
+            _ => Err(InvalidPinTypeError(self.mode)),
         }
     }
 
@@ -463,7 +464,7 @@ impl DynPin {
                 self.regs.toggle();
                 Ok(())
             }
-            _ => Err(InvalidPinTypeError),
+            _ => Err(InvalidPinTypeError(self.mode)),
         }
     }
 
@@ -473,7 +474,7 @@ impl DynPin {
             DynPinMode::Input(_) | DYN_RD_OPEN_DRAIN_OUTPUT | DYN_RD_PUSH_PULL_OUTPUT => {
                 Ok(self.regs.read_pin())
             }
-            _ => Err(InvalidPinTypeError),
+            _ => Err(InvalidPinTypeError(self.mode)),
         }
     }
     #[inline]
@@ -483,7 +484,7 @@ impl DynPin {
                 self.regs.write_pin(bit);
                 Ok(())
             }
-            _ => Err(InvalidPinTypeError),
+            _ => Err(InvalidPinTypeError(self.mode)),
         }
     }
 
@@ -516,7 +517,7 @@ impl DynPin {
             // corresponding `Pin`
             return Ok(unsafe { Pin::new() });
         }
-        Err(InvalidPinTypeError)
+        Err(InvalidPinTypeError(self.mode))
     }
 }
 

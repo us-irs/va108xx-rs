@@ -571,10 +571,13 @@ impl SpiClkConfig {
     }
 }
 
-#[derive(Debug)]
+#[derive(Debug, thiserror::Error)]
 pub enum SpiClkConfigError {
+    #[error("division by zero")]
     DivIsZero,
+    #[error("divide value is not even")]
     DivideValueNotEven,
+    #[error("scrdv value is too large")]
     ScrdvValueTooLarge,
 }
 

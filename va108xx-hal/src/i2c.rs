@@ -23,37 +23,44 @@ pub enum FifoEmptyMode {
     EndTransaction = 1,
 }
 
-#[derive(Debug, PartialEq, Eq)]
+#[derive(Debug, PartialEq, Eq, thiserror::Error)]
 #[cfg_attr(feature = "defmt", derive(defmt::Format))]
-pub struct ClockTooSlowForFastI2c;
+#[error("clock too slow for fast I2C mode")]
+pub struct ClockTooSlowForFastI2cError;
 
-#[derive(Debug, PartialEq, Eq)]
+#[derive(Debug, PartialEq, Eq, thiserror::Error)]
+#[error("invalid timing parameters")]
+pub struct InvalidTimingParamsError;
+
+#[derive(Debug, PartialEq, Eq, thiserror::Error)]
 #[cfg_attr(feature = "defmt", derive(defmt::Format))]
 pub enum Error {
-    InvalidTimingParams,
+    //#[error("Invalid timing parameters")]
+    //InvalidTimingParams,
+    #[error("arbitration lost")]
     ArbitrationLost,
+    #[error("nack address")]
     NackAddr,
     /// Data not acknowledged in write operation
+    #[error("data not acknowledged in write operation")]
     NackData,
     /// Not enough data received in read operation
+    #[error("insufficient data received")]
     InsufficientDataReceived,
     /// Number of bytes in transfer too large (larger than 0x7fe)
+    #[error("data too large (larger than 0x7fe)")]
     DataTooLarge,
 }
 
-#[derive(Debug, PartialEq, Eq)]
+#[derive(Debug, PartialEq, Eq, thiserror::Error)]
 #[cfg_attr(feature = "defmt", derive(defmt::Format))]
 pub enum InitError {
     /// Wrong address used in constructor
+    #[error("wrong address mode")]
     WrongAddrMode,
     /// APB1 clock is too slow for fast I2C mode.
-    ClkTooSlow(ClockTooSlowForFastI2c),
-}
-
-impl From<ClockTooSlowForFastI2c> for InitError {
-    fn from(value: ClockTooSlowForFastI2c) -> Self {
-        Self::ClkTooSlow(value)
-    }
+    #[error("clock too slow for fast I2C mode: {0}")]
+    ClkTooSlow(#[from] ClockTooSlowForFastI2cError),
 }
 
 impl embedded_hal::i2c::Error for Error {
@@ -66,7 +73,7 @@ impl embedded_hal::i2c::Error for Error {
             Error::NackData => {
                 embedded_hal::i2c::ErrorKind::NoAcknowledge(i2c::NoAcknowledgeSource::Data)
             }
-            Error::DataTooLarge | Error::InsufficientDataReceived | Error::InvalidTimingParams => {
+            Error::DataTooLarge | Error::InsufficientDataReceived => {
                 embedded_hal::i2c::ErrorKind::Other
             }
         }
@@ -160,7 +167,7 @@ impl TimingCfg {
     pub fn new(
         first_16_bits: TrTfThighTlow,
         second_16_bits: TsuStoTsuStaThdStaTBuf,
-    ) -> Result<Self, Error> {
+    ) -> Result<Self, InvalidTimingParamsError> {
         if first_16_bits.0 > 0xf
             || first_16_bits.1 > 0xf
             || first_16_bits.2 > 0xf
@@ -170,7 +177,7 @@ impl TimingCfg {
             || second_16_bits.2 > 0xf
             || second_16_bits.3 > 0xf
         {
-            return Err(Error::InvalidTimingParams);
+            return Err(InvalidTimingParamsError);
         }
         Ok(TimingCfg {
             tr: first_16_bits.0,
@@ -299,7 +306,7 @@ impl<I2c: Instance> I2cBase<I2c> {
         speed_mode: I2cSpeed,
         ms_cfg: Option<&MasterConfig>,
         sl_cfg: Option<&SlaveConfig>,
-    ) -> Result<Self, ClockTooSlowForFastI2c> {
+    ) -> Result<Self, ClockTooSlowForFastI2cError> {
         enable_peripheral_clock(syscfg, I2c::PERIPH_SEL);
 
         let mut i2c_base = I2cBase {
@@ -402,19 +409,22 @@ impl<I2c: Instance> I2cBase<I2c> {
         });
     }
 
-    fn calc_clk_div(&self, speed_mode: I2cSpeed) -> Result<u8, ClockTooSlowForFastI2c> {
+    fn calc_clk_div(&self, speed_mode: I2cSpeed) -> Result<u8, ClockTooSlowForFastI2cError> {
         if speed_mode == I2cSpeed::Regular100khz {
             Ok(((self.sys_clk.raw() / CLK_100K.raw() / 20) - 1) as u8)
         } else {
             if self.sys_clk.raw() < MIN_CLK_400K.raw() {
-                return Err(ClockTooSlowForFastI2c);
+                return Err(ClockTooSlowForFastI2cError);
             }
             Ok(((self.sys_clk.raw() / CLK_400K.raw() / 25) - 1) as u8)
         }
     }
 
     /// Configures the clock scale for a given speed mode setting
-    pub fn cfg_clk_scale(&mut self, speed_mode: I2cSpeed) -> Result<(), ClockTooSlowForFastI2c> {
+    pub fn cfg_clk_scale(
+        &mut self,
+        speed_mode: I2cSpeed,
+    ) -> Result<(), ClockTooSlowForFastI2cError> {
         let clk_div = self.calc_clk_div(speed_mode)?;
         self.i2c
             .clkscale()
@@ -460,7 +470,7 @@ impl<I2c: Instance, Addr> I2cMaster<I2c, Addr> {
         i2c: I2c,
         cfg: MasterConfig,
         speed_mode: I2cSpeed,
-    ) -> Result<Self, ClockTooSlowForFastI2c> {
+    ) -> Result<Self, ClockTooSlowForFastI2cError> {
         Ok(I2cMaster {
             i2c_base: I2cBase::new(syscfg, sysclk, i2c, speed_mode, Some(&cfg), None)?,
             addr: PhantomData,
@@ -990,7 +1000,7 @@ impl<I2c: Instance, Addr> I2cSlave<I2c, Addr> {
         i2c: I2c,
         cfg: SlaveConfig,
         speed_mode: I2cSpeed,
-    ) -> Result<Self, ClockTooSlowForFastI2c> {
+    ) -> Result<Self, ClockTooSlowForFastI2cError> {
         Ok(I2cSlave {
             i2c_base: I2cBase::new(sys_cfg, sys_clk, i2c, speed_mode, None, Some(&cfg))?,
             addr: PhantomData,
@@ -1152,7 +1162,7 @@ impl<I2c: Instance> I2cSlave<I2c, TenBitAddress> {
         i2c: I2c,
         cfg: SlaveConfig,
         speed_mode: I2cSpeed,
-    ) -> Result<Self, ClockTooSlowForFastI2c> {
+    ) -> Result<Self, ClockTooSlowForFastI2cError> {
         Self::new_generic(sys_cfg, sys_clk, i2c, cfg, speed_mode)
     }
 }

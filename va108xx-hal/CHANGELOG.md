@@ -10,13 +10,25 @@ and this project adheres to [Semantic Versioning](http://semver.org/).
 
 ## [v0.9.0]
 
+## Removed
+
 - Deleted some HAL re-exports in the PWM module
+
+## Changed
+
 - GPIO API: Interrupt, pulse and filter and `set_datamask` and `clear_datamask` APIs are now
   methods which mutable modify the pin instead of consuming and returning it.
+- Simplified PWM module implementation.
+- All error types now implement `core::error::Error` by using the `thiserror::Error` derive.
+- `InvalidPinTypeError` now wraps the pin mode.
+- I2C `TimingCfg` constructor now returns explicit error instead of generic Error.
+  Removed the timing configuration error type from the generic I2C error enumeration.
+
+## Added
+
 - Add `downgrade` method for `Pin` and `upgrade` method for `DynPin` as explicit conversion
   methods.
 - Add new `get_tim_raw` unsafe method to retrieve TIM peripheral blocks.
-- Simplified PWM module implementation.
 
 ## [v0.8.0] 2024-09-30
 
