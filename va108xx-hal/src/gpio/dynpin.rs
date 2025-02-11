@@ -61,7 +61,7 @@ use super::{
     reg::RegisterInterface,
     InputDynPinAsync,
 };
-use crate::{clock::FilterClkSel, enable_interrupt, pac, FunSel, IrqCfg};
+use crate::{clock::FilterClkSel, enable_nvic_interrupt, pac, FunSel, InterruptConfig};
 
 //==================================================================================================
 //  DynPinMode configurations
@@ -351,7 +351,7 @@ impl DynPin {
 
     pub(crate) fn irq_enb(
         &mut self,
-        irq_cfg: crate::IrqCfg,
+        irq_cfg: crate::InterruptConfig,
         syscfg: Option<&mut va108xx::Sysconfig>,
         irqsel: Option<&mut va108xx::Irqsel>,
     ) {
@@ -366,18 +366,18 @@ impl DynPin {
                     DynGroup::A => {
                         irqsel
                             .porta0(self.regs.id().num as usize)
-                            .write(|w| unsafe { w.bits(irq_cfg.irq as u32) });
+                            .write(|w| unsafe { w.bits(irq_cfg.id as u32) });
                     }
                     DynGroup::B => {
                         irqsel
                             .portb0(self.regs.id().num as usize)
-                            .write(|w| unsafe { w.bits(irq_cfg.irq as u32) });
+                            .write(|w| unsafe { w.bits(irq_cfg.id as u32) });
                     }
                 }
             }
         }
-        if irq_cfg.enable {
-            unsafe { enable_interrupt(irq_cfg.irq) };
+        if irq_cfg.enable_in_nvic {
+            unsafe { enable_nvic_interrupt(irq_cfg.id) };
         }
     }
 
@@ -435,7 +435,7 @@ impl DynPin {
     pub fn interrupt_edge(
         &mut self,
         edge_type: InterruptEdge,
-        irq_cfg: IrqCfg,
+        irq_cfg: InterruptConfig,
         syscfg: Option<&mut pac::Sysconfig>,
         irqsel: Option<&mut pac::Irqsel>,
     ) -> Result<(), InvalidPinTypeError> {
@@ -453,7 +453,7 @@ impl DynPin {
     pub fn interrupt_level(
         &mut self,
         level_type: InterruptLevel,
-        irq_cfg: IrqCfg,
+        irq_cfg: InterruptConfig,
         syscfg: Option<&mut pac::Sysconfig>,
         irqsel: Option<&mut pac::Irqsel>,
     ) -> Result<(), InvalidPinTypeError> {

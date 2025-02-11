@@ -71,7 +71,7 @@ mod app {
     };
     use va108xx_hal::gpio::PinsA;
     use va108xx_hal::uart::IrqContextTimeoutOrMaxSize;
-    use va108xx_hal::{pac, uart};
+    use va108xx_hal::{pac, uart, InterruptConfig};
     use vorago_reb1::m95m01::M95M01;
 
     #[derive(Default, Debug, Copy, Clone, PartialEq, Eq)]
@@ -84,7 +84,7 @@ mod app {
 
     #[local]
     struct Local {
-        uart_rx: uart::RxWithIrq<pac::Uarta>,
+        uart_rx: uart::RxWithInterrupt<pac::Uarta>,
         uart_tx: uart::Tx<pac::Uarta>,
         rx_context: IrqContextTimeoutOrMaxSize,
         verif_reporter: VerificationReportCreator,
@@ -114,15 +114,17 @@ mod app {
         let tx = gpioa.pa9.into_funsel_2();
         let rx = gpioa.pa8.into_funsel_2();
 
-        let irq_uart = uart::Uart::new(
+        let irq_uart = uart::Uart::new_with_interrupt(
             &mut dp.sysconfig,
             SYSCLK_FREQ,
             dp.uarta,
             (tx, rx),
             UART_BAUDRATE.Hz(),
+            InterruptConfig::new(pac::Interrupt::OC0, true, true),
         );
         let (tx, rx) = irq_uart.split();
-        let mut rx = rx.into_rx_with_irq(&mut dp.sysconfig, &mut dp.irqsel, pac::interrupt::OC0);
+        // Unwrap is okay, we explicitely set the interrupt ID.
+        let mut rx = rx.into_rx_with_irq();
 
         let verif_reporter = VerificationReportCreator::new(0).unwrap();
 
@@ -175,7 +177,7 @@ mod app {
         match cx
             .local
             .uart_rx
-            .irq_handler_max_size_or_timeout_based(cx.local.rx_context, cx.local.rx_buf)
+            .on_interrupt_max_size_or_timeout_based(cx.local.rx_context, cx.local.rx_buf)
         {
             Ok(result) => {
                 if RX_DEBUGGING {

@@ -25,12 +25,14 @@ pub enum FunSel {
 }
 
 #[derive(Debug, Copy, Clone, PartialEq, Eq)]
+#[cfg_attr(feature = "defmt", derive(defmt::Format))]
 pub enum PortSel {
     PortA,
     PortB,
 }
 
 #[derive(Copy, Clone, PartialEq, Eq)]
+#[cfg_attr(feature = "defmt", derive(defmt::Format))]
 pub enum PeripheralSelect {
     PortA = 0,
     PortB = 1,
@@ -47,31 +49,38 @@ pub enum PeripheralSelect {
     Gpio = 24,
 }
 
-/// Generic IRQ config which can be used to specify whether the HAL driver will
+/// Generic interrupt config which can be used to specify whether the HAL driver will
 /// use the IRQSEL register to route an interrupt, and whether the IRQ will be unmasked in the
 /// Cortex-M0 NVIC. Both are generally necessary for IRQs to work, but the user might perform
 /// this steps themselves
 #[derive(Debug, PartialEq, Eq, Clone, Copy)]
-pub struct IrqCfg {
+pub struct InterruptConfig {
     /// Interrupt target vector. Should always be set, might be required for disabling IRQs
-    pub irq: pac::Interrupt,
-    /// Specfiy whether IRQ should be routed to an IRQ vector using the IRQSEL peripheral
+    pub id: pac::Interrupt,
+    /// Specfiy whether IRQ should be routed to an IRQ vector using the IRQSEL peripheral.
     pub route: bool,
-    /// Specify whether the IRQ is unmasked in the Cortex-M NVIC
-    pub enable: bool,
+    /// Specify whether the IRQ is unmasked in the Cortex-M NVIC. If an interrupt is used for
+    /// multiple purposes, the user can enable the interrupts themselves.
+    pub enable_in_nvic: bool,
 }
 
-impl IrqCfg {
-    pub fn new(irq: pac::Interrupt, route: bool, enable: bool) -> Self {
-        IrqCfg { irq, route, enable }
+impl InterruptConfig {
+    pub fn new(id: pac::Interrupt, route: bool, enable_in_nvic: bool) -> Self {
+        InterruptConfig {
+            id,
+            route,
+            enable_in_nvic,
+        }
     }
 }
+
+pub type IrqCfg = InterruptConfig;
 
 #[derive(Debug, PartialEq, Eq)]
 pub struct InvalidPin(pub(crate) ());
 
 /// Can be used to manually manipulate the function select of port pins
-pub fn port_mux(
+pub fn port_function_select(
     ioconfig: &mut pac::Ioconfig,
     port: PortSel,
     pin: u8,
@@ -105,7 +114,7 @@ pub fn port_mux(
 ///
 /// This function is `unsafe` because it can break mask-based critical sections.
 #[inline]
-pub unsafe fn enable_interrupt(irq: pac::Interrupt) {
+pub unsafe fn enable_nvic_interrupt(irq: pac::Interrupt) {
     unsafe {
         cortex_m::peripheral::NVIC::unmask(irq);
     }
@@ -113,6 +122,6 @@ pub unsafe fn enable_interrupt(irq: pac::Interrupt) {
 
 /// Disable a specific interrupt using the NVIC peripheral.
 #[inline]
-pub fn disable_interrupt(irq: pac::Interrupt) {
+pub fn disable_nvic_interrupt(irq: pac::Interrupt) {
     cortex_m::peripheral::NVIC::mask(irq);
 }

@@ -76,7 +76,7 @@ use super::{DynPin, InputPinAsync};
 use crate::{
     pac::{Irqsel, Porta, Portb, Sysconfig},
     typelevel::Sealed,
-    IrqCfg,
+    InterruptConfig,
 };
 use core::convert::Infallible;
 use core::marker::PhantomData;
@@ -454,7 +454,7 @@ impl<I: PinId, M: PinMode> Pin<I, M> {
 
     fn irq_enb(
         &mut self,
-        irq_cfg: crate::IrqCfg,
+        irq_cfg: crate::InterruptConfig,
         syscfg: Option<&mut va108xx::Sysconfig>,
         irqsel: Option<&mut va108xx::Irqsel>,
     ) {
@@ -581,10 +581,10 @@ impl<I: PinId, C: InputConfig> Pin<I, Input<C>> {
         InputPinAsync::new(self, irq)
     }
 
-    pub fn interrupt_edge(
+    pub fn configure_edge_interrupt(
         &mut self,
         edge_type: InterruptEdge,
-        irq_cfg: IrqCfg,
+        irq_cfg: InterruptConfig,
         syscfg: Option<&mut Sysconfig>,
         irqsel: Option<&mut Irqsel>,
     ) {
@@ -592,10 +592,10 @@ impl<I: PinId, C: InputConfig> Pin<I, Input<C>> {
         self.irq_enb(irq_cfg, syscfg, irqsel);
     }
 
-    pub fn interrupt_level(
+    pub fn configure_level_interrupt(
         &mut self,
         level_type: InterruptLevel,
-        irq_cfg: IrqCfg,
+        irq_cfg: InterruptConfig,
         syscfg: Option<&mut Sysconfig>,
         irqsel: Option<&mut Irqsel>,
     ) {
@@ -631,7 +631,7 @@ impl<I: PinId, C: OutputConfig> Pin<I, Output<C>> {
     pub fn interrupt_edge(
         &mut self,
         edge_type: InterruptEdge,
-        irq_cfg: IrqCfg,
+        irq_cfg: InterruptConfig,
         syscfg: Option<&mut Sysconfig>,
         irqsel: Option<&mut Irqsel>,
     ) {
@@ -642,7 +642,7 @@ impl<I: PinId, C: OutputConfig> Pin<I, Output<C>> {
     pub fn interrupt_level(
         &mut self,
         level_type: InterruptLevel,
-        irq_cfg: IrqCfg,
+        irq_cfg: InterruptConfig,
         syscfg: Option<&mut Sysconfig>,
         irqsel: Option<&mut Irqsel>,
     ) {
@@ -654,7 +654,7 @@ impl<I: PinId, C: OutputConfig> Pin<I, Output<C>> {
 impl<I: PinId, C: InputConfig> Pin<I, Input<C>> {
     /// See p.37 and p.38 of the programmers guide for more information.
     #[inline]
-    pub fn filter_type(&mut self, filter: FilterType, clksel: FilterClkSel) {
+    pub fn configure_filter_type(&mut self, filter: FilterType, clksel: FilterClkSel) {
         self.inner.regs.filter_type(filter, clksel);
     }
 }

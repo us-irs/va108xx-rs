@@ -363,8 +363,8 @@
             "cwd": "${workspaceRoot}",
             "device": "Cortex-M0",
             "svdFile": "./va108xx/svd/va108xx.svd.patched",
-            "preLaunchTask": "rust: cargo build uart irq",
-            "executable": "${workspaceFolder}/target/thumbv6m-none-eabi/debug/uart-rtic",
+            "preLaunchTask": "uart-echo-rtic-example",
+            "executable": "${workspaceFolder}/target/thumbv6m-none-eabi/debug/uart-echo-rtic",
             "interface": "jtag",
             "runToEntryPoint": "main",
             "rttConfig": {
@@ -509,6 +509,30 @@
             "svdFile": "./va108xx/svd/va108xx.svd.patched",
             "preLaunchTask": "async-gpio",
             "executable": "${workspaceFolder}/target/thumbv6m-none-eabi/debug/async-gpio",
+            "interface": "jtag",
+            "runToEntryPoint": "main",
+            "rttConfig": {
+                "enabled": true,
+                "address": "auto",
+                "decoders": [
+                    {
+                        "port": 0,
+                        "timestamp": true,
+                        "type": "console"
+                    }
+                ]
+            }
+        },
+        {
+            "type": "cortex-debug",
+            "request": "launch",
+            "name": "Async UART",
+            "servertype": "jlink",
+            "cwd": "${workspaceRoot}",
+            "device": "Cortex-M0",
+            "svdFile": "./va108xx/svd/va108xx.svd.patched",
+            "preLaunchTask": "async-uart",
+            "executable": "${workspaceFolder}/target/thumbv6m-none-eabi/debug/async-uart",
             "interface": "jtag",
             "runToEntryPoint": "main",
             "rttConfig": {

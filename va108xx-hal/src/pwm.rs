@@ -80,7 +80,7 @@ where
         pin
     }
 
-    pub fn reduce(self) -> ReducedPwmPin<Mode> {
+    pub fn downgrade(self) -> ReducedPwmPin<Mode> {
         self.inner
     }
 
@@ -274,6 +274,24 @@ impl<Mode> ReducedPwmPin<Mode> {
     #[inline(always)]
     pub fn duty(&self) -> u16 {
         self.common.current_duty
+    }
+}
+
+impl<Pin: TimPin, Tim: ValidTim> From<PwmPin<Pin, Tim, PwmA>> for ReducedPwmPin<PwmA>
+where
+    (Pin, Tim): ValidTimAndPin<Pin, Tim>,
+{
+    fn from(value: PwmPin<Pin, Tim, PwmA>) -> Self {
+        value.downgrade()
+    }
+}
+
+impl<Pin: TimPin, Tim: ValidTim> From<PwmPin<Pin, Tim, PwmB>> for ReducedPwmPin<PwmB>
+where
+    (Pin, Tim): ValidTimAndPin<Pin, Tim>,
+{
+    fn from(value: PwmPin<Pin, Tim, PwmB>) -> Self {
+        value.downgrade()
     }
 }
 

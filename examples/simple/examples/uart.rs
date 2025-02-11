@@ -24,11 +24,17 @@ fn main() -> ! {
 
     let mut dp = pac::Peripherals::take().unwrap();
 
-    let gpioa = PinsA::new(&mut dp.sysconfig, Some(dp.ioconfig), dp.porta);
+    let gpioa = PinsA::new(&mut dp.sysconfig, dp.porta);
     let tx = gpioa.pa9.into_funsel_2();
     let rx = gpioa.pa8.into_funsel_2();
 
-    let uarta = uart::Uart::new(&mut dp.sysconfig, 50.MHz(), dp.uarta, (tx, rx), 115200.Hz());
+    let uarta = uart::Uart::new_without_interrupt(
+        &mut dp.sysconfig,
+        50.MHz(),
+        dp.uarta,
+        (tx, rx),
+        115200.Hz(),
+    );
     let (mut tx, mut rx) = uarta.split();
     writeln!(tx, "Hello World\r").unwrap();
     loop {

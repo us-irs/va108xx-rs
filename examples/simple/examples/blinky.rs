@@ -18,14 +18,14 @@ use va108xx_hal::{
     prelude::*,
     timer::DelayMs,
     timer::{default_ms_irq_handler, set_up_ms_tick, CountdownTimer},
-    IrqCfg,
+    InterruptConfig,
 };
 
 #[entry]
 fn main() -> ! {
     let mut dp = pac::Peripherals::take().unwrap();
     let mut delay_ms = DelayMs::new(set_up_ms_tick(
-        IrqCfg::new(interrupt::OC0, true, true),
+        InterruptConfig::new(interrupt::OC0, true, true),
         &mut dp.sysconfig,
         Some(&mut dp.irqsel),
         50.MHz(),
@@ -33,7 +33,7 @@ fn main() -> ! {
     ))
     .unwrap();
     let mut delay_tim1 = CountdownTimer::new(&mut dp.sysconfig, 50.MHz(), dp.tim1);
-    let porta = PinsA::new(&mut dp.sysconfig, Some(dp.ioconfig), dp.porta);
+    let porta = PinsA::new(&mut dp.sysconfig, dp.porta);
     let mut led1 = porta.pa10.into_readable_push_pull_output();
     let mut led2 = porta.pa7.into_readable_push_pull_output();
     let mut led3 = porta.pa6.into_readable_push_pull_output();

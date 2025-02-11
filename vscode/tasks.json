@@ -277,6 +277,16 @@
       ]
     },
     {
+      "label": "async-uart",
+      "type": "shell",
+      "command": "~/.cargo/bin/cargo", // note: full path to the cargo
+      "args": [
+        "build",
+        "--bin",
+        "async-uart"
+      ]
+    },
+    {
       "label": "bootloader",
       "type": "shell",
       "command": "~/.cargo/bin/cargo", // note: full path to the cargo

@@ -61,7 +61,7 @@ fn main() -> ! {
             }
         }
         LibType::Hal => {
-            let pins = PinsA::new(&mut dp.sysconfig, Some(dp.ioconfig), dp.porta);
+            let pins = PinsA::new(&mut dp.sysconfig, dp.porta);
             let mut led1 = pins.pa10.into_readable_push_pull_output();
             let mut led2 = pins.pa7.into_readable_push_pull_output();
             let mut led3 = pins.pa6.into_readable_push_pull_output();
@@ -87,27 +87,25 @@ fn main() -> ! {
             }
         }
         LibType::Bsp => {
-            let pinsa = PinsA::new(&mut dp.sysconfig, Some(dp.ioconfig), dp.porta);
+            let pinsa = PinsA::new(&mut dp.sysconfig, dp.porta);
             let mut leds = Leds::new(
                 pinsa.pa10.into_push_pull_output(),
                 pinsa.pa7.into_push_pull_output(),
                 pinsa.pa6.into_push_pull_output(),
             );
             let mut delay = set_up_ms_delay_provider(&mut dp.sysconfig, 50.MHz(), dp.tim0);
-            loop {
-                for _ in 0..10 {
-                    // Blink all LEDs quickly
-                    for led in leds.iter_mut() {
-                        led.toggle();
-                    }
-                    delay.delay_ms(500);
+            for _ in 0..10 {
+                // Blink all LEDs quickly
+                for led in leds.iter_mut() {
+                    led.toggle();
                 }
-                // Now use a wave pattern
-                loop {
-                    for led in leds.iter_mut() {
-                        led.toggle();
-                        delay.delay_ms(200);
-                    }
+                delay.delay_ms(500);
+            }
+            // Now use a wave pattern
+            loop {
+                for led in leds.iter_mut() {
+                    led.toggle();
+                    delay.delay_ms(200);
                 }
             }
         }

@@ -14,7 +14,7 @@ use embedded_hal_async::digital::Wait;
 use panic_rtt_target as _;
 use rtt_target::{rprintln, rtt_init_print};
 use va108xx_embassy::embassy;
-use va108xx_hal::gpio::{handle_interrupt_for_async_gpio, InputDynPinAsync, InputPinAsync, PinsB};
+use va108xx_hal::gpio::{on_interrupt_for_asynch_gpio, InputDynPinAsync, InputPinAsync, PinsB};
 use va108xx_hal::{
     gpio::{DynPin, PinsA},
     pac::{self, interrupt},
@@ -248,11 +248,11 @@ async fn output_task(
 #[interrupt]
 #[allow(non_snake_case)]
 fn OC10() {
-    handle_interrupt_for_async_gpio();
+    on_interrupt_for_asynch_gpio();
 }
 
 #[interrupt]
 #[allow(non_snake_case)]
 fn OC11() {
-    handle_interrupt_for_async_gpio();
+    on_interrupt_for_asynch_gpio();
 }

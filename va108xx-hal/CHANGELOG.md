@@ -24,12 +24,29 @@ and this project adheres to [Semantic Versioning](http://semver.org/).
 - I2C `TimingCfg` constructor now returns explicit error instead of generic Error.
   Removed the timing configuration error type from the generic I2C error enumeration.
 - `PinsA` and `PinsB` constructor do not expect an optional `pac::Ioconfig` argument anymore.
+- `IrqCfg` renamed to `InterruptConfig`, kept alias for old name.
+- All library provided interrupt handlers now start with common prefix `on_interrupt_*`
+- `RxWithIrq` renamed to `RxWithInterrupt`
+- `Rx::into_rx_with_irq` does not expect any arguments any more.
+- `filter_type` renamed to `configure_filter_type`.
+- `level_irq` renamed to `configure_level_interrupt`.
+- `edge_irq` renamed to `configure_edge_interrupt`.
+- `PinsA` and `PinsB` constructor do not expect an optional IOCONFIG argument anymore.
+- UART interrupt management is now handled by the main constructor instead of later stages to
+  statically ensure one interrupt vector for the UART peripheral. `Uart::new` expects an
+  optional `InterruptConfig` argument.
+- `enable_interrupt` and `disable_interrupt` renamed to `enable_nvic_interrupt` and
+  `disable_nvic_interrupt` to distinguish them from peripheral interrupts more clearly.
+- `port_mux` renamed to `port_function_select`
 
 ## Added
 
 - Add `downgrade` method for `Pin` and `upgrade` method for `DynPin` as explicit conversion
   methods.
+- Asynchronous GPIO support.
+- Asynchronous UART TX support.
 - Add new `get_tim_raw` unsafe method to retrieve TIM peripheral blocks.
+- `Uart::with_with_interrupt` and `Uart::new_without_interrupt`
 
 ## [v0.8.0] 2024-09-30
 

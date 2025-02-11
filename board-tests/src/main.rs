@@ -17,7 +17,7 @@ use va108xx_hal::{
     pac::{self, interrupt},
     prelude::*,
     time::Hertz,
-    timer::{default_ms_irq_handler, set_up_ms_tick, CountdownTimer, IrqCfg},
+    timer::{default_ms_irq_handler, set_up_ms_tick, CountdownTimer, InterruptConfig},
 };
 
 #[allow(dead_code)]
@@ -155,7 +155,7 @@ fn main() -> ! {
         }
         TestCase::DelayMs => {
             let mut ms_timer = set_up_ms_tick(
-                IrqCfg::new(pac::Interrupt::OC0, true, true),
+                InterruptConfig::new(pac::Interrupt::OC0, true, true),
                 &mut dp.sysconfig,
                 Some(&mut dp.irqsel),
                 50.MHz(),

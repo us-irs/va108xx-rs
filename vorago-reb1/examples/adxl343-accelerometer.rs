@@ -31,7 +31,7 @@ fn main() -> ! {
     rprintln!("-- Vorago Accelerometer Example --");
     let mut dp = pac::Peripherals::take().unwrap();
     let mut delay = set_up_ms_delay_provider(&mut dp.sysconfig, 50.MHz(), dp.tim0);
-    let pinsa = PinsA::new(&mut dp.sysconfig, None, dp.porta);
+    let pinsa = PinsA::new(&mut dp.sysconfig, dp.porta);
     let (sck, mosi, miso) = (
         pinsa.pa20.into_funsel_2(),
         pinsa.pa19.into_funsel_2(),

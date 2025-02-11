@@ -22,9 +22,9 @@ use va108xx_hal::{
     pac::{self, interrupt},
     prelude::*,
     spi::{Spi, SpiBase, SpiConfig},
-    timer::{default_ms_irq_handler, set_up_ms_tick, DelayMs, IrqCfg},
+    timer::{default_ms_irq_handler, set_up_ms_tick, DelayMs, InterruptConfig},
 };
-use va108xx_hal::{port_mux, FunSel, PortSel};
+use va108xx_hal::{port_function_select, FunSel, PortSel};
 use vorago_reb1::max11619::{
     max11619_externally_clocked_no_wakeup, max11619_externally_clocked_with_wakeup,
     max11619_internally_clocked, EocPin, AN2_CHANNEL, POTENTIOMETER_CHANNEL,
@@ -112,7 +112,7 @@ fn main() -> ! {
 
     let mut dp = pac::Peripherals::take().unwrap();
     let tim0 = set_up_ms_tick(
-        IrqCfg::new(pac::Interrupt::OC0, true, true),
+        InterruptConfig::new(pac::Interrupt::OC0, true, true),
         &mut dp.sysconfig,
         Some(&mut dp.irqsel),
         SYS_CLK,
@@ -123,7 +123,7 @@ fn main() -> ! {
         cortex_m::peripheral::NVIC::unmask(pac::Interrupt::OC0);
     }
 
-    let pinsa = PinsA::new(&mut dp.sysconfig, None, dp.porta);
+    let pinsa = PinsA::new(&mut dp.sysconfig, dp.porta);
     let spi_cfg = SpiConfig::default()
         .clk_cfg(SpiClkConfig::from_clk(SYS_CLK, 3.MHz()).unwrap())
         .mode(MODE_0)
@@ -135,10 +135,10 @@ fn main() -> ! {
     );
 
     if MUX_MODE == MuxMode::PortB19to17 {
-        port_mux(&mut dp.ioconfig, PortSel::PortB, 19, FunSel::Sel1).ok();
-        port_mux(&mut dp.ioconfig, PortSel::PortB, 18, FunSel::Sel2).ok();
-        port_mux(&mut dp.ioconfig, PortSel::PortB, 17, FunSel::Sel1).ok();
-        port_mux(&mut dp.ioconfig, PortSel::PortB, 16, FunSel::Sel1).ok();
+        port_function_select(&mut dp.ioconfig, PortSel::PortB, 19, FunSel::Sel1).ok();
+        port_function_select(&mut dp.ioconfig, PortSel::PortB, 18, FunSel::Sel2).ok();
+        port_function_select(&mut dp.ioconfig, PortSel::PortB, 17, FunSel::Sel1).ok();
+        port_function_select(&mut dp.ioconfig, PortSel::PortB, 16, FunSel::Sel1).ok();
     }
     // Set the accelerometer chip select low in case the board slot is populated
     let mut accel_cs = pinsa.pa16.into_push_pull_output();

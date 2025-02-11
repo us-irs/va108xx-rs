@@ -5,11 +5,11 @@
 //! on GPIO pins. Please note that this module does not specify/declare the interrupt handlers
 //! which must be provided for async support to work. However, it provides one generic
 //! [handler][handle_interrupt_for_async_gpio] which should be called in ALL user interrupt handlers
-//! for which handle GPIO interrupts.
+//! which handle GPIO interrupts.
 //!
 //! # Example
 //!
-//! - [Async GPIO example](https://egit.irs.uni-stuttgart.de/rust/va108xx-rs/src/branch/async-gpio/examples/embassy/src/bin/async-gpio.rs)
+//! - [Async GPIO example](https://egit.irs.uni-stuttgart.de/rust/va108xx-rs/src/branch/main/examples/embassy/src/bin/async-gpio.rs)
 use core::future::Future;
 
 use embassy_sync::waitqueue::AtomicWaker;
@@ -18,7 +18,7 @@ use embedded_hal_async::digital::Wait;
 use portable_atomic::AtomicBool;
 use va108xx::{self as pac, Irqsel, Sysconfig};
 
-use crate::IrqCfg;
+use crate::InterruptConfig;
 
 use super::{
     pin, DynGroup, DynPin, DynPinId, InputConfig, InterruptEdge, InvalidPinTypeError, Pin, PinId,
@@ -44,7 +44,7 @@ fn pin_id_to_offset(dyn_pin_id: DynPinId) -> usize {
 /// complete async operations. The user should call this function in ALL interrupt handlers
 /// which handle any GPIO interrupts.
 #[inline]
-pub fn handle_interrupt_for_async_gpio() {
+pub fn on_interrupt_for_asynch_gpio() {
     let periphs = unsafe { pac::Peripherals::steal() };
 
     handle_interrupt_for_gpio_and_port(
@@ -117,7 +117,7 @@ impl InputPinFuture {
             .store(false, core::sync::atomic::Ordering::Relaxed);
         pin.interrupt_edge(
             edge,
-            IrqCfg::new(irq, true, true),
+            InterruptConfig::new(irq, true, true),
             Some(sys_cfg),
             Some(irq_sel),
         )
@@ -148,9 +148,9 @@ impl InputPinFuture {
     ) -> Self {
         EDGE_DETECTION[pin_id_to_offset(pin.id())]
             .store(false, core::sync::atomic::Ordering::Relaxed);
-        pin.interrupt_edge(
+        pin.configure_edge_interrupt(
             edge,
-            IrqCfg::new(irq, true, true),
+            InterruptConfig::new(irq, true, true),
             Some(sys_cfg),
             Some(irq_sel),
         );

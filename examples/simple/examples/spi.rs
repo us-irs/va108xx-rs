@@ -17,7 +17,7 @@ use va108xx_hal::{
     prelude::*,
     spi::{self, Spi, SpiBase, SpiClkConfig, TransferConfigWithHwcs},
     timer::{default_ms_irq_handler, set_up_ms_tick},
-    IrqCfg,
+    InterruptConfig,
 };
 
 #[derive(PartialEq, Debug)]
@@ -47,7 +47,7 @@ fn main() -> ! {
     rprintln!("-- VA108xx SPI example application--");
     let mut dp = pac::Peripherals::take().unwrap();
     let mut delay = set_up_ms_tick(
-        IrqCfg::new(interrupt::OC0, true, true),
+        InterruptConfig::new(interrupt::OC0, true, true),
         &mut dp.sysconfig,
         Some(&mut dp.irqsel),
         50.MHz(),
@@ -58,8 +58,8 @@ fn main() -> ! {
         .expect("creating SPI clock config failed");
     let spia_ref: RefCell<Option<SpiBase<pac::Spia, u8>>> = RefCell::new(None);
     let spib_ref: RefCell<Option<SpiBase<pac::Spib, u8>>> = RefCell::new(None);
-    let pinsa = PinsA::new(&mut dp.sysconfig, None, dp.porta);
-    let pinsb = PinsB::new(&mut dp.sysconfig, Some(dp.ioconfig), dp.portb);
+    let pinsa = PinsA::new(&mut dp.sysconfig, dp.porta);
+    let pinsb = PinsB::new(&mut dp.sysconfig, dp.portb);
 
     let mut spi_cfg = spi::SpiConfig::default();
     if EXAMPLE_SEL == ExampleSelect::Loopback {

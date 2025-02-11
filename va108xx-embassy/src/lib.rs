@@ -43,7 +43,7 @@ use once_cell::sync::OnceCell;
 use va108xx_hal::pac::interrupt;
 use va108xx_hal::{
     clock::enable_peripheral_clock,
-    enable_interrupt, pac,
+    enable_nvic_interrupt, pac,
     prelude::*,
     timer::{enable_tim_clk, get_tim_raw, TimRegInterface},
     PeripheralSelect,
@@ -221,7 +221,7 @@ impl TimerDriver {
             .tim0(timekeeper_tim.tim_id() as usize)
             .write(|w| unsafe { w.bits(timekeeper_irq as u32) });
         unsafe {
-            enable_interrupt(timekeeper_irq);
+            enable_nvic_interrupt(timekeeper_irq);
         }
         timekeeper_reg_block
             .ctrl()
@@ -239,7 +239,7 @@ impl TimerDriver {
         });
         // Enable general interrupts. The IRQ enable of the peripheral remains cleared.
         unsafe {
-            enable_interrupt(alarm_irq);
+            enable_nvic_interrupt(alarm_irq);
         }
         irqsel
             .tim0(alarm_tim.tim_id() as usize)
