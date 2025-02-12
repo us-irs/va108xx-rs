@@ -5,7 +5,7 @@ impl core::fmt::Debug for R {
         write!(f, "{}", self.bits())
     }
 }
-#[doc = "Synd 64 bit Corrected Data 0\n\nYou can [`read`](crate::generic::Reg::read) this register and get [`synd_check_64_data0::R`](R).  See [API](https://docs.rs/svd2rust/#read--modify--write-api)."]
+#[doc = "Synd 64 bit Corrected Data 0\n\nYou can [`read`](crate::Reg::read) this register and get [`synd_check_64_data0::R`](R). See [API](https://docs.rs/svd2rust/#read--modify--write-api)."]
 pub struct SyndCheck64Data0Spec;
 impl crate::RegisterSpec for SyndCheck64Data0Spec {
     type Ux = u32;

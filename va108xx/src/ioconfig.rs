@@ -35,7 +35,7 @@ impl RegisterBlock {
         &self.perid
     }
 }
-#[doc = "PORTA (rw) register accessor: PORTA Pin Configuration Register\n\nYou can [`read`](crate::generic::Reg::read) this register and get [`porta::R`].  You can [`reset`](crate::generic::Reg::reset), [`write`](crate::generic::Reg::write), [`write_with_zero`](crate::generic::Reg::write_with_zero) this register using [`porta::W`]. You can also [`modify`](crate::generic::Reg::modify) this register. See [API](https://docs.rs/svd2rust/#read--modify--write-api).\n\nFor information about available fields see [`mod@porta`]
+#[doc = "PORTA (rw) register accessor: PORTA Pin Configuration Register\n\nYou can [`read`](crate::Reg::read) this register and get [`porta::R`]. You can [`reset`](crate::Reg::reset), [`write`](crate::Reg::write), [`write_with_zero`](crate::Reg::write_with_zero) this register using [`porta::W`]. You can also [`modify`](crate::Reg::modify) this register. See [API](https://docs.rs/svd2rust/#read--modify--write-api).\n\nFor information about available fields see [`mod@porta`]
 module"]
 #[doc(alias = "PORTA")]
 pub type Porta = crate::Reg<porta::PortaSpec>;
@@ -43,7 +43,7 @@ pub type Porta = crate::Reg<porta::PortaSpec>;
 pub mod porta;
 pub use porta as portb;
 pub use Porta as Portb;
-#[doc = "PERID (r) register accessor: Peripheral ID Register\n\nYou can [`read`](crate::generic::Reg::read) this register and get [`perid::R`].  See [API](https://docs.rs/svd2rust/#read--modify--write-api).\n\nFor information about available fields see [`mod@perid`]
+#[doc = "PERID (r) register accessor: Peripheral ID Register\n\nYou can [`read`](crate::Reg::read) this register and get [`perid::R`]. See [API](https://docs.rs/svd2rust/#read--modify--write-api).\n\nFor information about available fields see [`mod@perid`]
 module"]
 #[doc(alias = "PERID")]
 pub type Perid = crate::Reg<perid::PeridSpec>;

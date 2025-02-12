@@ -5,7 +5,7 @@ impl core::fmt::Debug for R {
         write!(f, "{}", self.bits())
     }
 }
-#[doc = "Slave TX Count Register\n\nYou can [`read`](crate::generic::Reg::read) this register and get [`s0_txcount::R`](R).  See [API](https://docs.rs/svd2rust/#read--modify--write-api)."]
+#[doc = "Slave TX Count Register\n\nYou can [`read`](crate::Reg::read) this register and get [`s0_txcount::R`](R). See [API](https://docs.rs/svd2rust/#read--modify--write-api)."]
 pub struct S0TxcountSpec;
 impl crate::RegisterSpec for S0TxcountSpec {
     type Ux = u32;

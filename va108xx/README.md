@@ -24,7 +24,7 @@ features = ["rt"]
 The `rt` feature is optional and recommended. It brings in support for `cortex-m-rt`.
 
 For full details on the autgenerated API, please see the
-[svd2rust documentation](https://docs.rs/svd2rust/0.19.0/svd2rust/#peripheral-api).
+[svd2rust documentation](https://docs.rs/svd2rust/latest/svd2rust/#peripheral-api).
 
 ## Regenerating the PAC
 

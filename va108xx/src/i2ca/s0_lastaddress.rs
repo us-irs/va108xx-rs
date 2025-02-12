@@ -5,7 +5,7 @@ impl core::fmt::Debug for R {
         write!(f, "{}", self.bits())
     }
 }
-#[doc = "Slave I2C Last Address value\n\nYou can [`read`](crate::generic::Reg::read) this register and get [`s0_lastaddress::R`](R).  See [API](https://docs.rs/svd2rust/#read--modify--write-api)."]
+#[doc = "Slave I2C Last Address value\n\nYou can [`read`](crate::Reg::read) this register and get [`s0_lastaddress::R`](R). See [API](https://docs.rs/svd2rust/#read--modify--write-api)."]
 pub struct S0LastaddressSpec;
 impl crate::RegisterSpec for S0LastaddressSpec {
     type Ux = u32;

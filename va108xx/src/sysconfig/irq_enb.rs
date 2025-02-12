@@ -43,30 +43,26 @@ impl R {
 impl W {
     #[doc = "Bit 0 - RAM Single Bit Interrupt"]
     #[inline(always)]
-    #[must_use]
     pub fn ramsbe(&mut self) -> RamsbeW<IrqEnbSpec> {
         RamsbeW::new(self, 0)
     }
     #[doc = "Bit 1 - RAM Multi Bit Interrupt"]
     #[inline(always)]
-    #[must_use]
     pub fn rammbe(&mut self) -> RammbeW<IrqEnbSpec> {
         RammbeW::new(self, 1)
     }
     #[doc = "Bit 2 - ROM Single Bit Interrupt"]
     #[inline(always)]
-    #[must_use]
     pub fn romsbe(&mut self) -> RomsbeW<IrqEnbSpec> {
         RomsbeW::new(self, 2)
     }
     #[doc = "Bit 3 - ROM Multi Bit Interrupt"]
     #[inline(always)]
-    #[must_use]
     pub fn rommbe(&mut self) -> RommbeW<IrqEnbSpec> {
         RommbeW::new(self, 3)
     }
 }
-#[doc = "Enable EDAC Error Interrupt Register\n\nYou can [`read`](crate::generic::Reg::read) this register and get [`irq_enb::R`](R).  You can [`reset`](crate::generic::Reg::reset), [`write`](crate::generic::Reg::write), [`write_with_zero`](crate::generic::Reg::write_with_zero) this register using [`irq_enb::W`](W). You can also [`modify`](crate::generic::Reg::modify) this register. See [API](https://docs.rs/svd2rust/#read--modify--write-api)."]
+#[doc = "Enable EDAC Error Interrupt Register\n\nYou can [`read`](crate::Reg::read) this register and get [`irq_enb::R`](R). You can [`reset`](crate::Reg::reset), [`write`](crate::Reg::write), [`write_with_zero`](crate::Reg::write_with_zero) this register using [`irq_enb::W`](W). You can also [`modify`](crate::Reg::modify) this register. See [API](https://docs.rs/svd2rust/#read--modify--write-api)."]
 pub struct IrqEnbSpec;
 impl crate::RegisterSpec for IrqEnbSpec {
     type Ux = u32;

@@ -145,91 +145,78 @@ clock"]
 impl W {
     #[doc = "Bit 0 - Enable PORTA clock"]
     #[inline(always)]
-    #[must_use]
     pub fn porta(&mut self) -> PortaW<PeripheralClkEnableSpec> {
         PortaW::new(self, 0)
     }
     #[doc = "Bit 1 - Enable PORTB clock"]
     #[inline(always)]
-    #[must_use]
     pub fn portb(&mut self) -> PortbW<PeripheralClkEnableSpec> {
         PortbW::new(self, 1)
     }
     #[doc = "Bit 4 - Enable SPI\\[0\\]
 clock"]
     #[inline(always)]
-    #[must_use]
     pub fn spi_0(&mut self) -> Spi0W<PeripheralClkEnableSpec> {
         Spi0W::new(self, 4)
     }
     #[doc = "Bit 5 - Enable SPI\\[1\\]
 clock"]
     #[inline(always)]
-    #[must_use]
     pub fn spi_1(&mut self) -> Spi1W<PeripheralClkEnableSpec> {
         Spi1W::new(self, 5)
     }
     #[doc = "Bit 6 - Enable SPI\\[2\\]
 clock"]
     #[inline(always)]
-    #[must_use]
     pub fn spi_2(&mut self) -> Spi2W<PeripheralClkEnableSpec> {
         Spi2W::new(self, 6)
     }
     #[doc = "Bit 8 - Enable UART\\[0\\]
 clock"]
     #[inline(always)]
-    #[must_use]
     pub fn uart_0(&mut self) -> Uart0W<PeripheralClkEnableSpec> {
         Uart0W::new(self, 8)
     }
     #[doc = "Bit 9 - Enable UART\\[1\\]
 clock"]
     #[inline(always)]
-    #[must_use]
     pub fn uart_1(&mut self) -> Uart1W<PeripheralClkEnableSpec> {
         Uart1W::new(self, 9)
     }
     #[doc = "Bit 16 - Enable I2C\\[0\\]
 clock"]
     #[inline(always)]
-    #[must_use]
     pub fn i2c_0(&mut self) -> I2c0W<PeripheralClkEnableSpec> {
         I2c0W::new(self, 16)
     }
     #[doc = "Bit 17 - Enable I2C\\[1\\]
 clock"]
     #[inline(always)]
-    #[must_use]
     pub fn i2c_1(&mut self) -> I2c1W<PeripheralClkEnableSpec> {
         I2c1W::new(self, 17)
     }
     #[doc = "Bit 21 - Enable IRQ selector clock"]
     #[inline(always)]
-    #[must_use]
     pub fn irqsel(&mut self) -> IrqselW<PeripheralClkEnableSpec> {
         IrqselW::new(self, 21)
     }
     #[doc = "Bit 22 - Enable IO Configuration block clock"]
     #[inline(always)]
-    #[must_use]
     pub fn ioconfig(&mut self) -> IoconfigW<PeripheralClkEnableSpec> {
         IoconfigW::new(self, 22)
     }
     #[doc = "Bit 23 - Enable utility clock"]
     #[inline(always)]
-    #[must_use]
     pub fn utility(&mut self) -> UtilityW<PeripheralClkEnableSpec> {
         UtilityW::new(self, 23)
     }
     #[doc = "Bit 24 - Enable GPIO clock"]
     #[inline(always)]
-    #[must_use]
     pub fn gpio(&mut self) -> GpioW<PeripheralClkEnableSpec> {
         GpioW::new(self, 24)
     }
 }
-#[doc = "Peripheral Enable Control\n\nYou can [`read`](crate::generic::Reg::read) this register and get [`peripheral_clk_enable::R`](R).  You can [`reset`](crate::generic::Reg::reset), [`write`](crate::generic::Reg::write), [`write_with_zero`](crate::generic::Reg::write_with_zero) this register using [`peripheral_clk_enable::W`](W). You can also [`modify`](crate::generic::Reg::modify) this register. See [API](https://docs.rs/svd2rust/#read--modify--write-api)."]
+#[doc = "Peripheral Enable Control\n\nYou can [`read`](crate::Reg::read) this register and get [`peripheral_clk_enable::R`](R). You can [`reset`](crate::Reg::reset), [`write`](crate::Reg::write), [`write_with_zero`](crate::Reg::write_with_zero) this register using [`peripheral_clk_enable::W`](W). You can also [`modify`](crate::Reg::modify) this register. See [API](https://docs.rs/svd2rust/#read--modify--write-api)."]
 pub struct PeripheralClkEnableSpec;
 impl crate::RegisterSpec for PeripheralClkEnableSpec {
     type Ux = u32;

@@ -5,7 +5,7 @@ impl core::fmt::Debug for R {
         write!(f, "{}", self.bits())
     }
 }
-#[doc = "Synd 32 bit Corrected Syndrome and Status\n\nYou can [`read`](crate::generic::Reg::read) this register and get [`synd_check_32_synd::R`](R).  See [API](https://docs.rs/svd2rust/#read--modify--write-api)."]
+#[doc = "Synd 32 bit Corrected Syndrome and Status\n\nYou can [`read`](crate::Reg::read) this register and get [`synd_check_32_synd::R`](R). See [API](https://docs.rs/svd2rust/#read--modify--write-api)."]
 pub struct SyndCheck32SyndSpec;
 impl crate::RegisterSpec for SyndCheck32SyndSpec {
     type Ux = u32;

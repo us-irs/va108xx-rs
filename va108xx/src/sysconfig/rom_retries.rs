@@ -5,7 +5,7 @@ impl core::fmt::Debug for R {
         write!(f, "{}", self.bits())
     }
 }
-#[doc = "ROM BOOT Retry count\n\nYou can [`read`](crate::generic::Reg::read) this register and get [`rom_retries::R`](R).  See [API](https://docs.rs/svd2rust/#read--modify--write-api)."]
+#[doc = "ROM BOOT Retry count\n\nYou can [`read`](crate::Reg::read) this register and get [`rom_retries::R`](R). See [API](https://docs.rs/svd2rust/#read--modify--write-api)."]
 pub struct RomRetriesSpec;
 impl crate::RegisterSpec for RomRetriesSpec {
     type Ux = u32;

@@ -169,7 +169,7 @@ impl RegisterBlock {
         &self.perid
     }
 }
-#[doc = "INT_RAM_SBE (rw) register accessor: Internal Memory RAM SBE Interrupt Redirect Selection\n\nYou can [`read`](crate::generic::Reg::read) this register and get [`int_ram_sbe::R`].  You can [`reset`](crate::generic::Reg::reset), [`write`](crate::generic::Reg::write), [`write_with_zero`](crate::generic::Reg::write_with_zero) this register using [`int_ram_sbe::W`]. You can also [`modify`](crate::generic::Reg::modify) this register. See [API](https://docs.rs/svd2rust/#read--modify--write-api).\n\nFor information about available fields see [`mod@int_ram_sbe`]
+#[doc = "INT_RAM_SBE (rw) register accessor: Internal Memory RAM SBE Interrupt Redirect Selection\n\nYou can [`read`](crate::Reg::read) this register and get [`int_ram_sbe::R`]. You can [`reset`](crate::Reg::reset), [`write`](crate::Reg::write), [`write_with_zero`](crate::Reg::write_with_zero) this register using [`int_ram_sbe::W`]. You can also [`modify`](crate::Reg::modify) this register. See [API](https://docs.rs/svd2rust/#read--modify--write-api).\n\nFor information about available fields see [`mod@int_ram_sbe`]
 module"]
 #[doc(alias = "INT_RAM_SBE")]
 pub type IntRamSbe = crate::Reg<int_ram_sbe::IntRamSbeSpec>;
@@ -197,7 +197,7 @@ pub use IntRamSbe as IntRamMbe;
 pub use IntRamSbe as IntRomSbe;
 pub use IntRamSbe as IntRomMbe;
 pub use IntRamSbe as Txev;
-#[doc = "NMI (r) register accessor: NMI Status Register\n\nYou can [`read`](crate::generic::Reg::read) this register and get [`nmi::R`].  See [API](https://docs.rs/svd2rust/#read--modify--write-api).\n\nFor information about available fields see [`mod@nmi`]
+#[doc = "NMI (r) register accessor: NMI Status Register\n\nYou can [`read`](crate::Reg::read) this register and get [`nmi::R`]. See [API](https://docs.rs/svd2rust/#read--modify--write-api).\n\nFor information about available fields see [`mod@nmi`]
 module"]
 #[doc(alias = "NMI")]
 pub type Nmi = crate::Reg<nmi::NmiSpec>;
@@ -213,7 +213,7 @@ pub use Nmi as Watchdog;
 pub use Nmi as Mereset;
 pub use Nmi as Edbgrq;
 pub use Nmi as Irqs;
-#[doc = "PERID (r) register accessor: Peripheral ID Register\n\nYou can [`read`](crate::generic::Reg::read) this register and get [`perid::R`].  See [API](https://docs.rs/svd2rust/#read--modify--write-api).\n\nFor information about available fields see [`mod@perid`]
+#[doc = "PERID (r) register accessor: Peripheral ID Register\n\nYou can [`read`](crate::Reg::read) this register and get [`perid::R`]. See [API](https://docs.rs/svd2rust/#read--modify--write-api).\n\nFor information about available fields see [`mod@perid`]
 module"]
 #[doc(alias = "PERID")]
 pub type Perid = crate::Reg<perid::PeridSpec>;
