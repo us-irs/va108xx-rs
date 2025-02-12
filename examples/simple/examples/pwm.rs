@@ -19,7 +19,7 @@ fn main() -> ! {
     rtt_init_print!();
     rprintln!("-- VA108xx PWM example application--");
     let mut dp = pac::Peripherals::take().unwrap();
-    let pinsa = PinsA::new(&mut dp.sysconfig, None, dp.porta);
+    let pinsa = PinsA::new(&mut dp.sysconfig, dp.porta);
     let mut pwm = pwm::PwmPin::new(
         &mut dp.sysconfig,
         50.MHz(),

@@ -35,11 +35,7 @@ mod app {
 
         Mono::start(cx.core.SYST, SYSCLK_FREQ.raw());
 
-        let porta = PinsA::new(
-            &mut cx.device.sysconfig,
-            Some(cx.device.ioconfig),
-            cx.device.porta,
-        );
+        let porta = PinsA::new(&mut cx.device.sysconfig, cx.device.porta);
         let led0 = porta.pa10.into_readable_push_pull_output();
         let led1 = porta.pa7.into_readable_push_pull_output();
         let led2 = porta.pa6.into_readable_push_pull_output();

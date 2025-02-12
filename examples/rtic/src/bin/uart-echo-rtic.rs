@@ -23,12 +23,13 @@ mod app {
         gpio::PinsA,
         pac,
         prelude::*,
-        uart::{self, RxWithIrq, Tx},
+        uart::{self, RxWithInterrupt, Tx},
+        InterruptConfig,
     };
 
     #[local]
     struct Local {
-        rx: RxWithIrq<pac::Uarta>,
+        rx: RxWithInterrupt<pac::Uarta>,
         tx: Tx<pac::Uarta>,
     }
 
@@ -47,19 +48,20 @@ mod app {
         Mono::start(cx.core.SYST, SYSCLK_FREQ.raw());
 
         let mut dp = cx.device;
-        let gpioa = PinsA::new(&mut dp.sysconfig, Some(dp.ioconfig), dp.porta);
+        let gpioa = PinsA::new(&mut dp.sysconfig, dp.porta);
         let tx = gpioa.pa9.into_funsel_2();
         let rx = gpioa.pa8.into_funsel_2();
 
-        let irq_uart = uart::Uart::new(
+        let irq_uart = uart::Uart::new_with_interrupt(
             &mut dp.sysconfig,
             SYSCLK_FREQ,
             dp.uarta,
             (tx, rx),
             115200.Hz(),
+            InterruptConfig::new(pac::Interrupt::OC3, true, true),
         );
         let (tx, rx) = irq_uart.split();
-        let mut rx = rx.into_rx_with_irq(&mut dp.sysconfig, &mut dp.irqsel, pac::interrupt::OC3);
+        let mut rx = rx.into_rx_with_irq();
 
         rx.start();
 
@@ -90,7 +92,7 @@ mod app {
     fn reception_task(mut cx: reception_task::Context) {
         let mut buf: [u8; 16] = [0; 16];
         let mut ringbuf_full = false;
-        let result = cx.local.rx.irq_handler(&mut buf);
+        let result = cx.local.rx.on_interrupt(&mut buf);
         if result.bytes_read > 0 && result.errors.is_none() {
             cx.shared.rb.lock(|rb| {
                 if rb.vacant_len() < result.bytes_read {

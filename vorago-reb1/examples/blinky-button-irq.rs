@@ -13,7 +13,7 @@ use va108xx_hal::{
     gpio::{FilterType, InterruptEdge, PinsA},
     pac::{self, interrupt},
     prelude::*,
-    timer::{default_ms_irq_handler, set_up_ms_tick, IrqCfg},
+    timer::{default_ms_irq_handler, set_up_ms_tick, InterruptConfig},
 };
 use vorago_reb1::button::Button;
 use vorago_reb1::leds::Leds;
@@ -35,28 +35,29 @@ fn main() -> ! {
     rtt_init_print!();
     rprintln!("-- Vorago Button IRQ Example --");
     let mut dp = pac::Peripherals::take().unwrap();
-    let pinsa = PinsA::new(&mut dp.sysconfig, Some(dp.ioconfig), dp.porta);
+    let pinsa = PinsA::new(&mut dp.sysconfig, dp.porta);
     let edge_irq = match PRESS_MODE {
         PressMode::Toggle => InterruptEdge::HighToLow,
         PressMode::Keep => InterruptEdge::BothEdges,
     };
 
     // Configure an edge interrupt on the button and route it to interrupt vector 15
-    let mut button = Button::new(pinsa.pa11.into_floating_input()).edge_irq(
+    let mut button = Button::new(pinsa.pa11.into_floating_input());
+    button.configure_edge_interrupt(
         edge_irq,
-        IrqCfg::new(pac::interrupt::OC15, true, true),
+        InterruptConfig::new(pac::interrupt::OC15, true, true),
         Some(&mut dp.sysconfig),
         Some(&mut dp.irqsel),
     );
 
     if PRESS_MODE == PressMode::Toggle {
         // This filter debounces the switch for edge based interrupts
-        button = button.filter_type(FilterType::FilterFourClockCycles, FilterClkSel::Clk1);
+        button.configure_filter_type(FilterType::FilterFourClockCycles, FilterClkSel::Clk1);
         set_clk_div_register(&mut dp.sysconfig, FilterClkSel::Clk1, 50_000);
     }
 
     set_up_ms_tick(
-        IrqCfg::new(pac::Interrupt::OC0, true, true),
+        InterruptConfig::new(pac::Interrupt::OC0, true, true),
         &mut dp.sysconfig,
         Some(&mut dp.irqsel),
         50.MHz(),

@@ -4,10 +4,10 @@
 //!
 //! - [MS and second tick implementation](https://egit.irs.uni-stuttgart.de/rust/va108xx-rs/src/branch/main/examples/simple/examples/timer-ticks.rs)
 //! - [Cascade feature example](https://egit.irs.uni-stuttgart.de/rust/va108xx-rs/src/branch/main/examples/simple/examples/cascade.rs)
-pub use crate::IrqCfg;
+pub use crate::InterruptConfig;
 use crate::{
     clock::{enable_peripheral_clock, PeripheralClocks},
-    enable_interrupt,
+    enable_nvic_interrupt,
     gpio::{
         AltFunc1, AltFunc2, AltFunc3, DynPinId, Pin, PinId, PA0, PA1, PA10, PA11, PA12, PA13, PA14,
         PA15, PA2, PA24, PA25, PA26, PA27, PA28, PA29, PA3, PA30, PA31, PA4, PA5, PA6, PA7, PA8,
@@ -362,7 +362,7 @@ unsafe impl TimRegInterface for TimDynRegister {
 pub struct CountdownTimer<Tim: ValidTim> {
     tim: Tim,
     curr_freq: Hertz,
-    irq_cfg: Option<IrqCfg>,
+    irq_cfg: Option<InterruptConfig>,
     sys_clk: Hertz,
     rst_val: u32,
     last_cnt: u32,
@@ -415,13 +415,13 @@ impl<Tim: ValidTim> CountdownTimer<Tim> {
     pub fn listen(
         &mut self,
         event: Event,
-        irq_cfg: IrqCfg,
+        irq_cfg: InterruptConfig,
         irq_sel: Option<&mut pac::Irqsel>,
         sys_cfg: Option<&mut pac::Sysconfig>,
     ) {
         match event {
             Event::TimeOut => {
-                cortex_m::peripheral::NVIC::mask(irq_cfg.irq);
+                cortex_m::peripheral::NVIC::mask(irq_cfg.id);
                 self.irq_cfg = Some(irq_cfg);
                 if irq_cfg.route {
                     if let Some(sys_cfg) = sys_cfg {
@@ -430,7 +430,7 @@ impl<Tim: ValidTim> CountdownTimer<Tim> {
                     if let Some(irq_sel) = irq_sel {
                         irq_sel
                             .tim0(Tim::TIM_ID as usize)
-                            .write(|w| unsafe { w.bits(irq_cfg.irq as u32) });
+                            .write(|w| unsafe { w.bits(irq_cfg.id as u32) });
                     }
                 }
                 self.listening = true;
@@ -520,8 +520,8 @@ impl<Tim: ValidTim> CountdownTimer<Tim> {
     pub fn enable(&mut self) {
         if let Some(irq_cfg) = self.irq_cfg {
             self.enable_interrupt();
-            if irq_cfg.enable {
-                unsafe { enable_interrupt(irq_cfg.irq) };
+            if irq_cfg.enable_in_nvic {
+                unsafe { enable_nvic_interrupt(irq_cfg.id) };
             }
         }
         self.tim
@@ -719,7 +719,7 @@ impl<TIM: ValidTim> embedded_hal::delay::DelayNs for CountdownTimer<TIM> {
 // Set up a millisecond timer on TIM0. Please note that the user still has to provide an IRQ handler
 // which should call [default_ms_irq_handler].
 pub fn set_up_ms_tick<TIM: ValidTim>(
-    irq_cfg: IrqCfg,
+    irq_cfg: InterruptConfig,
     sys_cfg: &mut pac::Sysconfig,
     irq_sel: Option<&mut pac::Irqsel>,
     sys_clk: impl Into<Hertz>,
