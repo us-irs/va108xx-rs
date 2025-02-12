@@ -20,7 +20,7 @@ pub fn enable_rom_scrubbing(
 }
 
 pub fn disable_rom_scrubbing(syscfg: &mut pac::Sysconfig) {
-    syscfg.rom_scrub().write(|w| unsafe { w.bits(0) })
+    syscfg.rom_scrub().write(|w| unsafe { w.bits(0) });
 }
 
 /// Enable scrubbing for the RAM
@@ -39,7 +39,7 @@ pub fn enable_ram_scrubbing(
 }
 
 pub fn disable_ram_scrubbing(syscfg: &mut pac::Sysconfig) {
-    syscfg.ram_scrub().write(|w| unsafe { w.bits(0) })
+    syscfg.ram_scrub().write(|w| unsafe { w.bits(0) });
 }
 
 /// Clear the reset bit. This register is active low, so doing this will hold the peripheral

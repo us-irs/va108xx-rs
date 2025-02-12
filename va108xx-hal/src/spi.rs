@@ -789,7 +789,7 @@ where
     // initialization. Returns the amount of written bytes.
     fn initial_send_fifo_pumping_with_words(&self, words: &[Word]) -> usize {
         if self.blockmode {
-            self.spi.ctrl1().modify(|_, w| w.mtxpause().set_bit())
+            self.spi.ctrl1().modify(|_, w| w.mtxpause().set_bit());
         }
         // Fill the first half of the write FIFO
         let mut current_write_idx = 0;
@@ -803,7 +803,7 @@ where
             current_write_idx += 1;
         }
         if self.blockmode {
-            self.spi.ctrl1().modify(|_, w| w.mtxpause().clear_bit())
+            self.spi.ctrl1().modify(|_, w| w.mtxpause().clear_bit());
         }
         current_write_idx
     }
@@ -812,7 +812,7 @@ where
     // initialization.
     fn initial_send_fifo_pumping_with_fill_words(&self, send_len: usize) -> usize {
         if self.blockmode {
-            self.spi.ctrl1().modify(|_, w| w.mtxpause().set_bit())
+            self.spi.ctrl1().modify(|_, w| w.mtxpause().set_bit());
         }
         // Fill the first half of the write FIFO
         let mut current_write_idx = 0;
@@ -826,7 +826,7 @@ where
             current_write_idx += 1;
         }
         if self.blockmode {
-            self.spi.ctrl1().modify(|_, w| w.mtxpause().clear_bit())
+            self.spi.ctrl1().modify(|_, w| w.mtxpause().clear_bit());
         }
         current_write_idx
     }

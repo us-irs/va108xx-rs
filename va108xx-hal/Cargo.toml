@@ -1,6 +1,6 @@
 [package]
 name = "va108xx-hal"
-version = "0.8.0"
+version = "0.9.0"
 authors = ["Robin Mueller <muellerr@irs.uni-stuttgart.de>"]
 edition = "2021"
 description = "HAL for the Vorago VA108xx family of microcontrollers"
@@ -27,7 +27,7 @@ delegate = ">=0.12, <=0.13"
 thiserror = { version = "2", default-features = false }
 void = { version = "1", default-features = false }
 once_cell = {version = "1", default-features = false }
-va108xx = { version = "0.3", default-features = false, features = ["critical-section"] }
+va108xx = { version = "0.4", default-features = false, features = ["critical-section"] }
 embassy-sync = "0.6"
 
 defmt = { version = "0.3", optional = true }
