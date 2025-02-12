@@ -17,6 +17,7 @@ pub mod typelevel;
 pub mod uart;
 
 #[derive(Debug, Eq, Copy, Clone, PartialEq)]
+#[cfg_attr(feature = "defmt", derive(defmt::Format))]
 pub enum FunSel {
     Sel1 = 0b01,
     Sel2 = 0b10,
