@@ -346,11 +346,6 @@ impl DynPin {
         self.regs.write_pin_masked(false)
     }
 
-    #[inline]
-    pub fn edge_has_occurred(&mut self) -> bool {
-        self.regs.edge_has_occurred()
-    }
-
     pub(crate) fn irq_enb(
         &mut self,
         irq_cfg: crate::IrqCfg,
