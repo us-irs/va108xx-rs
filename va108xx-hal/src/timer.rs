@@ -319,7 +319,7 @@ pub unsafe trait TimRegInterface {
             va108xx::Peripherals::steal()
                 .sysconfig
                 .tim_reset()
-                .modify(|r, w| w.bits(r.bits() & !self.mask_32()))
+                .modify(|r, w| w.bits(r.bits() & !self.mask_32()));
         }
     }
 
@@ -330,7 +330,7 @@ pub unsafe trait TimRegInterface {
             va108xx::Peripherals::steal()
                 .sysconfig
                 .tim_reset()
-                .modify(|r, w| w.bits(r.bits() | self.mask_32()))
+                .modify(|r, w| w.bits(r.bits() | self.mask_32()));
         }
     }
 }
