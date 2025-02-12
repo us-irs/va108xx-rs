@@ -77,6 +77,7 @@ pub enum DynDisabled {
 
 /// Value-level `enum` for input configurations
 #[derive(Debug, PartialEq, Eq, Clone, Copy)]
+#[cfg_attr(feature = "defmt", derive(defmt::Format))]
 pub enum DynInput {
     Floating,
     PullDown,
@@ -85,6 +86,7 @@ pub enum DynInput {
 
 /// Value-level `enum` for output configurations
 #[derive(Debug, PartialEq, Eq, Clone, Copy)]
+#[cfg_attr(feature = "defmt", derive(defmt::Format))]
 pub enum DynOutput {
     PushPull,
     OpenDrain,
@@ -119,6 +121,7 @@ impl embedded_hal::digital::Error for InvalidPinTypeError {
 
 /// Value-level `enum` representing pin modes
 #[derive(Debug, PartialEq, Eq, Clone, Copy)]
+#[cfg_attr(feature = "defmt", derive(defmt::Format))]
 pub enum DynPinMode {
     Input(DynInput),
     Output(DynOutput),
