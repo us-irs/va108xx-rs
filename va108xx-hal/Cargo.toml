@@ -26,11 +26,15 @@ delegate = ">=0.12, <=0.13"
 thiserror = { version = "2", default-features = false }
 void = { version = "1", default-features = false }
 once_cell = {version = "1", default-features = false }
-va108xx = { version = "0.3", default-features = false, features = ["critical-section"]}
-portable-atomic = { version = "1", features = ["unsafe-assume-single-core"]}
+va108xx = { version = "0.3", default-features = false, features = ["critical-section"] }
 embassy-sync = "0.6"
 
 defmt = { version = "0.3", optional = true }
+
+[target.'cfg(all(target_arch = "arm", target_os = "none"))'.dependencies]
+portable-atomic = { version = "1", features = ["unsafe-assume-single-core"] }
+[target.'cfg(not(all(target_arch = "arm", target_os = "none")))'.dependencies]
+portable-atomic = "1"
 
 [features]
 default = ["rt"]

@@ -21,9 +21,7 @@ jobs:
       - uses: dtolnay/rust-toolchain@stable
       - name: Install nextest
         uses: taiki-e/install-action@nextest
-      # There is not a single test, and the tests are brittle because some dependencies do not
-      # like being run on general purpose machines..
-      # - run: cargo nextest run --all-features -p va108xx-hal --no-tests=pass
+      - run: cargo nextest run --all-features -p va108xx-hal --no-tests=pass
       # I think we can skip those on an embedded crate..
       # - run: cargo test --doc -p va108xx-hal
 
