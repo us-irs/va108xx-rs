@@ -8,6 +8,12 @@ and this project adheres to [Semantic Versioning](http://semver.org/).
 
 ## [unreleased]
 
+## [v0.7.0] 2025-02-13
+
+- Bumped `va108xx-hal` dependency to 0.9
+- Minor adjustments to `Button` API.
+- `Button`, `Led` and `Leds` now simply wrap a type using a tuple struct.
+
 ## [v0.6.0] 2024-09-30
 
 - Added M95M01 EEPROM module/API
