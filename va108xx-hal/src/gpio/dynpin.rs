@@ -156,14 +156,16 @@ pub const DYN_ALT_FUNC_3: DynPinMode = DynPinMode::Alternate(DynAlternate::Sel3)
 //==================================================================================================
 
 /// Value-level `enum` for pin groups
-#[derive(PartialEq, Eq, Clone, Copy)]
+#[derive(Debug, PartialEq, Eq, Clone, Copy)]
+#[cfg_attr(feature = "defmt", derive(defmt::Format))]
 pub enum DynGroup {
     A,
     B,
 }
 
 /// Value-level `struct` representing pin IDs
-#[derive(PartialEq, Eq, Clone, Copy)]
+#[derive(Debug, PartialEq, Eq, Clone, Copy)]
+#[cfg_attr(feature = "defmt", derive(defmt::Format))]
 pub struct DynPinId {
     pub group: DynGroup,
     pub num: u8,
@@ -177,6 +179,7 @@ pub struct DynPinId {
 ///
 /// This `struct` takes ownership of a [`DynPinId`] and provides an API to
 /// access the corresponding regsiters.
+#[derive(Debug)]
 pub(crate) struct DynRegisters(DynPinId);
 
 // [`DynRegisters`] takes ownership of the [`DynPinId`], and [`DynPin`]
@@ -209,6 +212,7 @@ impl DynRegisters {
 ///
 /// This type acts as a type-erased version of [`Pin`]. Every pin is represented
 /// by the same type, and pins are tracked and distinguished at run-time.
+#[derive(Debug)]
 pub struct DynPin {
     pub(crate) regs: DynRegisters,
     mode: DynPinMode,

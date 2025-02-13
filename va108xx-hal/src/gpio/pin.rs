@@ -119,8 +119,11 @@ pub trait InputConfig: Sealed {
     const DYN: DynInput;
 }
 
+#[derive(Debug)]
 pub enum Floating {}
+#[derive(Debug)]
 pub enum PullDown {}
+#[derive(Debug)]
 pub enum PullUp {}
 
 impl InputConfig for Floating {
@@ -148,6 +151,7 @@ pub type InputPullUp = Input<PullUp>;
 ///
 /// Type `C` is one of three input configurations: [`Floating`], [`PullDown`] or
 /// [`PullUp`]
+#[derive(Debug)]
 pub struct Input<C: InputConfig> {
     cfg: PhantomData<C>,
 }
@@ -177,13 +181,17 @@ pub trait OutputConfig: Sealed {
 pub trait ReadableOutput: Sealed {}
 
 /// Type-level variant of [`OutputConfig`] for a push-pull configuration
+#[derive(Debug)]
 pub enum PushPull {}
 /// Type-level variant of [`OutputConfig`] for an open drain configuration
+#[derive(Debug)]
 pub enum OpenDrain {}
 
 /// Type-level variant of [`OutputConfig`] for a readable push-pull configuration
+#[derive(Debug)]
 pub enum ReadablePushPull {}
 /// Type-level variant of [`OutputConfig`] for a readable open-drain configuration
+#[derive(Debug)]
 pub enum ReadableOpenDrain {}
 
 impl Sealed for PushPull {}
@@ -210,6 +218,7 @@ impl OutputConfig for ReadableOpenDrain {
 ///
 /// Type `C` is one of four output configurations: [`PushPull`], [`OpenDrain`] or
 /// their respective readable versions
+#[derive(Debug)]
 pub struct Output<C: OutputConfig> {
     cfg: PhantomData<C>,
 }
@@ -304,6 +313,7 @@ macro_rules! pin_id {
         // Need paste macro to use ident in doc attribute
         paste! {
             #[doc = "Pin ID representing pin " $Id]
+            #[derive(Debug)]
             pub enum $Id {}
             impl Sealed for $Id {}
             impl PinId for $Id {
@@ -321,6 +331,7 @@ macro_rules! pin_id {
 //==================================================================================================
 
 /// A type-level GPIO pin, parameterized by [PinId] and [PinMode] types
+#[derive(Debug)]
 pub struct Pin<I: PinId, M: PinMode> {
     inner: DynPin,
     phantom: PhantomData<(I, M)>,
@@ -741,6 +752,7 @@ macro_rules! pins {
     ) => {
         paste!(
             /// Collection of all the individual [`Pin`]s for a given port (PORTA or PORTB)
+            #[derive(Debug)]
             pub struct $PinsName {
                 port: $Port,
                 $(
