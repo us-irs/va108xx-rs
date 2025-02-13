@@ -79,6 +79,7 @@ pub enum Event {
 }
 
 #[derive(Default, Debug, PartialEq, Eq, Copy, Clone)]
+#[cfg_attr(feature = "defmt", derive(defmt::Format))]
 pub struct CascadeCtrl {
     /// Enable Cascade 0 signal active as a requirement for counting
     pub enb_start_src_csd0: bool,
@@ -108,6 +109,7 @@ pub struct CascadeCtrl {
 }
 
 #[derive(Debug, PartialEq, Eq)]
+#[cfg_attr(feature = "defmt", derive(defmt::Format))]
 pub enum CascadeSel {
     Csd0 = 0,
     Csd1 = 1,

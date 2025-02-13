@@ -37,6 +37,7 @@ pub const BMSTART_BMSTOP_MASK: u32 = 1 << 31;
 pub const DEFAULT_CLK_DIV: u16 = 2;
 
 #[derive(Debug, PartialEq, Eq, Copy, Clone)]
+#[cfg_attr(feature = "defmt", derive(defmt::Format))]
 pub enum HwChipSelectId {
     Id0 = 0,
     Id1 = 1,
@@ -50,6 +51,7 @@ pub enum HwChipSelectId {
 }
 
 #[derive(Debug)]
+#[cfg_attr(feature = "defmt", derive(defmt::Format))]
 pub enum SpiPort {
     Porta = 0,
     Portb = 1,
@@ -58,6 +60,7 @@ pub enum SpiPort {
 }
 
 #[derive(Debug, PartialEq, Eq, Copy, Clone)]
+#[cfg_attr(feature = "defmt", derive(defmt::Format))]
 pub enum WordSize {
     OneBit = 0x00,
     FourBits = 0x03,
