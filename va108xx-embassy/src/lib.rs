@@ -33,8 +33,7 @@
 #![no_std]
 #![cfg_attr(docsrs, feature(doc_auto_cfg))]
 use core::cell::{Cell, RefCell};
-use critical_section::CriticalSection;
-use embassy_sync::blocking_mutex::CriticalSectionMutex as Mutex;
+use critical_section::{CriticalSection, Mutex};
 use portable_atomic::{AtomicU32, Ordering};
 
 use embassy_time_driver::{time_driver_impl, Driver, TICK_HZ};
@@ -46,7 +45,7 @@ use va108xx_hal::{
     clock::enable_peripheral_clock,
     enable_nvic_interrupt, pac,
     prelude::*,
-    timer::{enable_tim_clk, get_tim_raw, TimRegInterface},
+    timer::{enable_tim_clk, get_tim_raw, TimRegInterface, ValidTim},
     PeripheralSelect,
 };
 
@@ -116,12 +115,15 @@ pub mod embassy {
     /// This has to be called once at initialization time to initiate the time driver for
     /// embassy.
     #[cfg(feature = "irqs-in-lib")]
-    pub unsafe fn init(
+    pub unsafe fn init<
+        TimekeeperTim: TimRegInterface + ValidTim,
+        AlarmTim: TimRegInterface + ValidTim,
+    >(
         syscfg: &mut pac::Sysconfig,
         irqsel: &pac::Irqsel,
         sysclk: impl Into<Hertz>,
-        timekeeper_tim: impl TimRegInterface,
-        alarm_tim: impl TimRegInterface,
+        timekeeper_tim: TimekeeperTim,
+        alarm_tim: AlarmTim,
     ) {
         TIME_DRIVER.init(
             syscfg,
@@ -140,12 +142,15 @@ pub mod embassy {
     ///
     /// This has to be called once at initialization time to initiate the time driver for
     /// embassy.
-    pub unsafe fn init_with_custom_irqs(
+    pub unsafe fn init_with_custom_irqs<
+        TimekeeperTim: TimRegInterface + ValidTim,
+        AlarmTim: TimRegInterface + ValidTim,
+    >(
         syscfg: &mut pac::Sysconfig,
         irqsel: &pac::Irqsel,
         sysclk: impl Into<Hertz>,
-        timekeeper_tim: impl TimRegInterface,
-        alarm_tim: impl TimRegInterface,
+        timekeeper_tim: TimekeeperTim,
+        alarm_tim: AlarmTim,
         timekeeper_irq: pac::Interrupt,
         alarm_irq: pac::Interrupt,
     ) {
@@ -188,21 +193,21 @@ pub struct TimerDriver {
 
 impl TimerDriver {
     #[allow(clippy::too_many_arguments)]
-    fn init(
+    fn init<TimekeeperTim: TimRegInterface + ValidTim, AlarmTim: TimRegInterface + ValidTim>(
         &self,
         syscfg: &mut pac::Sysconfig,
         irqsel: &pac::Irqsel,
         sysclk: impl Into<Hertz>,
-        timekeeper_tim: impl TimRegInterface,
-        alarm_tim: impl TimRegInterface,
+        timekeeper_tim: TimekeeperTim,
+        alarm_tim: AlarmTim,
         timekeeper_irq: pac::Interrupt,
         alarm_irq: pac::Interrupt,
     ) {
-        if ALARM_TIM.get().is_some() {
+        if ALARM_TIM.get().is_some() || TIMEKEEPER_TIM.get().is_some() {
             return;
         }
-        ALARM_TIM.set(alarm_tim.tim_id()).ok();
-        TIMEKEEPER_TIM.set(timekeeper_tim.tim_id()).ok();
+        ALARM_TIM.set(AlarmTim::TIM_ID).ok();
+        TIMEKEEPER_TIM.set(TimekeeperTim::TIM_ID).ok();
         enable_peripheral_clock(syscfg, PeripheralSelect::Irqsel);
         enable_tim_clk(syscfg, timekeeper_tim.tim_id());
         let timekeeper_reg_block = timekeeper_tim.reg_block();
