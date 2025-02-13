@@ -2,6 +2,13 @@
 name = "va108xx-embassy"
 version = "0.1.0"
 edition = "2021"
+authors = ["Robin Mueller <muellerr@irs.uni-stuttgart.de>"]
+description = "Embassy-rs support for the Vorago VA108xx family of microcontrollers"
+homepage = "https://egit.irs.uni-stuttgart.de/rust/va108xx-rs"
+repository = "https://egit.irs.uni-stuttgart.de/rust/va108xx-rs"
+license = "Apache-2.0"
+keywords = ["no-std", "hal", "cortex-m", "vorago", "va108xx"]
+categories = ["aerospace", "embedded", "no-std", "hardware-support"]
 
 [dependencies]
 critical-section = "1"
@@ -14,8 +21,7 @@ embassy-time-queue-utils = "0.1"
 
 once_cell = { version = "1", default-features = false, features = ["critical-section"] }
 
-[dependencies.va108xx-hal]
-path = "../va108xx-hal"
+va108xx-hal = "0.9"
 
 [features]
 default = ["irq-oc30-oc31"]
@@ -25,3 +31,7 @@ irqs-in-lib = []
 irq-oc28-oc29 = ["irqs-in-lib"]
 irq-oc29-oc30 = ["irqs-in-lib"]
 irq-oc30-oc31 = ["irqs-in-lib"]
+
+[package.metadata.docs.rs]
+all-features = true
+rustdoc-args = ["--generate-link-to-definition"]

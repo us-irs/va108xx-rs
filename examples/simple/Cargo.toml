@@ -20,4 +20,4 @@ version = "0.9"
 features = ["rt", "defmt"]
 
 [dependencies.vorago-reb1]
-path = "../../vorago-reb1"
+version = "0.7"

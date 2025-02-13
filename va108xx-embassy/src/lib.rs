@@ -29,8 +29,9 @@
 //!
 //! ## Examples
 //!
-//! [embassy example project](https://egit.irs.uni-stuttgart.de/rust/va108xx-rs/src/branch/main/examples/embassy)
+//! [embassy example projects](https://egit.irs.uni-stuttgart.de/rust/va108xx-rs/src/branch/main/examples/embassy)
 #![no_std]
+#![cfg_attr(docsrs, feature(doc_auto_cfg))]
 use core::cell::{Cell, RefCell};
 use critical_section::CriticalSection;
 use embassy_sync::blocking_mutex::CriticalSectionMutex as Mutex;
