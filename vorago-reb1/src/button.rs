@@ -11,23 +11,21 @@ use va108xx_hal::{
 };
 
 #[derive(Debug)]
-pub struct Button {
-    button: Pin<PA11, InputFloating>,
-}
+pub struct Button(pub Pin<PA11, InputFloating>);
 
 impl Button {
     pub fn new(pin: Pin<PA11, InputFloating>) -> Button {
-        Button { button: pin }
+        Button(pin)
     }
 
     #[inline]
     pub fn pressed(&mut self) -> bool {
-        self.button.is_low().ok().unwrap()
+        self.0.is_low().ok().unwrap()
     }
 
     #[inline]
     pub fn released(&mut self) -> bool {
-        self.button.is_high().ok().unwrap()
+        self.0.is_high().ok().unwrap()
     }
 
     /// Configures an IRQ on edge.
@@ -38,7 +36,7 @@ impl Button {
         syscfg: Option<&mut pac::Sysconfig>,
         irqsel: Option<&mut pac::Irqsel>,
     ) {
-        self.button
+        self.0
             .configure_edge_interrupt(edge_type, irq_cfg, syscfg, irqsel);
     }
 
@@ -50,7 +48,7 @@ impl Button {
         syscfg: Option<&mut pac::Sysconfig>,
         irqsel: Option<&mut pac::Irqsel>,
     ) {
-        self.button
+        self.0
             .configure_level_interrupt(level, irq_cfg, syscfg, irqsel);
     }
 
@@ -59,6 +57,6 @@ impl Button {
     /// Please note that you still have to set a clock divisor yourself using the
     /// [`va108xx_hal::clock::set_clk_div_register`] function in order for this to work.
     pub fn configure_filter_type(&mut self, filter: FilterType, clksel: FilterClkSel) {
-        self.button.configure_filter_type(filter, clksel);
+        self.0.configure_filter_type(filter, clksel);
     }
 }
