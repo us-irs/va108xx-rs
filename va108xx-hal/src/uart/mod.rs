@@ -7,7 +7,6 @@
 //! - [Flashloader exposing a CCSDS interface via UART](https://egit.irs.uni-stuttgart.de/rust/va108xx-rs/src/branch/main/flashloader)
 use core::{convert::Infallible, ops::Deref};
 use fugit::RateExtU32;
-use va108xx::Uarta;
 
 pub use crate::InterruptConfig;
 use crate::{
@@ -401,7 +400,7 @@ impl Instance for pac::Uarta {
     }
     #[inline(always)]
     fn ptr() -> *const uart_base::RegisterBlock {
-        Uarta::ptr() as *const _
+        pac::Uarta::ptr() as *const _
     }
 }
 
@@ -416,7 +415,7 @@ impl Instance for pac::Uartb {
     }
     #[inline(always)]
     fn ptr() -> *const uart_base::RegisterBlock {
-        Uarta::ptr() as *const _
+        pac::Uartb::ptr() as *const _
     }
 }
 

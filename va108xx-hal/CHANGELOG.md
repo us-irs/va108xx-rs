@@ -10,6 +10,10 @@ and this project adheres to [Semantic Versioning](http://semver.org/).
 
 ## [v0.9.0]
 
+## Fixed
+
+- Important bugfix for UART driver which causes UART B drivers not to work.
+
 ## Removed
 
 - Deleted some HAL re-exports in the PWM module
