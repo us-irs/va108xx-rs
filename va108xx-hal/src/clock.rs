@@ -11,6 +11,7 @@ static SYS_CLOCK: Mutex<OnceCell<Hertz>> = Mutex::new(OnceCell::new());
 pub type PeripheralClocks = PeripheralSelect;
 
 #[derive(Debug, PartialEq, Eq)]
+#[cfg_attr(feature = "defmt", derive(defmt::Format))]
 pub enum FilterClkSel {
     SysClk = 0,
     Clk1 = 1,

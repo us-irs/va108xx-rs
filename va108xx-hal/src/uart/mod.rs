@@ -23,6 +23,7 @@ use crate::{
 use embedded_hal_nb::serial::Read;
 
 #[derive(Debug)]
+#[cfg_attr(feature = "defmt", derive(defmt::Format))]
 pub enum Bank {
     A = 0,
     B = 1,
@@ -237,6 +238,7 @@ impl From<Hertz> for Config {
 //==================================================================================================
 
 #[derive(Debug, Copy, Clone)]
+#[cfg_attr(feature = "defmt", derive(defmt::Format))]
 pub struct IrqContextTimeoutOrMaxSize {
     rx_idx: usize,
     mode: IrqReceptionMode,
@@ -262,6 +264,7 @@ impl IrqContextTimeoutOrMaxSize {
 
 /// This struct is used to return the default IRQ handler result to the user
 #[derive(Debug, Default)]
+#[cfg_attr(feature = "defmt", derive(defmt::Format))]
 pub struct IrqResult {
     pub bytes_read: usize,
     pub errors: Option<UartErrors>,
@@ -269,6 +272,7 @@ pub struct IrqResult {
 
 /// This struct is used to return the default IRQ handler result to the user
 #[derive(Debug, Default)]
+#[cfg_attr(feature = "defmt", derive(defmt::Format))]
 pub struct IrqResultMaxSizeOrTimeout {
     complete: bool,
     timeout: bool,
@@ -319,6 +323,7 @@ impl IrqResultMaxSizeOrTimeout {
 }
 
 #[derive(Debug, PartialEq, Copy, Clone)]
+#[cfg_attr(feature = "defmt", derive(defmt::Format))]
 enum IrqReceptionMode {
     Idle,
     Pending,
@@ -407,7 +412,7 @@ impl Instance for pac::Uarta {
     }
     #[inline(always)]
     fn ptr() -> *const uart_base::RegisterBlock {
-        pac::Uarta::ptr() as *const _
+        Self::ptr() as *const _
     }
 }
 
@@ -422,7 +427,7 @@ impl Instance for pac::Uartb {
     }
     #[inline(always)]
     fn ptr() -> *const uart_base::RegisterBlock {
-        pac::Uartb::ptr() as *const _
+        Self::ptr() as *const _
     }
 }
 

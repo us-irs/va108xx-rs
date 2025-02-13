@@ -69,6 +69,7 @@ use crate::{clock::FilterClkSel, enable_nvic_interrupt, pac, FunSel, InterruptCo
 
 /// Value-level `enum` for disabled configurations
 #[derive(PartialEq, Eq, Clone, Copy)]
+#[cfg_attr(feature = "defmt", derive(defmt::Format))]
 pub enum DynDisabled {
     Floating,
     PullDown,

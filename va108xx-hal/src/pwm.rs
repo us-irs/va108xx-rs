@@ -15,7 +15,9 @@ use crate::{clock::enable_peripheral_clock, gpio::DynPinId};
 
 const DUTY_MAX: u16 = u16::MAX;
 
-pub struct PwmCommon {
+#[derive(Debug)]
+#[cfg_attr(feature = "defmt", derive(defmt::Format))]
+pub(crate) struct PwmCommon {
     sys_clk: Hertz,
     /// For PWMB, this is the upper limit
     current_duty: u16,

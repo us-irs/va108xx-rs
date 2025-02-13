@@ -77,6 +77,7 @@ impl InterruptConfig {
 pub type IrqCfg = InterruptConfig;
 
 #[derive(Debug, PartialEq, Eq)]
+#[cfg_attr(feature = "defmt", derive(defmt::Format))]
 pub struct InvalidPin(pub(crate) ());
 
 /// Can be used to manually manipulate the function select of port pins

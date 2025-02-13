@@ -18,6 +18,7 @@ const CLK_400K: Hertz = Hertz::from_raw(400_000);
 const MIN_CLK_400K: Hertz = Hertz::from_raw(8_000_000);
 
 #[derive(Debug, PartialEq, Eq, Copy, Clone)]
+#[cfg_attr(feature = "defmt", derive(defmt::Format))]
 pub enum FifoEmptyMode {
     Stall = 0,
     EndTransaction = 1,
@@ -89,18 +90,21 @@ enum I2cCmd {
 }
 
 #[derive(Debug, PartialEq, Eq, Copy, Clone)]
+#[cfg_attr(feature = "defmt", derive(defmt::Format))]
 pub enum I2cSpeed {
     Regular100khz = 0,
     Fast400khz = 1,
 }
 
 #[derive(Debug, PartialEq, Eq)]
+#[cfg_attr(feature = "defmt", derive(defmt::Format))]
 pub enum I2cDirection {
     Send = 0,
     Read = 1,
 }
 
 #[derive(Debug, PartialEq, Eq, Copy, Clone)]
+#[cfg_attr(feature = "defmt", derive(defmt::Format))]
 pub enum I2cAddress {
     Regular(u8),
     TenBit(u16),
@@ -141,9 +145,12 @@ impl Instance for pac::I2cb {
 // Config
 //==================================================================================================
 
+#[cfg_attr(feature = "defmt", derive(defmt::Format))]
 pub struct TrTfThighTlow(u8, u8, u8, u8);
+#[cfg_attr(feature = "defmt", derive(defmt::Format))]
 pub struct TsuStoTsuStaThdStaTBuf(u8, u8, u8, u8);
 
+#[cfg_attr(feature = "defmt", derive(defmt::Format))]
 pub struct TimingCfg {
     // 4 bit max width
     tr: u8,
@@ -218,6 +225,7 @@ impl Default for TimingCfg {
     }
 }
 
+#[cfg_attr(feature = "defmt", derive(defmt::Format))]
 pub struct MasterConfig {
     pub tx_fe_mode: FifoEmptyMode,
     pub rx_fe_mode: FifoEmptyMode,
