@@ -1,3 +1,13 @@
+//! Asynchronous UART transmission example application.
+//!
+//! This application receives sends 4 strings with different sizes permanently using UART A.
+//! Ports PA8 and PA9 are used for this.
+//!
+//! Instructions:
+//!
+//! 1. Tie a USB to UART converter with RX to PA9 and TX to PA8 for UART A.
+//! 2. Connect to the serial interface by using an application like Putty or picocom. You can
+//!    can verify the correctness of the sent strings.
 #![no_std]
 #![no_main]
 use embassy_executor::Spawner;
@@ -28,7 +38,7 @@ const STR_LIST: &[&str] = &[
 #[embassy_executor::main]
 async fn main(_spawner: Spawner) {
     rtt_init_print!();
-    rprintln!("-- VA108xx Embassy Demo --");
+    rprintln!("-- VA108xx Async UART TX Demo --");
 
     let mut dp = pac::Peripherals::take().unwrap();
 

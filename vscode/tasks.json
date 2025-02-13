@@ -277,13 +277,23 @@
       ]
     },
     {
-      "label": "async-uart",
+      "label": "async-uart-tx",
       "type": "shell",
       "command": "~/.cargo/bin/cargo", // note: full path to the cargo
       "args": [
         "build",
         "--bin",
-        "async-uart"
+        "async-uart-tx"
+      ]
+    },
+    {
+      "label": "async-uart-rx",
+      "type": "shell",
+      "command": "~/.cargo/bin/cargo", // note: full path to the cargo
+      "args": [
+        "build",
+        "--bin",
+        "async-uart-rx"
       ]
     },
     {

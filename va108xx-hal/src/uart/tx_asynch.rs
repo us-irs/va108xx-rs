@@ -1,4 +1,4 @@
-//! # Async GPIO functionality for the VA108xx family.
+//! # Async UART transmission functionality for the VA108xx family.
 //!
 //! This module provides the [TxAsync] struct which implements the [embedded_io_async::Write] trait.
 //! This trait allows for asynchronous sending of data streams. Please note that this module does
@@ -13,7 +13,7 @@
 //!
 //! # Example
 //!
-//! - [Async UART example](https://egit.irs.uni-stuttgart.de/rust/va108xx-rs/src/branch/async-gpio/examples/embassy/src/bin/async-uart.rs)
+//! - [Async UART TX example](https://egit.irs.uni-stuttgart.de/rust/va108xx-rs/src/branch/main/examples/embassy/src/bin/async-uart-tx.rs)
 use core::{cell::RefCell, future::Future};
 
 use critical_section::Mutex;
@@ -23,7 +23,7 @@ use portable_atomic::AtomicBool;
 
 use super::*;
 
-static UART_WAKERS: [AtomicWaker; 2] = [const { AtomicWaker::new() }; 2];
+static UART_TX_WAKERS: [AtomicWaker; 2] = [const { AtomicWaker::new() }; 2];
 static TX_CONTEXTS: [Mutex<RefCell<TxContext>>; 2] =
     [const { Mutex::new(RefCell::new(TxContext::new())) }; 2];
 // Completion flag. Kept outside of the context structure as an atomic to avoid
@@ -72,7 +72,7 @@ fn on_interrupt_uart_tx<Uart: Instance>(uart: Uart) {
         });
         // Transfer is done.
         TX_DONE[Uart::IDX as usize].store(true, core::sync::atomic::Ordering::Relaxed);
-        UART_WAKERS[Uart::IDX as usize].wake();
+        UART_TX_WAKERS[Uart::IDX as usize].wake();
         return;
     }
     // Safety: We documented that the user provided slice must outlive the future, so we convert
@@ -199,7 +199,7 @@ impl Future for TxFuture {
         self: core::pin::Pin<&mut Self>,
         cx: &mut core::task::Context<'_>,
     ) -> core::task::Poll<Self::Output> {
-        UART_WAKERS[self.uart_idx].register(cx.waker());
+        UART_TX_WAKERS[self.uart_idx].register(cx.waker());
         if TX_DONE[self.uart_idx].swap(false, core::sync::atomic::Ordering::Relaxed) {
             let progress = critical_section::with(|cs| {
                 TX_CONTEXTS[self.uart_idx].borrow(cs).borrow().progress

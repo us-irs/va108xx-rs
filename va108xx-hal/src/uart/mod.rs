@@ -22,6 +22,12 @@ use crate::{
 };
 use embedded_hal_nb::serial::Read;
 
+#[derive(Debug)]
+pub enum Bank {
+    A = 0,
+    B = 1,
+}
+
 //==================================================================================================
 // Type-Level support
 //==================================================================================================
@@ -258,7 +264,7 @@ impl IrqContextTimeoutOrMaxSize {
 #[derive(Debug, Default)]
 pub struct IrqResult {
     pub bytes_read: usize,
-    pub errors: Option<IrqUartError>,
+    pub errors: Option<UartErrors>,
 }
 
 /// This struct is used to return the default IRQ handler result to the user
@@ -266,7 +272,7 @@ pub struct IrqResult {
 pub struct IrqResultMaxSizeOrTimeout {
     complete: bool,
     timeout: bool,
-    pub errors: Option<IrqUartError>,
+    pub errors: Option<UartErrors>,
     pub bytes_read: usize,
 }
 
@@ -319,14 +325,15 @@ enum IrqReceptionMode {
 }
 
 #[derive(Default, Debug, Copy, Clone)]
-pub struct IrqUartError {
+#[cfg_attr(feature = "defmt", derive(defmt::Format))]
+pub struct UartErrors {
     overflow: bool,
     framing: bool,
     parity: bool,
     other: bool,
 }
 
-impl IrqUartError {
+impl UartErrors {
     #[inline(always)]
     pub fn overflow(&self) -> bool {
         self.overflow
@@ -348,7 +355,7 @@ impl IrqUartError {
     }
 }
 
-impl IrqUartError {
+impl UartErrors {
     #[inline(always)]
     pub fn error(&self) -> bool {
         self.overflow || self.framing || self.parity
@@ -751,6 +758,34 @@ where
     }
 }
 
+#[inline(always)]
+pub fn enable_rx(uart: &uart_base::RegisterBlock) {
+    uart.enable().modify(|_, w| w.rxenable().set_bit());
+}
+
+#[inline(always)]
+pub fn disable_rx(uart: &uart_base::RegisterBlock) {
+    uart.enable().modify(|_, w| w.rxenable().clear_bit());
+}
+
+#[inline(always)]
+pub fn enable_rx_interrupts(uart: &uart_base::RegisterBlock) {
+    uart.irq_enb().modify(|_, w| {
+        w.irq_rx().set_bit();
+        w.irq_rx_to().set_bit();
+        w.irq_rx_status().set_bit()
+    });
+}
+
+#[inline(always)]
+pub fn disable_rx_interrupts(uart: &uart_base::RegisterBlock) {
+    uart.irq_enb().modify(|_, w| {
+        w.irq_rx().clear_bit();
+        w.irq_rx_to().clear_bit();
+        w.irq_rx_status().clear_bit()
+    });
+}
+
 /// Serial receiver.
 ///
 /// Can be created by using the [Uart::split] or [UartBase::split] API.
@@ -759,6 +794,7 @@ pub struct Rx<Uart> {
 }
 
 impl<Uart: Instance> Rx<Uart> {
+    #[inline(always)]
     fn new(uart: Uart) -> Self {
         Self { uart }
     }
@@ -768,6 +804,7 @@ impl<Uart: Instance> Rx<Uart> {
     /// # Safety
     ///
     /// You must ensure that only registers related to the operation of the RX side are used.
+    #[inline(always)]
     pub unsafe fn uart(&self) -> &Uart {
         &self.uart
     }
@@ -778,13 +815,22 @@ impl<Uart: Instance> Rx<Uart> {
     }
 
     #[inline]
+    pub fn disable_interrupts(&mut self) {
+        disable_rx_interrupts(unsafe { Uart::reg_block() });
+    }
+    #[inline]
+    pub fn enable_interrupts(&mut self) {
+        enable_rx_interrupts(unsafe { Uart::reg_block() });
+    }
+
+    #[inline]
     pub fn enable(&mut self) {
-        self.uart.enable().modify(|_, w| w.rxenable().set_bit());
+        enable_rx(unsafe { Uart::reg_block() });
     }
 
     #[inline]
     pub fn disable(&mut self) {
-        self.uart.enable().modify(|_, w| w.rxenable().clear_bit());
+        disable_rx(unsafe { Uart::reg_block() });
     }
 
     /// Low level function to read a word from the UART FIFO.
@@ -818,6 +864,7 @@ impl<Uart: Instance> Rx<Uart> {
         RxWithInterrupt::new(self)
     }
 
+    #[inline(always)]
     pub fn release(self) -> Uart {
         self.uart
     }
@@ -876,14 +923,17 @@ impl<Uart: Instance> embedded_io::Read for Rx<Uart> {
     }
 }
 
+#[inline(always)]
 pub fn enable_tx(uart: &uart_base::RegisterBlock) {
     uart.enable().modify(|_, w| w.txenable().set_bit());
 }
 
+#[inline(always)]
 pub fn disable_tx(uart: &uart_base::RegisterBlock) {
     uart.enable().modify(|_, w| w.txenable().clear_bit());
 }
 
+#[inline(always)]
 pub fn enable_tx_interrupts(uart: &uart_base::RegisterBlock) {
     uart.irq_enb().modify(|_, w| {
         w.irq_tx().set_bit();
@@ -892,6 +942,7 @@ pub fn enable_tx_interrupts(uart: &uart_base::RegisterBlock) {
     });
 }
 
+#[inline(always)]
 pub fn disable_tx_interrupts(uart: &uart_base::RegisterBlock) {
     uart.irq_enb().modify(|_, w| {
         w.irq_tx().clear_bit();
@@ -913,12 +964,14 @@ impl<Uart: Instance> Tx<Uart> {
     /// # Safety
     ///
     /// Circumvents the HAL safety guarantees.
+    #[inline(always)]
     pub unsafe fn steal() -> Self {
         Self {
             uart: Uart::steal(),
         }
     }
 
+    #[inline(always)]
     fn new(uart: Uart) -> Self {
         Self { uart }
     }
@@ -928,6 +981,7 @@ impl<Uart: Instance> Tx<Uart> {
     /// # Safety
     ///
     /// You must ensure that only registers related to the operation of the TX side are used.
+    #[inline(always)]
     pub unsafe fn uart(&self) -> &Uart {
         &self.uart
     }
@@ -1265,7 +1319,7 @@ impl<Uart: Instance> RxWithInterrupt<Uart> {
 
     fn read_handler(
         &self,
-        errors: &mut Option<IrqUartError>,
+        errors: &mut Option<UartErrors>,
         read_res: &nb::Result<u8, RxError>,
     ) -> Option<u8> {
         match read_res {
@@ -1273,7 +1327,7 @@ impl<Uart: Instance> RxWithInterrupt<Uart> {
             Err(nb::Error::WouldBlock) => None,
             Err(nb::Error::Other(e)) => {
                 // Ensure `errors` is Some(IrqUartError), initializing if it's None
-                let err = errors.get_or_insert(IrqUartError::default());
+                let err = errors.get_or_insert(UartErrors::default());
 
                 // Now we can safely modify fields inside `err`
                 match e {
@@ -1286,14 +1340,14 @@ impl<Uart: Instance> RxWithInterrupt<Uart> {
         }
     }
 
-    fn check_for_errors(&self, errors: &mut Option<IrqUartError>) {
+    fn check_for_errors(&self, errors: &mut Option<UartErrors>) {
         let rx_status = self.uart().rxstatus().read();
 
         if rx_status.rxovr().bit_is_set()
             || rx_status.rxfrm().bit_is_set()
             || rx_status.rxpar().bit_is_set()
         {
-            let err = errors.get_or_insert(IrqUartError::default());
+            let err = errors.get_or_insert(UartErrors::default());
 
             if rx_status.rxovr().bit_is_set() {
                 err.overflow = true;
@@ -1330,5 +1384,8 @@ impl<Uart: Instance> RxWithInterrupt<Uart> {
     }
 }
 
-pub mod asynch;
-pub use asynch::*;
+pub mod tx_asynch;
+pub use tx_asynch::*;
+
+pub mod rx_asynch;
+pub use rx_asynch::*;

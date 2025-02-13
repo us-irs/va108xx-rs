@@ -526,13 +526,37 @@
         {
             "type": "cortex-debug",
             "request": "launch",
-            "name": "Async UART",
+            "name": "Async UART TX",
             "servertype": "jlink",
             "cwd": "${workspaceRoot}",
             "device": "Cortex-M0",
             "svdFile": "./va108xx/svd/va108xx.svd.patched",
-            "preLaunchTask": "async-uart",
-            "executable": "${workspaceFolder}/target/thumbv6m-none-eabi/debug/async-uart",
+            "preLaunchTask": "async-uart-tx",
+            "executable": "${workspaceFolder}/target/thumbv6m-none-eabi/debug/async-uart-tx",
+            "interface": "jtag",
+            "runToEntryPoint": "main",
+            "rttConfig": {
+                "enabled": true,
+                "address": "auto",
+                "decoders": [
+                    {
+                        "port": 0,
+                        "timestamp": true,
+                        "type": "console"
+                    }
+                ]
+            }
+        },
+        {
+            "type": "cortex-debug",
+            "request": "launch",
+            "name": "Async UART RX",
+            "servertype": "jlink",
+            "cwd": "${workspaceRoot}",
+            "device": "Cortex-M0",
+            "svdFile": "./va108xx/svd/va108xx.svd.patched",
+            "preLaunchTask": "async-uart-rx",
+            "executable": "${workspaceFolder}/target/thumbv6m-none-eabi/debug/async-uart-rx",
             "interface": "jtag",
             "runToEntryPoint": "main",
             "rttConfig": {

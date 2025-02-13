@@ -42,6 +42,7 @@ and this project adheres to [Semantic Versioning](http://semver.org/).
 - `enable_interrupt` and `disable_interrupt` renamed to `enable_nvic_interrupt` and
   `disable_nvic_interrupt` to distinguish them from peripheral interrupts more clearly.
 - `port_mux` renamed to `port_function_select`
+- Renamed `IrqUartErrors` to `UartErrors`.
 
 ## Added
 
@@ -49,6 +50,7 @@ and this project adheres to [Semantic Versioning](http://semver.org/).
   methods.
 - Asynchronous GPIO support.
 - Asynchronous UART TX support.
+- Asynchronous UART RX support.
 - Add new `get_tim_raw` unsafe method to retrieve TIM peripheral blocks.
 - `Uart::with_with_interrupt` and `Uart::new_without_interrupt`
 

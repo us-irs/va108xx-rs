@@ -9,7 +9,10 @@ cortex-m = { version = "0.7", features = ["critical-section-single-core"] }
 cortex-m-rt = "0.7"
 embedded-hal = "1"
 embedded-hal-async = "1"
+embedded-io = "0.6"
 embedded-io-async = "0.6"
+heapless = "0.8"
+static_cell = "2"
 
 rtt-target = "0.6"
 panic-rtt-target = "0.2"
