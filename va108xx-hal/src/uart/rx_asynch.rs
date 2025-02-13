@@ -286,7 +286,7 @@ impl Drop for ActiveReadGuard {
     }
 }
 
-/// Core data structure to allow asynchrnous UART reception.
+/// Core data structure to allow asynchronous UART reception.
 ///
 /// If the ring buffer becomes full, data will be lost.
 pub struct RxAsync<Uart: Instance, const N: usize> {
@@ -295,7 +295,7 @@ pub struct RxAsync<Uart: Instance, const N: usize> {
 }
 
 impl<Uart: Instance, const N: usize> ErrorType for RxAsync<Uart, N> {
-    /// Error reporting is done using atomic booleans and the [get_and_clear_errors] function.
+    /// Error reporting is done using the result of the interrupt functions.
     type Error = Infallible;
 }
 
@@ -345,7 +345,7 @@ impl<Uart: Instance, const N: usize> embedded_io_async::Read for RxAsync<Uart, N
     }
 }
 
-/// Core data structure to allow asynchrnous UART reception.
+/// Core data structure to allow asynchronous UART reception.
 ///
 /// If the ring buffer becomes full, the oldest data will be overwritten when using the
 /// [on_interrupt_uart_a_overwriting] and [on_interrupt_uart_b_overwriting] interrupt handlers.
@@ -355,7 +355,7 @@ pub struct RxAsyncSharedConsumer<Uart: Instance, const N: usize> {
 }
 
 impl<Uart: Instance, const N: usize> ErrorType for RxAsyncSharedConsumer<Uart, N> {
-    /// Error reporting is done using atomic booleans and the [get_and_clear_errors] function.
+    /// Error reporting is done using the result of the interrupt functions.
     type Error = Infallible;
 }
 

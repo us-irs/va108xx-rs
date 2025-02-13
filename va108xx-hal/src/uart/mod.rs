@@ -1108,10 +1108,10 @@ impl<Uart: Instance> embedded_io::Write for Tx<Uart> {
 ///
 ///  1. The first way simply empties the FIFO on an interrupt into a user provided buffer. You
 ///     can simply use [Self::start] to prepare the peripheral and then call the
-///     [Self::irq_handler] in the interrupt service routine.
+///     [Self::on_interrupt] in the interrupt service routine.
 ///  2. The second way reads packets bounded by a maximum size or a baudtick based timeout. You
 ///     can use [Self::read_fixed_len_or_timeout_based_using_irq] to prepare the peripheral and
-///     then call the [Self::irq_handler_max_size_or_timeout_based] in the interrupt service
+///     then call the [Self::on_interrupt_max_size_or_timeout_based] in the interrupt service
 ///     routine. You have to call [Self::read_fixed_len_or_timeout_based_using_irq] in the ISR to
 ///     start reading the next packet.
 pub struct RxWithInterrupt<Uart>(Rx<Uart>);
@@ -1122,7 +1122,7 @@ impl<Uart: Instance> RxWithInterrupt<Uart> {
     }
 
     /// This function should be called once at initialization time if the regular
-    /// [Self::irq_handler] is used to read the UART receiver to enable and start the receiver.
+    /// [Self::on_interrupt] is used to read the UART receiver to enable and start the receiver.
     pub fn start(&mut self) {
         self.0.enable();
         self.enable_rx_irq_sources(true);
@@ -1133,13 +1133,13 @@ impl<Uart: Instance> RxWithInterrupt<Uart> {
         &self.0.uart
     }
 
-    /// This function is used together with the [Self::irq_handler_max_size_or_timeout_based]
+    /// This function is used together with the [Self::on_interrupt_max_size_or_timeout_based]
     /// function to read packets with a maximum size or variable sized packets by using the
     /// receive timeout of the hardware.
     ///
     /// This function should be called once at initialization to initiate the context state
     /// and to [Self::start] the receiver. After that, it should be called after each
-    /// completed [Self::irq_handler_max_size_or_timeout_based] call to restart the reception
+    /// completed [Self::on_interrupt_max_size_or_timeout_based] call to restart the reception
     /// of a packet.
     pub fn read_fixed_len_or_timeout_based_using_irq(
         &mut self,
