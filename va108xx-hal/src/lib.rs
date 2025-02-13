@@ -51,8 +51,8 @@ pub enum PeripheralSelect {
 
 /// Generic interrupt config which can be used to specify whether the HAL driver will
 /// use the IRQSEL register to route an interrupt, and whether the IRQ will be unmasked in the
-/// Cortex-M0 NVIC. Both are generally necessary for IRQs to work, but the user might perform
-/// this steps themselves
+/// Cortex-M0 NVIC. Both are generally necessary for IRQs to work, but the user might want to
+/// perform those steps themselves.
 #[derive(Debug, PartialEq, Eq, Clone, Copy)]
 pub struct InterruptConfig {
     /// Interrupt target vector. Should always be set, might be required for disabling IRQs

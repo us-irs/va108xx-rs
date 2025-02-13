@@ -4,7 +4,7 @@
 //! the [embedded_hal_async::digital::Wait] trait. These types allow for asynchronous waiting
 //! on GPIO pins. Please note that this module does not specify/declare the interrupt handlers
 //! which must be provided for async support to work. However, it provides one generic
-//! [handler][handle_interrupt_for_async_gpio] which should be called in ALL user interrupt handlers
+//! [handler][on_interrupt_for_asynch_gpio] which should be called in ALL user interrupt handlers
 //! which handle GPIO interrupts.
 //!
 //! # Example
@@ -90,7 +90,7 @@ pub struct InputPinFuture {
 impl InputPinFuture {
     /// # Safety
     ///
-    /// This calls [Self::new] but uses [pac::Peripherals::steal] to get the system configuration
+    /// This calls [Self::new_with_dyn_pin] but uses [pac::Peripherals::steal] to get the system configuration
     /// and IRQ selection peripherals. Users must ensure that the registers and configuration
     /// related to this input pin are not being used elsewhere concurrently.
     pub unsafe fn new_unchecked_with_dyn_pin(
@@ -127,7 +127,7 @@ impl InputPinFuture {
 
     /// # Safety
     ///
-    /// This calls [Self::new] but uses [pac::Peripherals::steal] to get the system configuration
+    /// This calls [Self::new_with_pin] but uses [pac::Peripherals::steal] to get the system configuration
     /// and IRQ selection peripherals. Users must ensure that the registers and configuration
     /// related to this input pin are not being used elsewhere concurrently.
     pub unsafe fn new_unchecked_with_pin<I: PinId, C: InputConfig>(
@@ -200,7 +200,7 @@ impl InputDynPinAsync {
     /// passed as well and is used to route and enable the interrupt.
     ///
     /// Please note that the interrupt handler itself must be provided by the user and the
-    /// generic [handle_interrupt_for_async_gpio] function must be called inside that function for
+    /// generic [on_interrupt_for_asynch_gpio] function must be called inside that function for
     /// the asynchronous functionality to work.
     pub fn new(pin: DynPin, irq: pac::Interrupt) -> Result<Self, InvalidPinTypeError> {
         if !pin.is_input_pin() {
@@ -335,7 +335,7 @@ impl<I: PinId, C: InputConfig> InputPinAsync<I, C> {
     /// passed as well and is used to route and enable the interrupt.
     ///
     /// Please note that the interrupt handler itself must be provided by the user and the
-    /// generic [handle_interrupt_for_async_gpio] function must be called inside that function for
+    /// generic [on_interrupt_for_asynch_gpio] function must be called inside that function for
     /// the asynchronous functionality to work.
     pub fn new(pin: Pin<I, pin::Input<C>>, irq: pac::Interrupt) -> Self {
         Self { pin, irq }
