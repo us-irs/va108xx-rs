@@ -7,3 +7,11 @@ The format is based on [Keep a Changelog](http://keepachangelog.com/)
 and this project adheres to [Semantic Versioning](http://semver.org/).
 
 ## [unreleased]
+
+## [v0.1.1] 2025-02-13
+
+Docs patch
+
+## [v0.1.0] 2025-02-13
+
+Initial release
