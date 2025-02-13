@@ -10,6 +10,7 @@ use va108xx_hal::{
     pac, InterruptConfig,
 };
 
+#[derive(Debug)]
 pub struct Button {
     button: Pin<PA11, InputFloating>,
 }
