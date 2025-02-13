@@ -23,7 +23,7 @@
 //!
 //! You can disable the default features and then specify one of the features above to use the
 //! documented combination of IRQs. It is also possible to specify custom IRQs by importing and
-//! using the [embassy::embassy_time_driver_irqs] macro to declare the IRQ handlers in the
+//! using the [embassy_time_driver_irqs] macro to declare the IRQ handlers in the
 //! application code. If this is done, [embassy::init_with_custom_irqs] must be used
 //! method to pass the IRQ numbers to the library.
 //!
@@ -63,7 +63,7 @@ time_driver_impl!(
 /// the feature flags specified. However, the macro is exported to allow users to specify the
 /// interrupt handlers themselves.
 ///
-/// Please note that you have to explicitely import the [va108xx_hal::pac::interrupt]
+/// Please note that you have to explicitely import the [macro@va108xx_hal::pac::interrupt]
 /// macro in the application code in case this macro is used there.
 #[macro_export]
 macro_rules! embassy_time_driver_irqs {
