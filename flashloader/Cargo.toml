@@ -29,7 +29,9 @@ rtic-monotonics = { version = "2", features = ["cortex-m-systick"] }
 rtic-sync = {version = "1", features = ["defmt-03"]}
 
 [dependencies.va108xx-hal]
-path = "../va108xx-hal"
+version = "0.9"
+# path = "../va108xx-hal"
 
 [dependencies.vorago-reb1]
-path = "../vorago-reb1"
+version = "0.7"
+# path = "../vorago-reb1"
