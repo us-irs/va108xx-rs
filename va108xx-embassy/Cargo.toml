@@ -1,6 +1,6 @@
 [package]
 name = "va108xx-embassy"
-version = "0.1.1"
+version = "0.1.2"
 edition = "2021"
 authors = ["Robin Mueller <muellerr@irs.uni-stuttgart.de>"]
 description = "Embassy-rs support for the Vorago VA108xx family of microcontrollers"
@@ -37,5 +37,4 @@ irq-oc29-oc30 = ["irqs-in-lib"]
 irq-oc30-oc31 = ["irqs-in-lib"]
 
 [package.metadata.docs.rs]
-all-features = true
 rustdoc-args = ["--generate-link-to-definition"]
