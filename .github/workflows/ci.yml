@@ -12,6 +12,8 @@ jobs:
           targets: "thumbv6m-none-eabi"
       - run: cargo check --target thumbv6m-none-eabi
       - run: cargo check --target thumbv6m-none-eabi --examples
+      - run: cargo check -p va108xx --target thumbv6m-none-eabi --all-features
+      - run: cargo check -p va108xx-hal --target thumbv6m-none-eabi --features "defmt"
 
   test:
     name: Run Tests

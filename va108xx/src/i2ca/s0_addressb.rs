@@ -2,6 +2,7 @@
 pub type R = crate::R<S0AddressbSpec>;
 #[doc = "Register `S0_ADDRESSB` writer"]
 pub type W = crate::W<S0AddressbSpec>;
+#[cfg(feature = "debug")]
 impl core::fmt::Debug for R {
     fn fmt(&self, f: &mut core::fmt::Formatter) -> core::fmt::Result {
         write!(f, "{}", self.bits())
