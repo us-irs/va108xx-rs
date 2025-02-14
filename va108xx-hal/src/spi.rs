@@ -33,6 +33,7 @@ use embedded_hal::spi::{Mode, MODE_0};
 const FILL_DEPTH: usize = 12;
 
 pub const BMSTART_BMSTOP_MASK: u32 = 1 << 31;
+pub const BMSKIPDATA_MASK: u32 = 1 << 30;
 
 pub const DEFAULT_CLK_DIV: u16 = 2;
 
@@ -288,6 +289,7 @@ pub trait TransferConfigProvider {
 /// This struct contains all configuration parameter which are transfer specific
 /// and might change for transfers to different SPI slaves
 #[derive(Copy, Clone, Debug)]
+#[cfg_attr(feature = "defmt", derive(defmt::Format))]
 pub struct TransferConfigWithHwcs<HwCs> {
     pub hw_cs: Option<HwCs>,
     pub cfg: TransferConfig,
@@ -296,6 +298,7 @@ pub struct TransferConfigWithHwcs<HwCs> {
 /// Type erased variant of the transfer configuration. This is required to avoid generics in
 /// the SPI constructor.
 #[derive(Copy, Clone, Debug)]
+#[cfg_attr(feature = "defmt", derive(defmt::Format))]
 pub struct TransferConfig {
     pub clk_cfg: Option<SpiClkConfig>,
     pub mode: Option<Mode>,
@@ -383,6 +386,8 @@ impl<HwCs: HwCsProvider> TransferConfigProvider for TransferConfigWithHwcs<HwCs>
 }
 
 /// Configuration options for the whole SPI bus. See Programmer Guide p.92 for more details
+#[derive(Debug)]
+#[cfg_attr(feature = "defmt", derive(defmt::Format))]
 pub struct SpiConfig {
     clk: SpiClkConfig,
     // SPI mode configuration
@@ -532,6 +537,7 @@ pub struct Spi<SpiInstance, Pins, Word = u8> {
     pins: Pins,
 }
 
+#[inline(always)]
 pub fn mode_to_cpo_cph_bit(mode: embedded_hal::spi::Mode) -> (bool, bool) {
     match mode {
         embedded_hal::spi::MODE_0 => (false, false),
@@ -575,6 +581,7 @@ impl SpiClkConfig {
 }
 
 #[derive(Debug, thiserror::Error)]
+#[cfg_attr(feature = "defmt", derive(defmt::Format))]
 pub enum SpiClkConfigError {
     #[error("division by zero")]
     DivIsZero,

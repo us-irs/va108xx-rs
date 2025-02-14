@@ -8,6 +8,16 @@ and this project adheres to [Semantic Versioning](http://semver.org/).
 
 ## [unreleased]
 
+## [v0.10.0]
+
+## Added
+
+- A lot of missing `defmt::Format` implementations.
+
+## Changed
+
+- Missing GPIO API replacements from `x` to `configure_x`
+
 ## [v0.9.0]
 
 ## Fixed

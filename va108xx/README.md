@@ -30,7 +30,7 @@ For full details on the autgenerated API, please see the
 
 - [`defmt`](https://defmt.ferrous-systems.com/): Add support for `defmt` by adding the
   [`defmt::Format`](https://defmt.ferrous-systems.com/format) derive on many types.
-- [`debug`]: Add `Debug` derives for various structures
+- `debug`: Add `Debug` derives for various structures
 
 ## Regenerating the PAC
 
