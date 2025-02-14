@@ -20,7 +20,7 @@ embassy-time-queue-utils = "0.1"
 
 once_cell = { version = "1", default-features = false, features = ["critical-section"] }
 
-va108xx-hal = "0.9"
+va108xx-hal = { version = "0.9", path = "../va108xx-hal" }
 
 [target.'cfg(all(target_arch = "arm", target_os = "none"))'.dependencies]
 portable-atomic = { version = "1", features = ["unsafe-assume-single-core"] }

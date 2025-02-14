@@ -17,6 +17,14 @@ and this project adheres to [Semantic Versioning](http://semver.org/).
 ## Changed
 
 - Missing GPIO API replacements from `x` to `configure_x`
+- Renamed GPIO `DynGroup` to `Port`
+- Rename generic GPIO interrupt handler into `on_interrupt_for_asynch_gpio`
+  into `on_interrupt_for_async_gpio_for_port` which expects a Port argument
+
+## Fixed
+
+- Bug in async GPIO interrupt handler where all enabled interrupts, even the ones which might
+  be unrelated to the pin, were disabled.
 
 ## [v0.9.0]
 

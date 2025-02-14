@@ -57,9 +57,9 @@
 //! [InvalidPinTypeError].
 
 use super::{
-    pin::{FilterType, InterruptEdge, InterruptLevel, Pin, PinId, PinMode, PinState},
+    pin::{FilterType, Pin, PinId, PinMode},
     reg::RegisterInterface,
-    InputDynPinAsync,
+    InputDynPinAsync, InterruptEdge, InterruptLevel, PinState,
 };
 use crate::{clock::FilterClkSel, enable_nvic_interrupt, pac, FunSel, InterruptConfig};
 
@@ -156,19 +156,13 @@ pub const DYN_ALT_FUNC_3: DynPinMode = DynPinMode::Alternate(DynAlternate::Sel3)
 //  DynGroup & DynPinId
 //==================================================================================================
 
-/// Value-level `enum` for pin groups
-#[derive(Debug, PartialEq, Eq, Clone, Copy)]
-#[cfg_attr(feature = "defmt", derive(defmt::Format))]
-pub enum DynGroup {
-    A,
-    B,
-}
+pub type DynGroup = super::Port;
 
 /// Value-level `struct` representing pin IDs
 #[derive(Debug, PartialEq, Eq, Clone, Copy)]
 #[cfg_attr(feature = "defmt", derive(defmt::Format))]
 pub struct DynPinId {
-    pub group: DynGroup,
+    pub group: super::Port,
     pub num: u8,
 }
 
@@ -369,12 +363,12 @@ impl DynPin {
             if irq_cfg.route {
                 match self.regs.id().group {
                     // Set the correct interrupt number in the IRQSEL register
-                    DynGroup::A => {
+                    super::Port::A => {
                         irqsel
                             .porta0(self.regs.id().num as usize)
                             .write(|w| unsafe { w.bits(irq_cfg.id as u32) });
                     }
-                    DynGroup::B => {
+                    super::Port::B => {
                         irqsel
                             .portb0(self.regs.id().num as usize)
                             .write(|w| unsafe { w.bits(irq_cfg.id as u32) });

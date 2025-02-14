@@ -14,7 +14,9 @@ use embedded_hal_async::digital::Wait;
 use panic_rtt_target as _;
 use rtt_target::{rprintln, rtt_init_print};
 use va108xx_embassy::embassy;
-use va108xx_hal::gpio::{on_interrupt_for_asynch_gpio, InputDynPinAsync, InputPinAsync, PinsB};
+use va108xx_hal::gpio::{
+    on_interrupt_for_async_gpio_for_port, InputDynPinAsync, InputPinAsync, PinsB, Port,
+};
 use va108xx_hal::{
     gpio::{DynPin, PinsA},
     pac::{self, interrupt},
@@ -244,15 +246,16 @@ async fn output_task(
 }
 
 // PB22 to PB23 can be handled by both OC10 and OC11 depending on configuration.
-
 #[interrupt]
 #[allow(non_snake_case)]
 fn OC10() {
-    on_interrupt_for_asynch_gpio();
+    on_interrupt_for_async_gpio_for_port(Port::A);
+    on_interrupt_for_async_gpio_for_port(Port::B);
 }
 
+// This interrupt only handles PORT B interrupts.
 #[interrupt]
 #[allow(non_snake_case)]
 fn OC11() {
-    on_interrupt_for_asynch_gpio();
+    on_interrupt_for_async_gpio_for_port(Port::B);
 }

@@ -70,9 +70,9 @@
 //! This module implements all of the embedded HAL GPIO traits for each [`Pin`]
 //! in the corresponding [`PinMode`]s, namely: [`InputPin`], [`OutputPin`],
 //! and [`StatefulOutputPin`].
-use super::dynpin::{DynAlternate, DynGroup, DynInput, DynOutput, DynPinId, DynPinMode};
+use super::dynpin::{DynAlternate, DynInput, DynOutput, DynPinId, DynPinMode};
 use super::reg::RegisterInterface;
-use super::{DynPin, InputPinAsync};
+use super::{DynPin, InputPinAsync, InterruptEdge, InterruptLevel, PinState, Port};
 use crate::{
     pac::{Irqsel, Porta, Portb, Sysconfig},
     typelevel::Sealed,
@@ -83,32 +83,6 @@ use core::marker::PhantomData;
 use core::mem::transmute;
 use embedded_hal::digital::{InputPin, OutputPin, StatefulOutputPin};
 use paste::paste;
-
-//==================================================================================================
-//  Errors and Definitions
-//==================================================================================================
-
-#[derive(Debug, PartialEq, Eq)]
-#[cfg_attr(feature = "defmt", derive(defmt::Format))]
-pub enum InterruptEdge {
-    HighToLow,
-    LowToHigh,
-    BothEdges,
-}
-
-#[derive(Debug, PartialEq, Eq)]
-#[cfg_attr(feature = "defmt", derive(defmt::Format))]
-pub enum InterruptLevel {
-    Low = 0,
-    High = 1,
-}
-
-#[derive(Debug, PartialEq, Eq)]
-#[cfg_attr(feature = "defmt", derive(defmt::Format))]
-pub enum PinState {
-    Low = 0,
-    High = 1,
-}
 
 //==================================================================================================
 // Input configuration
@@ -321,7 +295,7 @@ macro_rules! pin_id {
             impl Sealed for $Id {}
             impl PinId for $Id {
                 const DYN: DynPinId = DynPinId {
-                    group: DynGroup::$Group,
+                    group: Port::$Group,
                     num: $NUM,
                 };
             }
