@@ -240,7 +240,7 @@ pub(super) unsafe trait RegisterInterface {
     /// Only useful for interrupt pins. Configure whether to use edges or level as interrupt soure
     /// When using edge mode, it is possible to generate interrupts on both edges as well
     #[inline]
-    fn interrupt_edge(&mut self, edge_type: InterruptEdge) {
+    fn configure_edge_interrupt(&mut self, edge_type: InterruptEdge) {
         unsafe {
             self.port_reg()
                 .irq_sen()
@@ -267,7 +267,7 @@ pub(super) unsafe trait RegisterInterface {
 
     /// Configure which edge or level type triggers an interrupt
     #[inline]
-    fn interrupt_level(&mut self, level: InterruptLevel) {
+    fn configure_level_interrupt(&mut self, level: InterruptLevel) {
         unsafe {
             self.port_reg()
                 .irq_sen()
@@ -286,7 +286,7 @@ pub(super) unsafe trait RegisterInterface {
 
     /// Only useful for input pins
     #[inline]
-    fn filter_type(&mut self, filter: FilterType, clksel: FilterClkSel) {
+    fn configure_filter_type(&mut self, filter: FilterType, clksel: FilterClkSel) {
         self.iocfg_port().modify(|_, w| {
             // Safety: Only write to register for this Pin ID
             unsafe {
@@ -349,7 +349,7 @@ pub(super) unsafe trait RegisterInterface {
     }
 
     /// Only useful for output pins
-    fn delay(&self, delay_1: bool, delay_2: bool) {
+    fn configure_delay(&mut self, delay_1: bool, delay_2: bool) {
         let portreg = self.port_reg();
         unsafe {
             if delay_1 {

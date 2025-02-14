@@ -89,6 +89,7 @@ use paste::paste;
 //==================================================================================================
 
 #[derive(Debug, PartialEq, Eq)]
+#[cfg_attr(feature = "defmt", derive(defmt::Format))]
 pub enum InterruptEdge {
     HighToLow,
     LowToHigh,
@@ -96,12 +97,14 @@ pub enum InterruptEdge {
 }
 
 #[derive(Debug, PartialEq, Eq)]
+#[cfg_attr(feature = "defmt", derive(defmt::Format))]
 pub enum InterruptLevel {
     Low = 0,
     High = 1,
 }
 
 #[derive(Debug, PartialEq, Eq)]
+#[cfg_attr(feature = "defmt", derive(defmt::Format))]
 pub enum PinState {
     Low = 0,
     High = 1,
@@ -353,6 +356,7 @@ impl<I: PinId, M: PinMode> Pin<I, M> {
         }
     }
 
+    #[inline]
     pub fn id(&self) -> DynPinId {
         self.inner.id()
     }
@@ -483,11 +487,6 @@ impl<I: PinId, M: PinMode> Pin<I, M> {
     }
 
     #[inline]
-    pub(crate) fn _toggle_with_toggle_reg(&mut self) {
-        self.inner.regs.toggle();
-    }
-
-    #[inline]
     pub(crate) fn _is_low(&self) -> bool {
         !self.inner.regs.read_pin()
     }
@@ -599,7 +598,7 @@ impl<I: PinId, C: InputConfig> Pin<I, Input<C>> {
         syscfg: Option<&mut Sysconfig>,
         irqsel: Option<&mut Irqsel>,
     ) {
-        self.inner.regs.interrupt_edge(edge_type);
+        self.inner.regs.configure_edge_interrupt(edge_type);
         self.irq_enb(irq_cfg, syscfg, irqsel);
     }
 
@@ -610,7 +609,7 @@ impl<I: PinId, C: InputConfig> Pin<I, Input<C>> {
         syscfg: Option<&mut Sysconfig>,
         irqsel: Option<&mut Irqsel>,
     ) {
-        self.inner.regs.interrupt_level(level_type);
+        self.inner.regs.configure_level_interrupt(level_type);
         self.irq_enb(irq_cfg, syscfg, irqsel);
     }
 }
@@ -622,23 +621,34 @@ impl<I: PinId, C: OutputConfig> Pin<I, Output<C>> {
     ///  - Delay 2: 2
     ///  - Delay 1 + Delay 2: 3
     #[inline]
-    pub fn delay(self, delay_1: bool, delay_2: bool) -> Self {
-        self.inner.regs.delay(delay_1, delay_2);
-        self
+    pub fn configure_delay(&mut self, delay_1: bool, delay_2: bool) {
+        self.inner.regs.configure_delay(delay_1, delay_2);
     }
 
     #[inline]
     pub fn toggle_with_toggle_reg(&mut self) {
-        self._toggle_with_toggle_reg()
+        self.inner.regs.toggle()
+    }
+
+    #[deprecated(
+        since = "0.9.0",
+        note = "Please use the `configure_pulse_mode` method instead"
+    )]
+    pub fn pulse_mode(&mut self, enable: bool, default_state: PinState) {
+        self.configure_pulse_mode(enable, default_state);
     }
 
     /// See p.52 of the programmers guide for more information.
     /// When configured for pulse mode, a given pin will set the non-default state for exactly
     /// one clock cycle before returning to the configured default state
-    pub fn pulse_mode(&mut self, enable: bool, default_state: PinState) {
+    pub fn configure_pulse_mode(&mut self, enable: bool, default_state: PinState) {
         self.inner.regs.pulse_mode(enable, default_state);
     }
 
+    #[deprecated(
+        since = "0.9.0",
+        note = "Please use the `configure_edge_interrupt` method instead"
+    )]
     pub fn interrupt_edge(
         &mut self,
         edge_type: InterruptEdge,
@@ -646,18 +656,43 @@ impl<I: PinId, C: OutputConfig> Pin<I, Output<C>> {
         syscfg: Option<&mut Sysconfig>,
         irqsel: Option<&mut Irqsel>,
     ) {
-        self.inner.regs.interrupt_edge(edge_type);
+        self.inner.regs.configure_edge_interrupt(edge_type);
         self.irq_enb(irq_cfg, syscfg, irqsel);
     }
 
-    pub fn interrupt_level(
+    pub fn configure_edge_interrupt(
+        &mut self,
+        edge_type: InterruptEdge,
+        irq_cfg: InterruptConfig,
+        syscfg: Option<&mut Sysconfig>,
+        irqsel: Option<&mut Irqsel>,
+    ) {
+        self.inner.regs.configure_edge_interrupt(edge_type);
+        self.irq_enb(irq_cfg, syscfg, irqsel);
+    }
+
+    #[deprecated(
+        since = "0.9.0",
+        note = "Please use the `configure_level_interrupt` method instead"
+    )]
+    pub fn level_interrupt(
         &mut self,
         level_type: InterruptLevel,
         irq_cfg: InterruptConfig,
         syscfg: Option<&mut Sysconfig>,
         irqsel: Option<&mut Irqsel>,
     ) {
-        self.inner.regs.interrupt_level(level_type);
+        self.configure_level_interrupt(level_type, irq_cfg, syscfg, irqsel);
+    }
+
+    pub fn configure_level_interrupt(
+        &mut self,
+        level_type: InterruptLevel,
+        irq_cfg: InterruptConfig,
+        syscfg: Option<&mut Sysconfig>,
+        irqsel: Option<&mut Irqsel>,
+    ) {
+        self.inner.regs.configure_level_interrupt(level_type);
         self.irq_enb(irq_cfg, syscfg, irqsel);
     }
 }
@@ -666,7 +701,7 @@ impl<I: PinId, C: InputConfig> Pin<I, Input<C>> {
     /// See p.37 and p.38 of the programmers guide for more information.
     #[inline]
     pub fn configure_filter_type(&mut self, filter: FilterType, clksel: FilterClkSel) {
-        self.inner.regs.filter_type(filter, clksel);
+        self.inner.regs.configure_filter_type(filter, clksel);
     }
 }
 

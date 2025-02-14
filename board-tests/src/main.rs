@@ -122,14 +122,14 @@ fn main() -> ! {
         }
         TestCase::Pulse => {
             let mut output_pulsed = pinsa.pa0.into_push_pull_output();
-            output_pulsed.pulse_mode(true, PinState::Low);
+            output_pulsed.configure_pulse_mode(true, PinState::Low);
             rprintln!("Pulsing high 10 times..");
             output_pulsed.set_low().unwrap();
             for _ in 0..10 {
                 output_pulsed.set_high().unwrap();
                 cortex_m::asm::delay(25_000_000);
             }
-            output_pulsed.pulse_mode(true, PinState::High);
+            output_pulsed.configure_pulse_mode(true, PinState::High);
             rprintln!("Pulsing low 10 times..");
             for _ in 0..10 {
                 output_pulsed.set_low().unwrap();
@@ -137,15 +137,12 @@ fn main() -> ! {
             }
         }
         TestCase::DelayGpio => {
-            let mut out_0 = pinsa
-                .pa0
-                .into_readable_push_pull_output()
-                .delay(true, false);
-            let mut out_1 = pinsa
-                .pa1
-                .into_readable_push_pull_output()
-                .delay(false, true);
-            let mut out_2 = pinsa.pa3.into_readable_push_pull_output().delay(true, true);
+            let mut out_0 = pinsa.pa0.into_readable_push_pull_output();
+            out_0.configure_delay(true, false);
+            let mut out_1 = pinsa.pa1.into_readable_push_pull_output();
+            out_1.configure_delay(false, true);
+            let mut out_2 = pinsa.pa3.into_readable_push_pull_output();
+            out_2.configure_delay(true, true);
             for _ in 0..20 {
                 out_0.toggle().unwrap();
                 out_1.toggle().unwrap();

@@ -115,7 +115,7 @@ impl InputPinFuture {
 
         EDGE_DETECTION[pin_id_to_offset(pin.id())]
             .store(false, core::sync::atomic::Ordering::Relaxed);
-        pin.interrupt_edge(
+        pin.configure_edge_interrupt(
             edge,
             InterruptConfig::new(irq, true, true),
             Some(sys_cfg),

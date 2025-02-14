@@ -31,7 +31,7 @@ pub enum PortSel {
     PortB,
 }
 
-#[derive(Copy, Clone, PartialEq, Eq)]
+#[derive(Debug, Copy, Clone, PartialEq, Eq)]
 #[cfg_attr(feature = "defmt", derive(defmt::Format))]
 pub enum PeripheralSelect {
     PortA = 0,
@@ -54,6 +54,7 @@ pub enum PeripheralSelect {
 /// Cortex-M0 NVIC. Both are generally necessary for IRQs to work, but the user might want to
 /// perform those steps themselves.
 #[derive(Debug, PartialEq, Eq, Clone, Copy)]
+#[cfg_attr(feature = "defmt", derive(defmt::Format))]
 pub struct InterruptConfig {
     /// Interrupt target vector. Should always be set, might be required for disabling IRQs
     pub id: pac::Interrupt,

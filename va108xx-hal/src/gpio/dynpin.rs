@@ -181,6 +181,7 @@ pub struct DynPinId {
 /// This `struct` takes ownership of a [`DynPinId`] and provides an API to
 /// access the corresponding regsiters.
 #[derive(Debug)]
+#[cfg_attr(feature = "defmt", derive(defmt::Format))]
 pub(crate) struct DynRegisters(DynPinId);
 
 // [`DynRegisters`] takes ownership of the [`DynPinId`], and [`DynPin`]
@@ -392,11 +393,15 @@ impl DynPin {
     ///  - Delay 2: 2
     ///  - Delay 1 + Delay 2: 3
     #[inline]
-    pub fn delay(self, delay_1: bool, delay_2: bool) -> Result<Self, InvalidPinTypeError> {
+    pub fn configure_delay(
+        &mut self,
+        delay_1: bool,
+        delay_2: bool,
+    ) -> Result<(), InvalidPinTypeError> {
         match self.mode {
             DynPinMode::Output(_) => {
-                self.regs.delay(delay_1, delay_2);
-                Ok(self)
+                self.regs.configure_delay(delay_1, delay_2);
+                Ok(())
             }
             _ => Err(InvalidPinTypeError(self.mode)),
         }
@@ -406,7 +411,7 @@ impl DynPin {
     /// When configured for pulse mode, a given pin will set the non-default state for exactly
     /// one clock cycle before returning to the configured default state
     #[inline]
-    pub fn pulse_mode(
+    pub fn configure_pulse_mode(
         &mut self,
         enable: bool,
         default_state: PinState,
@@ -422,14 +427,14 @@ impl DynPin {
 
     /// See p.37 and p.38 of the programmers guide for more information.
     #[inline]
-    pub fn filter_type(
+    pub fn configure_filter_type(
         &mut self,
         filter: FilterType,
         clksel: FilterClkSel,
     ) -> Result<(), InvalidPinTypeError> {
         match self.mode {
             DynPinMode::Input(_) => {
-                self.regs.filter_type(filter, clksel);
+                self.regs.configure_filter_type(filter, clksel);
                 Ok(())
             }
             _ => Err(InvalidPinTypeError(self.mode)),
@@ -437,7 +442,7 @@ impl DynPin {
     }
 
     #[inline]
-    pub fn interrupt_edge(
+    pub fn configure_edge_interrupt(
         &mut self,
         edge_type: InterruptEdge,
         irq_cfg: InterruptConfig,
@@ -446,7 +451,7 @@ impl DynPin {
     ) -> Result<(), InvalidPinTypeError> {
         match self.mode {
             DynPinMode::Input(_) | DynPinMode::Output(_) => {
-                self.regs.interrupt_edge(edge_type);
+                self.regs.configure_edge_interrupt(edge_type);
                 self.irq_enb(irq_cfg, syscfg, irqsel);
                 Ok(())
             }
@@ -455,7 +460,7 @@ impl DynPin {
     }
 
     #[inline]
-    pub fn interrupt_level(
+    pub fn configure_level_interrupt(
         &mut self,
         level_type: InterruptLevel,
         irq_cfg: InterruptConfig,
@@ -464,7 +469,7 @@ impl DynPin {
     ) -> Result<(), InvalidPinTypeError> {
         match self.mode {
             DynPinMode::Input(_) | DynPinMode::Output(_) => {
-                self.regs.interrupt_level(level_type);
+                self.regs.configure_level_interrupt(level_type);
                 self.irq_enb(irq_cfg, syscfg, irqsel);
                 Ok(())
             }
