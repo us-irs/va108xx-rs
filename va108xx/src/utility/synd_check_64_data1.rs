@@ -1,5 +1,6 @@
 #[doc = "Register `SYND_CHECK_64_DATA1` reader"]
 pub type R = crate::R<SyndCheck64Data1Spec>;
+#[cfg(feature = "debug")]
 impl core::fmt::Debug for R {
     fn fmt(&self, f: &mut core::fmt::Formatter) -> core::fmt::Result {
         write!(f, "{}", self.bits())

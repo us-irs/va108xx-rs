@@ -30,7 +30,7 @@ fi
 
 svdtools patch svd/va108xx-patch.yml
 # See https://github.com/rust-embedded/svd2rust/issues/830 for required re-export.
-${svd2rust_bin} --reexport-interrupt -i svd/va108xx.svd.patched
+${svd2rust_bin} --reexport-interrupt --impl-defmt defmt --impl-debug-feature debug -i svd/va108xx.svd.patched
 
 result=$?
 if [ $result -ne 0 ]; then

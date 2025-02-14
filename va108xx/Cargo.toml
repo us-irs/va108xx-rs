@@ -13,6 +13,7 @@ categories = ["embedded", "no-std", "hardware-support"]
 [dependencies]
 cortex-m = "0.7"
 vcell = "0.1.3"
+defmt = "0.3"
 critical-section = { version = "1", optional = true }
 
 [dependencies.cortex-m-rt]
@@ -21,6 +22,10 @@ version = ">=0.6.15,<0.8"
 
 [features]
 rt = ["cortex-m-rt/device"]
+# Adds defmt support
+defmt = []
+# Adds Debug implementation
+debug = []
 
 [package.metadata.docs.rs]
 all-features = true

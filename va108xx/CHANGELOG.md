@@ -8,6 +8,10 @@ and this project adheres to [Semantic Versioning](http://semver.org/).
 
 ## [unreleased]
 
+## [v0.5.0] 2025-02-14
+
+- Re-generated PAC with `svd2rust` v0.35.0 and added optional `defmt` and `Debug` implementations
+
 ## [v0.4.0] 2025-02-12
 
 - Re-generated PAC with `svd2rust` v0.35.0

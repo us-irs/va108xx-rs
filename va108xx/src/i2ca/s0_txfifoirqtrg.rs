@@ -2,6 +2,7 @@
 pub type R = crate::R<S0TxfifoirqtrgSpec>;
 #[doc = "Register `S0_TXFIFOIRQTRG` writer"]
 pub type W = crate::W<S0TxfifoirqtrgSpec>;
+#[cfg(feature = "debug")]
 impl core::fmt::Debug for R {
     fn fmt(&self, f: &mut core::fmt::Formatter) -> core::fmt::Result {
         write!(f, "{}", self.bits())

@@ -26,6 +26,12 @@ The `rt` feature is optional and recommended. It brings in support for `cortex-m
 For full details on the autgenerated API, please see the
 [svd2rust documentation](https://docs.rs/svd2rust/latest/svd2rust/#peripheral-api).
 
+## Optional Features
+
+- [`defmt`](https://defmt.ferrous-systems.com/): Add support for `defmt` by adding the
+  [`defmt::Format`](https://defmt.ferrous-systems.com/format) derive on many types.
+- [`debug`]: Add `Debug` derives for various structures
+
 ## Regenerating the PAC
 
 If you want to re-generate the PAC, for example if the register file `va416xx.svd` changes
