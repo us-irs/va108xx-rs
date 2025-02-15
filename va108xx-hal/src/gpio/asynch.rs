@@ -3,9 +3,9 @@
 //! This module provides the [InputPinAsync] and [InputDynPinAsync] which both implement
 //! the [embedded_hal_async::digital::Wait] trait. These types allow for asynchronous waiting
 //! on GPIO pins. Please note that this module does not specify/declare the interrupt handlers
-//! which must be provided for async support to work. However, it provides one generic
-//! [handler][on_interrupt_for_asynch_gpio] which should be called in ALL user interrupt handlers
-//! which handle GPIO interrupts.
+//! which must be provided for async support to work. However, it provides the
+//! [on_interrupt_for_async_gpio_for_port] generic interrupt handler. This should be called in all
+//! IRQ functions which handle any GPIO interrupts with the corresponding [Port] argument.
 //!
 //! # Example
 //!
@@ -21,60 +21,66 @@ use va108xx::{self as pac, Irqsel, Sysconfig};
 use crate::InterruptConfig;
 
 use super::{
-    pin, DynGroup, DynPin, DynPinId, InputConfig, InterruptEdge, InvalidPinTypeError, Pin, PinId,
-    NUM_GPIO_PINS, NUM_PINS_PORT_A,
+    pin, DynPin, DynPinId, InputConfig, InterruptEdge, InvalidPinTypeError, Pin, PinId, Port,
+    NUM_PINS_PORT_A, NUM_PINS_PORT_B,
 };
 
-static WAKERS: [AtomicWaker; NUM_GPIO_PINS] = [const { AtomicWaker::new() }; NUM_GPIO_PINS];
-static EDGE_DETECTION: [AtomicBool; NUM_GPIO_PINS] =
-    [const { AtomicBool::new(false) }; NUM_GPIO_PINS];
+static WAKERS_FOR_PORT_A: [AtomicWaker; NUM_PINS_PORT_A] =
+    [const { AtomicWaker::new() }; NUM_PINS_PORT_A];
+static WAKERS_FOR_PORT_B: [AtomicWaker; NUM_PINS_PORT_B] =
+    [const { AtomicWaker::new() }; NUM_PINS_PORT_B];
+static EDGE_DETECTION_PORT_A: [AtomicBool; NUM_PINS_PORT_A] =
+    [const { AtomicBool::new(false) }; NUM_PINS_PORT_A];
+static EDGE_DETECTION_PORT_B: [AtomicBool; NUM_PINS_PORT_B] =
+    [const { AtomicBool::new(false) }; NUM_PINS_PORT_B];
 
-#[inline]
-fn pin_id_to_offset(dyn_pin_id: DynPinId) -> usize {
-    match dyn_pin_id.group {
-        DynGroup::A => dyn_pin_id.num as usize,
-        DynGroup::B => NUM_PINS_PORT_A + dyn_pin_id.num as usize,
-    }
-}
-
-/// Generic interrupt handler for GPIO interrupts to support the async functionalities.
+/// Generic interrupt handler for GPIO interrupts on a specific port to support async functionalities
 ///
-/// This handler will wake the correspoding wakers for the pins which triggered an interrupt
-/// as well as updating the static edge detection structures. This allows the pin future to
-/// complete async operations. The user should call this function in ALL interrupt handlers
-/// which handle any GPIO interrupts.
-#[inline]
-pub fn on_interrupt_for_asynch_gpio() {
+/// This function should be called in all interrupt handlers which handle any GPIO interrupts
+/// matching the [Port] argument.
+/// The handler will wake the corresponding wakers for the pins that triggered an interrupts
+/// as well as update the static edge detection structures. This allows the pin future tocomplete
+/// complete async operations.
+pub fn on_interrupt_for_async_gpio_for_port(port: Port) {
     let periphs = unsafe { pac::Peripherals::steal() };
 
-    handle_interrupt_for_gpio_and_port(
-        periphs.porta.irq_enb().read().bits(),
-        periphs.porta.edge_status().read().bits(),
-        0,
-    );
-    handle_interrupt_for_gpio_and_port(
-        periphs.portb.irq_enb().read().bits(),
-        periphs.portb.edge_status().read().bits(),
-        NUM_PINS_PORT_A,
-    );
+    let (irq_enb, edge_status, wakers, edge_detection) = match port {
+        Port::A => (
+            periphs.porta.irq_enb().read().bits(),
+            periphs.porta.edge_status().read().bits(),
+            WAKERS_FOR_PORT_A.as_ref(),
+            EDGE_DETECTION_PORT_A.as_ref(),
+        ),
+        Port::B => (
+            periphs.portb.irq_enb().read().bits(),
+            periphs.portb.edge_status().read().bits(),
+            WAKERS_FOR_PORT_B.as_ref(),
+            EDGE_DETECTION_PORT_B.as_ref(),
+        ),
+    };
+
+    on_interrupt_for_port(irq_enb, edge_status, wakers, edge_detection);
 }
 
-// Uses the enabled interrupt register and the persistent edge status to capture all GPIO events.
 #[inline]
-fn handle_interrupt_for_gpio_and_port(mut irq_enb: u32, edge_status: u32, pin_base_offset: usize) {
+fn on_interrupt_for_port(
+    mut irq_enb: u32,
+    edge_status: u32,
+    wakers: &'static [AtomicWaker],
+    edge_detection: &'static [AtomicBool],
+) {
     while irq_enb != 0 {
         let bit_pos = irq_enb.trailing_zeros() as usize;
         let bit_mask = 1 << bit_pos;
 
-        WAKERS[pin_base_offset + bit_pos].wake();
+        wakers[bit_pos].wake();
 
         if edge_status & bit_mask != 0 {
-            EDGE_DETECTION[pin_base_offset + bit_pos]
-                .store(true, core::sync::atomic::Ordering::Relaxed);
-        }
+            edge_detection[bit_pos].store(true, core::sync::atomic::Ordering::Relaxed);
 
-        // Clear the processed bit
-        irq_enb &= !bit_mask;
+            // Clear the processed bit
+            irq_enb &= !bit_mask;
+        }
     }
 }
 
@@ -85,6 +91,8 @@ fn handle_interrupt_for_gpio_and_port(mut irq_enb: u32, edge_status: u32, pin_ba
 /// struture is granted  to allow writing custom async structures.
 pub struct InputPinFuture {
     pin_id: DynPinId,
+    waker_group: &'static [AtomicWaker],
+    edge_detection_group: &'static [AtomicBool],
 }
 
 impl InputPinFuture {
@@ -102,6 +110,16 @@ impl InputPinFuture {
         Self::new_with_dyn_pin(pin, irq, edge, &mut periphs.sysconfig, &mut periphs.irqsel)
     }
 
+    #[inline]
+    pub fn pin_group_to_waker_and_edge_detection_group(
+        group: Port,
+    ) -> (&'static [AtomicWaker], &'static [AtomicBool]) {
+        match group {
+            Port::A => (WAKERS_FOR_PORT_A.as_ref(), EDGE_DETECTION_PORT_A.as_ref()),
+            Port::B => (WAKERS_FOR_PORT_B.as_ref(), EDGE_DETECTION_PORT_B.as_ref()),
+        }
+    }
+
     pub fn new_with_dyn_pin(
         pin: &mut DynPin,
         irq: pac::Interrupt,
@@ -113,7 +131,9 @@ impl InputPinFuture {
             return Err(InvalidPinTypeError(pin.mode()));
         }
 
-        EDGE_DETECTION[pin_id_to_offset(pin.id())]
+        let (waker_group, edge_detection_group) =
+            Self::pin_group_to_waker_and_edge_detection_group(pin.id().group);
+        edge_detection_group[pin.id().num as usize]
             .store(false, core::sync::atomic::Ordering::Relaxed);
         pin.configure_edge_interrupt(
             edge,
@@ -122,7 +142,11 @@ impl InputPinFuture {
             Some(irq_sel),
         )
         .unwrap();
-        Ok(Self { pin_id: pin.id() })
+        Ok(Self {
+            pin_id: pin.id(),
+            waker_group,
+            edge_detection_group,
+        })
     }
 
     /// # Safety
@@ -146,7 +170,9 @@ impl InputPinFuture {
         sys_cfg: &mut Sysconfig,
         irq_sel: &mut Irqsel,
     ) -> Self {
-        EDGE_DETECTION[pin_id_to_offset(pin.id())]
+        let (waker_group, edge_detection_group) =
+            Self::pin_group_to_waker_and_edge_detection_group(pin.id().group);
+        edge_detection_group[pin.id().num as usize]
             .store(false, core::sync::atomic::Ordering::Relaxed);
         pin.configure_edge_interrupt(
             edge,
@@ -154,14 +180,18 @@ impl InputPinFuture {
             Some(sys_cfg),
             Some(irq_sel),
         );
-        Self { pin_id: pin.id() }
+        Self {
+            pin_id: pin.id(),
+            edge_detection_group,
+            waker_group,
+        }
     }
 }
 
 impl Drop for InputPinFuture {
     fn drop(&mut self) {
         let periphs = unsafe { pac::Peripherals::steal() };
-        if self.pin_id.group == DynGroup::A {
+        if self.pin_id.group == Port::A {
             periphs
                 .porta
                 .irq_enb()
@@ -181,9 +211,9 @@ impl Future for InputPinFuture {
         self: core::pin::Pin<&mut Self>,
         cx: &mut core::task::Context<'_>,
     ) -> core::task::Poll<Self::Output> {
-        let idx = pin_id_to_offset(self.pin_id);
-        WAKERS[idx].register(cx.waker());
-        if EDGE_DETECTION[idx].swap(false, core::sync::atomic::Ordering::Relaxed) {
+        let idx = self.pin_id.num as usize;
+        self.waker_group[idx].register(cx.waker());
+        if self.edge_detection_group[idx].swap(false, core::sync::atomic::Ordering::Relaxed) {
             return core::task::Poll::Ready(());
         }
         core::task::Poll::Pending
@@ -200,8 +230,8 @@ impl InputDynPinAsync {
     /// passed as well and is used to route and enable the interrupt.
     ///
     /// Please note that the interrupt handler itself must be provided by the user and the
-    /// generic [on_interrupt_for_asynch_gpio] function must be called inside that function for
-    /// the asynchronous functionality to work.
+    /// generic [on_interrupt_for_async_gpio_for_port] function must be called inside that function
+    /// for the asynchronous functionality to work.
     pub fn new(pin: DynPin, irq: pac::Interrupt) -> Result<Self, InvalidPinTypeError> {
         if !pin.is_input_pin() {
             return Err(InvalidPinTypeError(pin.mode()));
@@ -335,8 +365,8 @@ impl<I: PinId, C: InputConfig> InputPinAsync<I, C> {
     /// passed as well and is used to route and enable the interrupt.
     ///
     /// Please note that the interrupt handler itself must be provided by the user and the
-    /// generic [on_interrupt_for_asynch_gpio] function must be called inside that function for
-    /// the asynchronous functionality to work.
+    /// generic [on_interrupt_for_async_gpio_for_port] function must be called inside that function
+    /// for the asynchronous functionality to work.
     pub fn new(pin: Pin<I, pin::Input<C>>, irq: pac::Interrupt) -> Self {
         Self { pin, irq }
     }

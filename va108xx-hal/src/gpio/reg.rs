@@ -1,6 +1,6 @@
-use super::dynpin::{self, DynGroup, DynPinId, DynPinMode};
-use super::pin::{FilterType, InterruptEdge, InterruptLevel, PinState};
-use super::IsMaskedError;
+use super::dynpin::{self, DynPinId, DynPinMode};
+use super::pin::FilterType;
+use super::{InterruptEdge, InterruptLevel, IsMaskedError, PinState, Port};
 use crate::clock::FilterClkSel;
 use va108xx::{ioconfig, porta};
 
@@ -146,15 +146,15 @@ pub(super) unsafe trait RegisterInterface {
     #[inline]
     fn port_reg(&self) -> &PortRegisterBlock {
         match self.id().group {
-            DynGroup::A => unsafe { &(*Self::PORTA) },
-            DynGroup::B => unsafe { &(*Self::PORTB) },
+            Port::A => unsafe { &(*Self::PORTA) },
+            Port::B => unsafe { &(*Self::PORTB) },
         }
     }
     fn iocfg_port(&self) -> &PortReg {
         let ioconfig = unsafe { va108xx::Ioconfig::ptr().as_ref().unwrap() };
         match self.id().group {
-            DynGroup::A => ioconfig.porta(self.id().num as usize),
-            DynGroup::B => ioconfig.portb0(self.id().num as usize),
+            Port::A => ioconfig.porta(self.id().num as usize),
+            Port::B => ioconfig.portb0(self.id().num as usize),
         }
     }
 
