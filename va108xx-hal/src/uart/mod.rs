@@ -22,7 +22,7 @@ use crate::{
 };
 use embedded_hal_nb::serial::Read;
 
-#[derive(Debug)]
+#[derive(Debug, Clone, Copy)]
 #[cfg_attr(feature = "defmt", derive(defmt::Format))]
 pub enum Bank {
     A = 0,
@@ -381,6 +381,7 @@ pub struct BufferTooShortError {
 pub trait Instance: Deref<Target = uart_base::RegisterBlock> {
     const IDX: u8;
     const PERIPH_SEL: PeripheralSelect;
+    const PTR: *const uart_base::RegisterBlock;
 
     /// Retrieve the peripheral structure.
     ///
@@ -388,7 +389,11 @@ pub trait Instance: Deref<Target = uart_base::RegisterBlock> {
     ///
     /// This circumvents the safety guarantees of the HAL.
     unsafe fn steal() -> Self;
-    fn ptr() -> *const uart_base::RegisterBlock;
+
+    #[inline(always)]
+    fn ptr() -> *const uart_base::RegisterBlock {
+        Self::PTR
+    }
 
     /// Retrieve the type erased peripheral register block.
     ///
@@ -405,14 +410,11 @@ impl Instance for pac::Uarta {
     const IDX: u8 = 0;
 
     const PERIPH_SEL: PeripheralSelect = PeripheralSelect::Uart0;
+    const PTR: *const uart_base::RegisterBlock = Self::PTR;
 
     #[inline(always)]
     unsafe fn steal() -> Self {
-        pac::Peripherals::steal().uarta
-    }
-    #[inline(always)]
-    fn ptr() -> *const uart_base::RegisterBlock {
-        Self::ptr() as *const _
+        Self::steal()
     }
 }
 
@@ -420,14 +422,25 @@ impl Instance for pac::Uartb {
     const IDX: u8 = 1;
 
     const PERIPH_SEL: PeripheralSelect = PeripheralSelect::Uart1;
+    const PTR: *const uart_base::RegisterBlock = Self::PTR;
 
     #[inline(always)]
     unsafe fn steal() -> Self {
-        pac::Peripherals::steal().uartb
+        Self::steal()
     }
-    #[inline(always)]
-    fn ptr() -> *const uart_base::RegisterBlock {
-        Self::ptr() as *const _
+}
+
+impl Bank {
+    /// Retrieve the peripheral register block.
+    ///
+    /// # Safety
+    ///
+    /// Circumvents the HAL safety guarantees.
+    pub unsafe fn reg_block(&self) -> &'static uart_base::RegisterBlock {
+        match self {
+            Bank::A => unsafe { pac::Uarta::reg_block() },
+            Bank::B => unsafe { pac::Uartb::reg_block() },
+        }
     }
 }
 
@@ -794,14 +807,12 @@ pub fn disable_rx_interrupts(uart: &uart_base::RegisterBlock) {
 /// Serial receiver.
 ///
 /// Can be created by using the [Uart::split] or [UartBase::split] API.
-pub struct Rx<Uart> {
-    uart: Uart,
-}
+pub struct Rx<Uart>(Uart);
 
 impl<Uart: Instance> Rx<Uart> {
     #[inline(always)]
-    fn new(uart: Uart) -> Self {
-        Self { uart }
+    const fn new(uart: Uart) -> Self {
+        Self(uart)
     }
 
     /// Direct access to the peripheral structure.
@@ -810,13 +821,13 @@ impl<Uart: Instance> Rx<Uart> {
     ///
     /// You must ensure that only registers related to the operation of the RX side are used.
     #[inline(always)]
-    pub unsafe fn uart(&self) -> &Uart {
-        &self.uart
+    pub const unsafe fn uart(&self) -> &Uart {
+        &self.0
     }
 
     #[inline]
     pub fn clear_fifo(&self) {
-        self.uart.fifo_clr().write(|w| w.rxfifo().set_bit());
+        self.0.fifo_clr().write(|w| w.rxfifo().set_bit());
     }
 
     #[inline]
@@ -846,7 +857,7 @@ impl<Uart: Instance> Rx<Uart> {
     /// value if you use the manual parity mode. See chapter 4.6.2 for more information.
     #[inline(always)]
     pub fn read_fifo(&self) -> nb::Result<u32, Infallible> {
-        if self.uart.rxstatus().read().rdavl().bit_is_clear() {
+        if self.0.rxstatus().read().rdavl().bit_is_clear() {
             return Err(nb::Error::WouldBlock);
         }
         Ok(self.read_fifo_unchecked())
@@ -862,7 +873,7 @@ impl<Uart: Instance> Rx<Uart> {
     /// value if you use the manual parity mode. See chapter 4.6.2 for more information.
     #[inline(always)]
     pub fn read_fifo_unchecked(&self) -> u32 {
-        self.uart.data().read().bits()
+        self.0.data().read().bits()
     }
 
     pub fn into_rx_with_irq(self) -> RxWithInterrupt<Uart> {
@@ -871,7 +882,7 @@ impl<Uart: Instance> Rx<Uart> {
 
     #[inline(always)]
     pub fn release(self) -> Uart {
-        self.uart
+        self.0
     }
 }
 
@@ -959,9 +970,7 @@ pub fn disable_tx_interrupts(uart: &uart_base::RegisterBlock) {
 /// Serial transmitter
 ///
 /// Can be created by using the [Uart::split] or [UartBase::split] API.
-pub struct Tx<Uart> {
-    uart: Uart,
-}
+pub struct Tx<Uart>(Uart);
 
 impl<Uart: Instance> Tx<Uart> {
     /// Retrieve a TX pin without expecting an explicit UART structure
@@ -971,14 +980,12 @@ impl<Uart: Instance> Tx<Uart> {
     /// Circumvents the HAL safety guarantees.
     #[inline(always)]
     pub unsafe fn steal() -> Self {
-        Self {
-            uart: Uart::steal(),
-        }
+        Self(Uart::steal())
     }
 
     #[inline(always)]
     fn new(uart: Uart) -> Self {
-        Self { uart }
+        Self(uart)
     }
 
     /// Direct access to the peripheral structure.
@@ -987,25 +994,23 @@ impl<Uart: Instance> Tx<Uart> {
     ///
     /// You must ensure that only registers related to the operation of the TX side are used.
     #[inline(always)]
-    pub unsafe fn uart(&self) -> &Uart {
-        &self.uart
+    pub const unsafe fn uart(&self) -> &Uart {
+        &self.0
     }
 
     #[inline]
     pub fn clear_fifo(&self) {
-        self.uart.fifo_clr().write(|w| w.txfifo().set_bit());
+        self.0.fifo_clr().write(|w| w.txfifo().set_bit());
     }
 
     #[inline]
     pub fn enable(&mut self) {
-        // Safety: We own the UART structure
-        enable_tx(unsafe { Uart::reg_block() });
+        self.0.enable().modify(|_, w| w.txenable().set_bit());
     }
 
     #[inline]
     pub fn disable(&mut self) {
-        // Safety: We own the UART structure
-        disable_tx(unsafe { Uart::reg_block() });
+        self.0.enable().modify(|_, w| w.txenable().clear_bit());
     }
 
     /// Enables the IRQ_TX, IRQ_TX_STATUS and IRQ_TX_EMPTY interrupts.
@@ -1037,7 +1042,7 @@ impl<Uart: Instance> Tx<Uart> {
     /// value if you use the manual parity mode. See chapter 11.4.1 for more information.
     #[inline(always)]
     pub fn write_fifo(&self, data: u32) -> nb::Result<(), Infallible> {
-        if self.uart.txstatus().read().wrrdy().bit_is_clear() {
+        if self.0.txstatus().read().wrrdy().bit_is_clear() {
             return Err(nb::Error::WouldBlock);
         }
         self.write_fifo_unchecked(data);
@@ -1052,7 +1057,7 @@ impl<Uart: Instance> Tx<Uart> {
     /// API.
     #[inline(always)]
     pub fn write_fifo_unchecked(&self, data: u32) {
-        self.uart.data().write(|w| unsafe { w.bits(data) });
+        self.0.data().write(|w| unsafe { w.bits(data) });
     }
 
     pub fn into_async(self) -> TxAsync<Uart> {
@@ -1135,7 +1140,7 @@ impl<Uart: Instance> RxWithInterrupt<Uart> {
 
     #[inline(always)]
     pub fn uart(&self) -> &Uart {
-        &self.0.uart
+        &self.0 .0
     }
 
     /// This function is used together with the [Self::on_interrupt_max_size_or_timeout_based]

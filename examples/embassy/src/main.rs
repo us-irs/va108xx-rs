@@ -2,7 +2,6 @@
 #![no_main]
 use embassy_executor::Spawner;
 use embassy_time::{Duration, Instant, Ticker};
-use embedded_hal::digital::StatefulOutputPin;
 use panic_rtt_target as _;
 use rtt_target::{rprintln, rtt_init_print};
 use va108xx_embassy::embassy;
@@ -60,8 +59,8 @@ async fn main(_spawner: Spawner) {
     loop {
         ticker.next().await;
         rprintln!("Current time: {}", Instant::now().as_secs());
-        led0.toggle().ok();
-        led1.toggle().ok();
-        led2.toggle().ok();
+        led0.toggle();
+        led1.toggle();
+        led2.toggle();
     }
 }

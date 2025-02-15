@@ -5,7 +5,6 @@
 #[rtic::app(device = pac, dispatchers = [OC31, OC30, OC29])]
 mod app {
     use cortex_m::asm;
-    use embedded_hal::digital::StatefulOutputPin;
     use panic_rtt_target as _;
     use rtic_example::SYSCLK_FREQ;
     use rtic_monotonics::systick::prelude::*;
@@ -58,9 +57,9 @@ mod app {
     async fn blinky(cx: blinky::Context) {
         loop {
             rprintln!("toggling LEDs");
-            cx.local.led0.toggle().ok();
-            cx.local.led1.toggle().ok();
-            cx.local.led2.toggle().ok();
+            cx.local.led0.toggle();
+            cx.local.led1.toggle();
+            cx.local.led2.toggle();
             Mono::delay(1000.millis()).await;
         }
     }

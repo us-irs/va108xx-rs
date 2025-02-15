@@ -12,7 +12,6 @@
 #![no_main]
 use embassy_executor::Spawner;
 use embassy_time::{Duration, Instant, Ticker};
-use embedded_hal::digital::StatefulOutputPin;
 use embedded_io_async::Write;
 use panic_rtt_target as _;
 use rtt_target::{rprintln, rtt_init_print};
@@ -21,7 +20,7 @@ use va108xx_hal::{
     gpio::PinsA,
     pac::{self, interrupt},
     prelude::*,
-    uart::{self, on_interrupt_uart_a_tx, TxAsync},
+    uart::{self, on_interrupt_tx, Bank, TxAsync},
     InterruptConfig,
 };
 
@@ -75,9 +74,9 @@ async fn main(_spawner: Spawner) {
     let mut idx = 0;
     loop {
         rprintln!("Current time: {}", Instant::now().as_secs());
-        led0.toggle().ok();
-        led1.toggle().ok();
-        led2.toggle().ok();
+        led0.toggle();
+        led1.toggle();
+        led2.toggle();
         let _written = async_tx
             .write(STR_LIST[idx].as_bytes())
             .await
@@ -93,5 +92,5 @@ async fn main(_spawner: Spawner) {
 #[interrupt]
 #[allow(non_snake_case)]
 fn OC2() {
-    on_interrupt_uart_a_tx();
+    on_interrupt_tx(Bank::A);
 }

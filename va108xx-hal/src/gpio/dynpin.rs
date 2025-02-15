@@ -58,10 +58,9 @@
 
 use super::{
     pin::{FilterType, Pin, PinId, PinMode},
-    reg::RegisterInterface,
-    InputDynPinAsync, InterruptEdge, InterruptLevel, PinState,
+    InputDynPinAsync, InterruptEdge, InterruptLevel, IsMaskedError, PinState, Port,
 };
-use crate::{clock::FilterClkSel, enable_nvic_interrupt, pac, FunSel, InterruptConfig};
+use crate::{clock::FilterClkSel, enable_nvic_interrupt, pac, FunSel};
 
 //==================================================================================================
 //  DynPinMode configurations
@@ -156,49 +155,91 @@ pub const DYN_ALT_FUNC_3: DynPinMode = DynPinMode::Alternate(DynAlternate::Sel3)
 //  DynGroup & DynPinId
 //==================================================================================================
 
-pub type DynGroup = super::Port;
+pub type DynGroup = Port;
 
-/// Value-level `struct` representing pin IDs
 #[derive(Debug, PartialEq, Eq, Clone, Copy)]
 #[cfg_attr(feature = "defmt", derive(defmt::Format))]
 pub struct DynPinId {
-    pub group: super::Port,
-    pub num: u8,
+    port: Port,
+    num: u8,
 }
 
-//==================================================================================================
-//  DynRegisters
-//==================================================================================================
+impl DynPinId {
+    pub const fn new(port: Port, num: u8) -> Self {
+        DynPinId { port, num }
+    }
 
-/// Provide a safe register interface for [`DynPin`]s
-///
-/// This `struct` takes ownership of a [`DynPinId`] and provides an API to
-/// access the corresponding regsiters.
-#[derive(Debug)]
-#[cfg_attr(feature = "defmt", derive(defmt::Format))]
-pub(crate) struct DynRegisters(DynPinId);
-
-// [`DynRegisters`] takes ownership of the [`DynPinId`], and [`DynPin`]
-// guarantees that each pin is a singleton, so this implementation is safe.
-unsafe impl RegisterInterface for DynRegisters {
-    #[inline]
-    fn id(&self) -> DynPinId {
-        self.0
+    pub const fn port(&self) -> Port {
+        self.port
+    }
+    pub const fn num(&self) -> u8 {
+        self.num
     }
 }
 
-impl DynRegisters {
-    /// Create a new instance of [`DynRegisters`]
-    ///
-    /// # Safety
-    ///
-    /// Users must never create two simultaneous instances of this `struct` with
-    /// the same [`DynPinId`]
+//==================================================================================================
+//  ModeFields
+//==================================================================================================
+
+/// Collect all fields needed to set the [`PinMode`](super::PinMode)
+#[derive(Default)]
+struct ModeFields {
+    dir: bool,
+    opendrn: bool,
+    pull_en: bool,
+    /// true for pullup, false for pulldown
+    pull_dir: bool,
+    funsel: u8,
+    enb_input: bool,
+}
+
+impl From<DynPinMode> for ModeFields {
     #[inline]
-    unsafe fn new(id: DynPinId) -> Self {
-        DynRegisters(id)
+    fn from(mode: DynPinMode) -> Self {
+        let mut fields = Self::default();
+        match mode {
+            DynPinMode::Input(config) => {
+                fields.dir = false;
+                fields.funsel = FunSel::Sel0 as u8;
+                match config {
+                    DynInput::Floating => (),
+                    DynInput::PullUp => {
+                        fields.pull_en = true;
+                        fields.pull_dir = true;
+                    }
+                    DynInput::PullDown => {
+                        fields.pull_en = true;
+                    }
+                }
+            }
+            DynPinMode::Output(config) => {
+                fields.dir = true;
+                fields.funsel = FunSel::Sel0 as u8;
+                match config {
+                    DynOutput::PushPull => (),
+                    DynOutput::OpenDrain => {
+                        fields.opendrn = true;
+                    }
+                    DynOutput::ReadableOpenDrain => {
+                        fields.enb_input = true;
+                        fields.opendrn = true;
+                    }
+                    DynOutput::ReadablePushPull => {
+                        fields.enb_input = true;
+                    }
+                }
+            }
+            DynPinMode::Alternate(config) => {
+                fields.funsel = config as u8;
+            }
+        }
+        fields
     }
 }
+
+/// Type definition to avoid confusion: These register blocks are identical
+type PortRegisterBlock = pac::porta::RegisterBlock;
+pub type PortReg = pac::ioconfig::Porta;
 
 //==================================================================================================
 //  DynPin
@@ -210,51 +251,69 @@ impl DynRegisters {
 /// by the same type, and pins are tracked and distinguished at run-time.
 #[derive(Debug)]
 pub struct DynPin {
-    pub(crate) regs: DynRegisters,
+    id: DynPinId,
     mode: DynPinMode,
 }
 
 impl DynPin {
-    /// Create a new [`DynPin`]
+    /// Create a new [DynPin]
     ///
     /// # Safety
     ///
-    /// Each [`DynPin`] must be a singleton. For a given [`DynPinId`], there
+    /// Each [DynPin] must be a singleton. For a given [DynPinId], there
     /// must be at most one corresponding [`DynPin`] in existence at any given
     /// time.  Violating this requirement is `unsafe`.
     #[inline]
-    pub(crate) unsafe fn new(id: DynPinId, mode: DynPinMode) -> Self {
+    pub(crate) const unsafe fn new(id: DynPinId, mode: DynPinMode) -> Self {
+        DynPin { id, mode }
+    }
+
+    /// Steals a new [DynPin].
+    ///
+    /// This function will simply set the internal mode to [DYN_FLOATING_INPUT] pin without
+    /// modifying any registers related to the behaviour of the pin. The user should call
+    /// [Self::into_mode] to ensure the correct mode of the pin.
+    ///
+    /// # Safety
+    ///
+    /// Circumvents the HAL's safety guarantees. The caller must ensure that the pin is not
+    /// used cocurrently somewhere else. The caller might also want to call [Self::into_mode]
+    /// to ensure the correct desired state of the pin. It is recommended to create the pin using
+    /// [Pin::downgrade] instead.
+    pub const unsafe fn steal(id: DynPinId) -> Self {
         DynPin {
-            regs: DynRegisters::new(id),
-            mode,
+            id,
+            mode: DYN_FLOATING_INPUT,
         }
     }
 
     /// Return a copy of the pin ID
     #[inline]
-    pub fn id(&self) -> DynPinId {
-        self.regs.0
+    pub const fn id(&self) -> DynPinId {
+        self.id
     }
 
     /// Return a copy of the pin mode
     #[inline]
-    pub fn mode(&self) -> DynPinMode {
+    pub const fn mode(&self) -> DynPinMode {
         self.mode
     }
 
     /// Convert the pin to the requested [`DynPinMode`]
     #[inline]
     pub fn into_mode(&mut self, mode: DynPinMode) {
-        // Only modify registers if we are actually changing pin mode
-        if mode != self.mode {
-            self.regs.change_mode(mode);
-            self.mode = mode;
-        }
+        self.change_mode(mode);
+        self.mode = mode;
     }
 
     #[inline]
     pub fn is_input_pin(&self) -> bool {
         matches!(self.mode, DynPinMode::Input(_))
+    }
+
+    #[inline]
+    pub fn is_output_pin(&self) -> bool {
+        matches!(self.mode, DynPinMode::Output(_))
     }
 
     #[inline]
@@ -314,74 +373,170 @@ impl DynPin {
         self.into_mode(DYN_RD_OPEN_DRAIN_OUTPUT);
     }
 
-    #[inline]
-    pub fn datamask(&self) -> bool {
-        self.regs.datamask()
+    #[inline(always)]
+    pub fn is_low(&self) -> Result<bool, InvalidPinTypeError> {
+        self.read_internal().map(|v| !v)
     }
 
-    #[inline]
-    pub fn clear_datamask(&mut self) {
-        self.regs.clear_datamask();
+    #[inline(always)]
+    pub fn is_high(&self) -> Result<bool, InvalidPinTypeError> {
+        self.read_internal()
     }
 
-    #[inline]
-    pub fn set_datamask(&mut self) {
-        self.regs.set_datamask();
+    #[inline(always)]
+    pub fn set_low(&mut self) -> Result<(), InvalidPinTypeError> {
+        self.write_internal(false)
     }
 
-    #[inline]
-    pub fn is_high_masked(&self) -> Result<bool, crate::gpio::IsMaskedError> {
-        self.regs.read_pin_masked()
+    #[inline(always)]
+    pub fn set_high(&mut self) -> Result<(), InvalidPinTypeError> {
+        self.write_internal(true)
     }
 
-    #[inline]
-    pub fn is_low_masked(&self) -> Result<bool, crate::gpio::IsMaskedError> {
-        self.regs.read_pin_masked().map(|v| !v)
-    }
-
-    #[inline]
-    pub fn set_high_masked(&mut self) -> Result<(), crate::gpio::IsMaskedError> {
-        self.regs.write_pin_masked(true)
-    }
-
-    #[inline]
-    pub fn set_low_masked(&mut self) -> Result<(), crate::gpio::IsMaskedError> {
-        self.regs.write_pin_masked(false)
-    }
-
-    pub(crate) fn irq_enb(
-        &mut self,
-        irq_cfg: crate::InterruptConfig,
-        syscfg: Option<&mut va108xx::Sysconfig>,
-        irqsel: Option<&mut va108xx::Irqsel>,
-    ) {
-        if let Some(syscfg) = syscfg {
-            crate::clock::enable_peripheral_clock(syscfg, crate::clock::PeripheralClocks::Irqsel);
+    /// Toggle the logic level of an output pin
+    #[inline(always)]
+    pub fn toggle(&mut self) -> Result<(), InvalidPinTypeError> {
+        if !self.is_output_pin() {
+            return Err(InvalidPinTypeError(self.mode));
         }
-        self.regs.enable_irq();
-        if let Some(irqsel) = irqsel {
-            if irq_cfg.route {
-                match self.regs.id().group {
-                    // Set the correct interrupt number in the IRQSEL register
-                    super::Port::A => {
-                        irqsel
-                            .porta0(self.regs.id().num as usize)
-                            .write(|w| unsafe { w.bits(irq_cfg.id as u32) });
-                    }
-                    super::Port::B => {
-                        irqsel
-                            .portb0(self.regs.id().num as usize)
-                            .write(|w| unsafe { w.bits(irq_cfg.id as u32) });
-                    }
-                }
-            }
+        // Safety: TOGOUT is a "mask" register, and we only write the bit for
+        // this pin ID
+        unsafe { self.port_reg().togout().write(|w| w.bits(self.mask_32())) };
+        Ok(())
+    }
+
+    pub fn enable_interrupt(&mut self, irq_cfg: crate::InterruptConfig) {
+        if irq_cfg.route {
+            self.configure_irqsel(irq_cfg.id);
         }
         if irq_cfg.enable_in_nvic {
             unsafe { enable_nvic_interrupt(irq_cfg.id) };
         }
+
+        // We only manipulate our own bit.
+        self.port_reg()
+            .irq_enb()
+            .modify(|r, w| unsafe { w.bits(r.bits() | self.mask_32()) });
     }
 
-    /// See p.53 of the programmers guide for more information.
+    pub fn disable_interrupt(&mut self, reset_irqsel: bool) {
+        if reset_irqsel {
+            self.reset_irqsel();
+        }
+        // We only manipulate our own bit.
+        self.port_reg()
+            .irq_enb()
+            .modify(|r, w| unsafe { w.bits(r.bits() & !self.mask_32()) });
+    }
+
+    /// Try to recreate a type-level [`Pin`] from a value-level [`DynPin`]
+    ///
+    /// There is no way for the compiler to know if the conversion will be
+    /// successful at compile-time. We must verify the conversion at run-time
+    /// or refuse to perform it.
+    #[inline]
+    pub fn upgrade<I: PinId, M: PinMode>(self) -> Result<Pin<I, M>, InvalidPinTypeError> {
+        if self.id == I::DYN && self.mode == M::DYN {
+            // The `DynPin` is consumed, so it is safe to replace it with the
+            // corresponding `Pin`
+            return Ok(unsafe { Pin::new() });
+        }
+        Err(InvalidPinTypeError(self.mode))
+    }
+
+    /// Convert the pin into an async pin. The pin can be converted back by calling
+    /// [InputDynPinAsync::release]
+    pub fn into_async_input(
+        self,
+        irq: crate::pac::Interrupt,
+    ) -> Result<InputDynPinAsync, InvalidPinTypeError> {
+        InputDynPinAsync::new(self, irq)
+    }
+
+    /// Configure the IRQSEL peripheral for this particular pin with the given interrupt ID.
+    pub fn configure_irqsel(&mut self, id: pac::Interrupt) {
+        let mut syscfg = unsafe { pac::Sysconfig::steal() };
+        let irqsel = unsafe { pac::Irqsel::steal() };
+        crate::clock::enable_peripheral_clock(&mut syscfg, crate::clock::PeripheralClocks::Irqsel);
+        match self.id().port() {
+            // Set the correct interrupt number in the IRQSEL register
+            super::Port::A => {
+                irqsel
+                    .porta0(self.id().num() as usize)
+                    .write(|w| unsafe { w.bits(id as u32) });
+            }
+            super::Port::B => {
+                irqsel
+                    .portb0(self.id().num as usize)
+                    .write(|w| unsafe { w.bits(id as u32) });
+            }
+        }
+    }
+
+    /// Reset the IRQSEL peripheral value for this particular pin.
+    pub fn reset_irqsel(&mut self) {
+        let mut syscfg = unsafe { pac::Sysconfig::steal() };
+        let irqsel = unsafe { pac::Irqsel::steal() };
+        crate::clock::enable_peripheral_clock(&mut syscfg, crate::clock::PeripheralClocks::Irqsel);
+        match self.id().port() {
+            // Set the correct interrupt number in the IRQSEL register
+            super::Port::A => {
+                irqsel
+                    .porta0(self.id().num() as usize)
+                    .write(|w| unsafe { w.bits(u32::MAX) });
+            }
+            super::Port::B => {
+                irqsel
+                    .portb0(self.id().num as usize)
+                    .write(|w| unsafe { w.bits(u32::MAX) });
+            }
+        }
+    }
+
+    // Get DATAMASK bit for this particular pin
+    #[inline(always)]
+    pub fn datamask(&self) -> bool {
+        (self.port_reg().datamask().read().bits() >> self.id().num) == 1
+    }
+
+    /// Clear DATAMASK bit for this particular pin. This prevents access
+    /// of the corresponding bit for output and input operations
+    #[inline(always)]
+    pub fn clear_datamask(&self) {
+        self.port_reg()
+            .datamask()
+            .modify(|r, w| unsafe { w.bits(r.bits() & !self.mask_32()) });
+    }
+
+    /// Set DATAMASK bit for this particular pin. 1 is the default
+    /// state of the bit and allows access of the corresponding bit
+    #[inline(always)]
+    pub fn set_datamask(&self) {
+        self.port_reg()
+            .datamask()
+            .modify(|r, w| unsafe { w.bits(r.bits() | self.mask_32()) });
+    }
+
+    #[inline]
+    pub fn is_high_masked(&self) -> Result<bool, crate::gpio::IsMaskedError> {
+        self.read_pin_masked()
+    }
+
+    #[inline]
+    pub fn is_low_masked(&self) -> Result<bool, crate::gpio::IsMaskedError> {
+        self.read_pin_masked().map(|v| !v)
+    }
+
+    #[inline]
+    pub fn set_high_masked(&mut self) -> Result<(), crate::gpio::IsMaskedError> {
+        self.write_pin_masked(true)
+    }
+
+    #[inline]
+    pub fn set_low_masked(&mut self) -> Result<(), crate::gpio::IsMaskedError> {
+        self.write_pin_masked(false)
+    }
+
     /// Possible delays in clock cycles:
     ///  - Delay 1: 1
     ///  - Delay 2: 2
@@ -394,14 +549,13 @@ impl DynPin {
     ) -> Result<(), InvalidPinTypeError> {
         match self.mode {
             DynPinMode::Output(_) => {
-                self.regs.configure_delay(delay_1, delay_2);
+                self.configure_delay_internal(delay_1, delay_2);
                 Ok(())
             }
             _ => Err(InvalidPinTypeError(self.mode)),
         }
     }
 
-    /// See p.52 of the programmers guide for more information.
     /// When configured for pulse mode, a given pin will set the non-default state for exactly
     /// one clock cycle before returning to the configured default state
     #[inline]
@@ -412,7 +566,7 @@ impl DynPin {
     ) -> Result<(), InvalidPinTypeError> {
         match self.mode {
             DynPinMode::Output(_) => {
-                self.regs.pulse_mode(enable, default_state);
+                self.configure_pulse_mode_internal(enable, default_state);
                 Ok(())
             }
             _ => Err(InvalidPinTypeError(self.mode)),
@@ -428,74 +582,102 @@ impl DynPin {
     ) -> Result<(), InvalidPinTypeError> {
         match self.mode {
             DynPinMode::Input(_) => {
-                self.regs.configure_filter_type(filter, clksel);
+                self.configure_filter_type_internal(filter, clksel);
                 Ok(())
             }
             _ => Err(InvalidPinTypeError(self.mode)),
         }
     }
 
-    #[inline]
     pub fn configure_edge_interrupt(
         &mut self,
         edge_type: InterruptEdge,
-        irq_cfg: InterruptConfig,
-        syscfg: Option<&mut pac::Sysconfig>,
-        irqsel: Option<&mut pac::Irqsel>,
     ) -> Result<(), InvalidPinTypeError> {
         match self.mode {
             DynPinMode::Input(_) | DynPinMode::Output(_) => {
-                self.regs.configure_edge_interrupt(edge_type);
-                self.irq_enb(irq_cfg, syscfg, irqsel);
+                self.configure_edge_interrupt_internal(edge_type);
                 Ok(())
             }
             _ => Err(InvalidPinTypeError(self.mode)),
         }
     }
 
-    #[inline]
     pub fn configure_level_interrupt(
         &mut self,
         level_type: InterruptLevel,
-        irq_cfg: InterruptConfig,
-        syscfg: Option<&mut pac::Sysconfig>,
-        irqsel: Option<&mut pac::Irqsel>,
     ) -> Result<(), InvalidPinTypeError> {
         match self.mode {
             DynPinMode::Input(_) | DynPinMode::Output(_) => {
-                self.regs.configure_level_interrupt(level_type);
-                self.irq_enb(irq_cfg, syscfg, irqsel);
+                self.configure_level_interrupt_internal(level_type);
                 Ok(())
             }
             _ => Err(InvalidPinTypeError(self.mode)),
         }
     }
 
+    /// Change the pin mode
     #[inline]
-    pub fn toggle_with_toggle_reg(&mut self) -> Result<(), InvalidPinTypeError> {
-        match self.mode {
-            DynPinMode::Output(_) => {
-                self.regs.toggle();
-                Ok(())
+    pub(crate) fn change_mode(&mut self, mode: DynPinMode) {
+        let ModeFields {
+            dir,
+            funsel,
+            opendrn,
+            pull_dir,
+            pull_en,
+            enb_input,
+        } = mode.into();
+        let (portreg, iocfg) = (self.port_reg(), self.iocfg_port());
+        iocfg.write(|w| {
+            w.opendrn().bit(opendrn);
+            w.pen().bit(pull_en);
+            w.plevel().bit(pull_dir);
+            w.iewo().bit(enb_input);
+            unsafe { w.funsel().bits(funsel) }
+        });
+        let mask = self.mask_32();
+        unsafe {
+            if dir {
+                portreg.dir().modify(|r, w| w.bits(r.bits() | mask));
+                // Clear output
+                portreg.clrout().write(|w| w.bits(mask));
+            } else {
+                portreg.dir().modify(|r, w| w.bits(r.bits() & !mask));
             }
-            _ => Err(InvalidPinTypeError(self.mode)),
         }
     }
 
     #[inline]
-    fn _read(&self) -> Result<bool, InvalidPinTypeError> {
+    const fn port_reg(&self) -> &PortRegisterBlock {
+        match self.id().port() {
+            Port::A => unsafe { &(*pac::Porta::ptr()) },
+            Port::B => unsafe { &(*pac::Portb::ptr()) },
+        }
+    }
+
+    #[inline]
+    const fn iocfg_port(&self) -> &PortReg {
+        let ioconfig = unsafe { va108xx::Ioconfig::ptr().as_ref().unwrap() };
+        match self.id().port() {
+            Port::A => ioconfig.porta(self.id().num() as usize),
+            Port::B => ioconfig.portb0(self.id().num() as usize),
+        }
+    }
+
+    #[inline(always)]
+    fn read_internal(&self) -> Result<bool, InvalidPinTypeError> {
         match self.mode {
             DynPinMode::Input(_) | DYN_RD_OPEN_DRAIN_OUTPUT | DYN_RD_PUSH_PULL_OUTPUT => {
-                Ok(self.regs.read_pin())
+                Ok(self.read_pin())
             }
             _ => Err(InvalidPinTypeError(self.mode)),
         }
     }
-    #[inline]
-    fn _write(&mut self, bit: bool) -> Result<(), InvalidPinTypeError> {
+
+    #[inline(always)]
+    fn write_internal(&mut self, bit: bool) -> Result<(), InvalidPinTypeError> {
         match self.mode {
             DynPinMode::Output(_) => {
-                self.regs.write_pin(bit);
+                self.write_pin(bit);
                 Ok(())
             }
             _ => Err(InvalidPinTypeError(self.mode)),
@@ -503,44 +685,190 @@ impl DynPin {
     }
 
     #[inline]
-    fn _is_low(&self) -> Result<bool, InvalidPinTypeError> {
-        self._read().map(|v| !v)
-    }
-    #[inline]
-    fn _is_high(&self) -> Result<bool, InvalidPinTypeError> {
-        self._read()
-    }
-    #[inline]
-    fn _set_low(&mut self) -> Result<(), InvalidPinTypeError> {
-        self._write(false)
-    }
-    #[inline]
-    fn _set_high(&mut self) -> Result<(), InvalidPinTypeError> {
-        self._write(true)
+    /// Read the logic level of an output pin
+    pub(crate) fn read_pin(&self) -> bool {
+        let portreg = self.port_reg();
+        ((portreg.datainraw().read().bits() >> self.id().num) & 0x01) == 1
     }
 
-    /// Try to recreate a type-level [`Pin`] from a value-level [`DynPin`]
-    ///
-    /// There is no way for the compiler to know if the conversion will be
-    /// successful at compile-time. We must verify the conversion at run-time
-    /// or refuse to perform it.
-    #[inline]
-    pub fn upgrade<I: PinId, M: PinMode>(self) -> Result<Pin<I, M>, InvalidPinTypeError> {
-        if self.regs.0 == I::DYN && self.mode == M::DYN {
-            // The `DynPin` is consumed, so it is safe to replace it with the
-            // corresponding `Pin`
-            return Ok(unsafe { Pin::new() });
+    /// Read a pin but use the masked version but check whether the datamask for the pin is
+    /// cleared as well
+    #[inline(always)]
+    fn read_pin_masked(&self) -> Result<bool, IsMaskedError> {
+        if !self.datamask() {
+            Err(IsMaskedError)
+        } else {
+            Ok(((self.port_reg().datain().read().bits() >> self.id().num) & 0x01) == 1)
         }
-        Err(InvalidPinTypeError(self.mode))
     }
 
-    /// Convert the pin into an async pin. The pin can be converted back by calling
-    /// [InputDynPinAsync::release]
-    pub fn into_async_input(
-        self,
-        irq: crate::pac::Interrupt,
-    ) -> Result<InputDynPinAsync, InvalidPinTypeError> {
-        InputDynPinAsync::new(self, irq)
+    /// Write the logic level of an output pin
+    #[inline(always)]
+    pub(crate) fn write_pin(&mut self, bit: bool) {
+        // Safety: SETOUT is a "mask" register, and we only write the bit for
+        // this pin ID
+        unsafe {
+            if bit {
+                self.port_reg().setout().write(|w| w.bits(self.mask_32()));
+            } else {
+                self.port_reg().clrout().write(|w| w.bits(self.mask_32()));
+            }
+        }
+    }
+
+    /// Write the logic level of an output pin but check whether the datamask for the pin is
+    /// cleared as well
+    #[inline]
+    fn write_pin_masked(&mut self, bit: bool) -> Result<(), IsMaskedError> {
+        if !self.datamask() {
+            Err(IsMaskedError)
+        } else {
+            // Safety: SETOUT is a "mask" register, and we only write the bit for
+            // this pin ID
+            unsafe {
+                if bit {
+                    self.port_reg().setout().write(|w| w.bits(self.mask_32()));
+                } else {
+                    self.port_reg().clrout().write(|w| w.bits(self.mask_32()));
+                }
+                Ok(())
+            }
+        }
+    }
+
+    /// Toggle the logic level of an output pin
+    #[inline(always)]
+    pub fn toggle_with_togout_reg(&mut self) {
+        // Safety: TOGOUT is a "mask" register, and we only write the bit for
+        // this pin ID
+        unsafe { self.port_reg().togout().write(|w| w.bits(self.mask_32())) };
+    }
+
+    /// Only useful for interrupt pins. Configure whether to use edges or level as interrupt soure
+    /// When using edge mode, it is possible to generate interrupts on both edges as well
+    #[inline]
+    fn configure_edge_interrupt_internal(&mut self, edge_type: InterruptEdge) {
+        unsafe {
+            self.port_reg()
+                .irq_sen()
+                .modify(|r, w| w.bits(r.bits() & !self.mask_32()));
+            match edge_type {
+                InterruptEdge::HighToLow => {
+                    self.port_reg()
+                        .irq_evt()
+                        .modify(|r, w| w.bits(r.bits() & !self.mask_32()));
+                }
+                InterruptEdge::LowToHigh => {
+                    self.port_reg()
+                        .irq_evt()
+                        .modify(|r, w| w.bits(r.bits() | self.mask_32()));
+                }
+                InterruptEdge::BothEdges => {
+                    self.port_reg()
+                        .irq_edge()
+                        .modify(|r, w| w.bits(r.bits() | self.mask_32()));
+                }
+            }
+        }
+    }
+
+    /// Configure which edge or level type triggers an interrupt
+    #[inline]
+    fn configure_level_interrupt_internal(&mut self, level: InterruptLevel) {
+        unsafe {
+            self.port_reg()
+                .irq_sen()
+                .modify(|r, w| w.bits(r.bits() | self.mask_32()));
+            if level == InterruptLevel::Low {
+                self.port_reg()
+                    .irq_evt()
+                    .modify(|r, w| w.bits(r.bits() & !self.mask_32()));
+            } else {
+                self.port_reg()
+                    .irq_evt()
+                    .modify(|r, w| w.bits(r.bits() | self.mask_32()));
+            }
+        }
+    }
+
+    /// Only useful for input pins
+    #[inline]
+    fn configure_filter_type_internal(&mut self, filter: FilterType, clksel: FilterClkSel) {
+        self.iocfg_port().modify(|_, w| {
+            // Safety: Only write to register for this Pin ID
+            unsafe {
+                w.flttype().bits(filter as u8);
+                w.fltclk().bits(clksel as u8)
+            }
+        });
+    }
+
+    #[inline]
+    fn configure_pulse_mode_internal(&mut self, enable: bool, default_state: PinState) {
+        let portreg = self.port_reg();
+        unsafe {
+            if enable {
+                portreg
+                    .pulse()
+                    .modify(|r, w| w.bits(r.bits() | self.mask_32()));
+            } else {
+                portreg
+                    .pulse()
+                    .modify(|r, w| w.bits(r.bits() & !self.mask_32()));
+            }
+            if default_state == PinState::Low {
+                portreg
+                    .pulsebase()
+                    .modify(|r, w| w.bits(r.bits() & !self.mask_32()));
+            } else {
+                portreg
+                    .pulsebase()
+                    .modify(|r, w| w.bits(r.bits() | self.mask_32()));
+            }
+        }
+    }
+
+    /// Only useful for output pins
+    #[inline]
+    fn configure_delay_internal(&mut self, delay_1: bool, delay_2: bool) {
+        let portreg = self.port_reg();
+        unsafe {
+            if delay_1 {
+                portreg
+                    .delay1()
+                    .modify(|r, w| w.bits(r.bits() | self.mask_32()));
+            } else {
+                portreg
+                    .delay1()
+                    .modify(|r, w| w.bits(r.bits() & !self.mask_32()));
+            }
+            if delay_2 {
+                portreg
+                    .delay2()
+                    .modify(|r, w| w.bits(r.bits() | self.mask_32()));
+            } else {
+                portreg
+                    .delay2()
+                    .modify(|r, w| w.bits(r.bits() & !self.mask_32()));
+            }
+        }
+    }
+
+    // Only serves disambiguation purposes for the Embedded HAL impl
+    #[inline(always)]
+    fn is_low_mut(&mut self) -> Result<bool, InvalidPinTypeError> {
+        self.is_low()
+    }
+
+    // Only serves disambiguation purposes for the Embedded HAL impl
+    #[inline(always)]
+    fn is_high_mut(&mut self) -> Result<bool, InvalidPinTypeError> {
+        self.is_high()
+    }
+
+    #[inline(always)]
+    const fn mask_32(&self) -> u32 {
+        1 << self.id().num()
     }
 }
 
@@ -582,33 +910,38 @@ impl embedded_hal::digital::ErrorType for DynPin {
 impl embedded_hal::digital::OutputPin for DynPin {
     #[inline]
     fn set_high(&mut self) -> Result<(), Self::Error> {
-        self._set_high()
+        self.set_high()
     }
     #[inline]
     fn set_low(&mut self) -> Result<(), Self::Error> {
-        self._set_low()
+        self.set_low()
     }
 }
 
 impl embedded_hal::digital::InputPin for DynPin {
     #[inline]
     fn is_high(&mut self) -> Result<bool, Self::Error> {
-        self._is_high()
+        self.is_high_mut()
     }
     #[inline]
     fn is_low(&mut self) -> Result<bool, Self::Error> {
-        self._is_low()
+        self.is_low_mut()
     }
 }
 
 impl embedded_hal::digital::StatefulOutputPin for DynPin {
     #[inline]
     fn is_set_high(&mut self) -> Result<bool, Self::Error> {
-        self._is_high()
+        self.is_high_mut()
     }
 
     #[inline]
     fn is_set_low(&mut self) -> Result<bool, Self::Error> {
-        self._is_low()
+        self.is_low_mut()
+    }
+
+    #[inline]
+    fn toggle(&mut self) -> Result<(), Self::Error> {
+        self.toggle()
     }
 }

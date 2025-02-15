@@ -8,13 +8,13 @@
 use core::convert::Infallible;
 
 use cortex_m_rt::entry;
-use embedded_hal::digital::OutputPin;
 use embedded_hal::spi::{SpiBus, SpiDevice, MODE_0};
 use embedded_hal::{delay::DelayNs, spi};
 use max116xx_10bit::VoltageRefMode;
 use max116xx_10bit::{AveragingConversions, AveragingResults};
 use panic_rtt_target as _;
 use rtt_target::{rprintln, rtt_init_print};
+use va108xx_hal::gpio::Port;
 use va108xx_hal::spi::{OptionalHwCs, SpiClkConfig};
 use va108xx_hal::timer::CountdownTimer;
 use va108xx_hal::{
@@ -24,7 +24,7 @@ use va108xx_hal::{
     spi::{Spi, SpiBase, SpiConfig},
     timer::{default_ms_irq_handler, set_up_ms_tick, DelayMs, InterruptConfig},
 };
-use va108xx_hal::{port_function_select, FunSel, PortSel};
+use va108xx_hal::{port_function_select, FunSel};
 use vorago_reb1::max11619::{
     max11619_externally_clocked_no_wakeup, max11619_externally_clocked_with_wakeup,
     max11619_internally_clocked, EocPin, AN2_CHANNEL, POTENTIOMETER_CHANNEL,
@@ -135,16 +135,14 @@ fn main() -> ! {
     );
 
     if MUX_MODE == MuxMode::PortB19to17 {
-        port_function_select(&mut dp.ioconfig, PortSel::PortB, 19, FunSel::Sel1).ok();
-        port_function_select(&mut dp.ioconfig, PortSel::PortB, 18, FunSel::Sel2).ok();
-        port_function_select(&mut dp.ioconfig, PortSel::PortB, 17, FunSel::Sel1).ok();
-        port_function_select(&mut dp.ioconfig, PortSel::PortB, 16, FunSel::Sel1).ok();
+        port_function_select(&mut dp.ioconfig, Port::B, 19, FunSel::Sel1).ok();
+        port_function_select(&mut dp.ioconfig, Port::B, 18, FunSel::Sel2).ok();
+        port_function_select(&mut dp.ioconfig, Port::B, 17, FunSel::Sel1).ok();
+        port_function_select(&mut dp.ioconfig, Port::B, 16, FunSel::Sel1).ok();
     }
     // Set the accelerometer chip select low in case the board slot is populated
     let mut accel_cs = pinsa.pa16.into_push_pull_output();
-    accel_cs
-        .set_high()
-        .expect("Setting accelerometer chip select high failed");
+    accel_cs.set_high();
 
     let spi = Spi::new(
         &mut dp.sysconfig,

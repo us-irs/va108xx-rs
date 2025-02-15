@@ -5,7 +5,6 @@
 //! - [LED example](https://egit.irs.uni-stuttgart.de/rust/va108xx-rs/src/branch/main/vorago-reb1/examples/blinky-leds.rs)
 //! - [Button Blinky using IRQs](https://egit.irs.uni-stuttgart.de/rust/va108xx-rs/src/branch/main/vorago-reb1/examples/blinky-button-irq.rs)
 //! - [Button Blinky using IRQs and RTIC](https://egit.irs.uni-stuttgart.de/rust/va108xx-rs/src/branch/main/vorago-reb1/examples/blinky-button-rtic.rs)
-use embedded_hal::digital::OutputPin;
 use va108xx_hal::{
     gpio::dynpin::DynPin,
     gpio::pin::{Pin, PushPullOutput, PA10, PA6, PA7},
@@ -85,6 +84,6 @@ impl Led {
     /// Toggles the LED
     #[inline]
     pub fn toggle(&mut self) {
-        self.0.toggle_with_toggle_reg().ok();
+        self.0.toggle().ok();
     }
 }

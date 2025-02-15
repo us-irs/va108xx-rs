@@ -69,18 +69,16 @@ mod app {
 
         // Configure an edge interrupt on the button and route it to interrupt vector 15
         let mut button = Button::new(pinsa.pa11.into_floating_input());
-        button.configure_edge_interrupt(
-            edge_irq,
-            InterruptConfig::new(pac::interrupt::OC15, true, true),
-            Some(&mut dp.sysconfig),
-            Some(&mut dp.irqsel),
-        );
 
         if mode == PressMode::Toggle {
             // This filter debounces the switch for edge based interrupts
             button.configure_filter_type(FilterType::FilterFourClockCycles, FilterClkSel::Clk1);
             set_clk_div_register(&mut dp.sysconfig, FilterClkSel::Clk1, 50_000);
         }
+        button.configure_and_enable_edge_interrupt(
+            edge_irq,
+            InterruptConfig::new(pac::interrupt::OC15, true, true),
+        );
         let mut leds = Leds::new(
             pinsa.pa10.into_push_pull_output(),
             pinsa.pa7.into_push_pull_output(),

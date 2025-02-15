@@ -16,7 +16,9 @@ and this project adheres to [Semantic Versioning](http://semver.org/).
 
 ## Changed
 
-- Missing GPIO API replacements from `x` to `configure_x`
+- Larger refactoring of GPIO library. The edge and level interrupt configurator functions do not
+  enable interrupts anymore. Instead, there are explicit `enbable_interrupt` and
+  `disable_interrupt` methods
 - Renamed GPIO `DynGroup` to `Port`
 - Rename generic GPIO interrupt handler into `on_interrupt_for_asynch_gpio`
   into `on_interrupt_for_async_gpio_for_port` which expects a Port argument
