@@ -5,8 +5,8 @@
 #![no_main]
 #![no_std]
 use cortex_m_rt::entry;
+use embedded_hal::delay::DelayNs;
 use embedded_hal::spi::{SpiBus, MODE_3};
-use embedded_hal::{delay::DelayNs, digital::OutputPin};
 use panic_rtt_target as _;
 use rtt_target::{rprintln, rtt_init_print};
 use va108xx_hal::spi::SpiClkConfig;
@@ -41,9 +41,7 @@ fn main() -> ! {
 
     // Need to set the ADC chip select low
     let mut adc_cs = pinsa.pa17.into_push_pull_output();
-    adc_cs
-        .set_high()
-        .expect("Setting ADC chip select high failed");
+    adc_cs.set_high();
 
     let spi_cfg = SpiConfig::default()
         .clk_cfg(

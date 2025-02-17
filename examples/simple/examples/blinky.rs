@@ -7,10 +7,7 @@
 #![no_std]
 
 use cortex_m_rt::entry;
-use embedded_hal::{
-    delay::DelayNs,
-    digital::{OutputPin, StatefulOutputPin},
-};
+use embedded_hal::delay::DelayNs;
 use panic_halt as _;
 use va108xx_hal::{
     gpio::PinsA,
@@ -38,21 +35,21 @@ fn main() -> ! {
     let mut led2 = porta.pa7.into_readable_push_pull_output();
     let mut led3 = porta.pa6.into_readable_push_pull_output();
     for _ in 0..10 {
-        led1.set_low().ok();
-        led2.set_low().ok();
-        led3.set_low().ok();
+        led1.set_low();
+        led2.set_low();
+        led3.set_low();
         delay_ms.delay_ms(200);
-        led1.set_high().ok();
-        led2.set_high().ok();
-        led3.set_high().ok();
+        led1.set_high();
+        led2.set_high();
+        led3.set_high();
         delay_tim1.delay_ms(200);
     }
     loop {
-        led1.toggle().ok();
+        led1.toggle();
         delay_ms.delay_ms(200);
-        led2.toggle().ok();
+        led2.toggle();
         delay_tim1.delay_ms(200);
-        led3.toggle().ok();
+        led3.toggle();
         delay_ms.delay_ms(200);
     }
 }

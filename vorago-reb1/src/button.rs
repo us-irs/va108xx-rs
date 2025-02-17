@@ -4,10 +4,9 @@
 //!
 //! - [Button Blinky with IRQs](https://egit.irs.uni-stuttgart.de/rust/va108xx-rs/src/branch/main/vorago-reb1/examples/blinky-button-irq.rs)
 //! - [Button Blinky with IRQs and RTIC](https://egit.irs.uni-stuttgart.de/rust/va108xx-rs/src/branch/main/vorago-reb1/examples/blinky-button-rtic.rs)
-use embedded_hal::digital::InputPin;
 use va108xx_hal::{
     gpio::{FilterClkSel, FilterType, InputFloating, InterruptEdge, InterruptLevel, Pin, PA11},
-    pac, InterruptConfig,
+    InterruptConfig,
 };
 
 #[derive(Debug)]
@@ -20,36 +19,32 @@ impl Button {
 
     #[inline]
     pub fn pressed(&mut self) -> bool {
-        self.0.is_low().ok().unwrap()
+        self.0.is_low()
     }
 
     #[inline]
     pub fn released(&mut self) -> bool {
-        self.0.is_high().ok().unwrap()
+        self.0.is_high()
     }
 
     /// Configures an IRQ on edge.
-    pub fn configure_edge_interrupt(
+    pub fn configure_and_enable_edge_interrupt(
         &mut self,
         edge_type: InterruptEdge,
         irq_cfg: InterruptConfig,
-        syscfg: Option<&mut pac::Sysconfig>,
-        irqsel: Option<&mut pac::Irqsel>,
     ) {
-        self.0
-            .configure_edge_interrupt(edge_type, irq_cfg, syscfg, irqsel);
+        self.0.configure_edge_interrupt(edge_type);
+        self.0.enable_interrupt(irq_cfg);
     }
 
     /// Configures an IRQ on level.
-    pub fn configure_level_interrupt(
+    pub fn configure_and_enable_level_interrupt(
         &mut self,
         level: InterruptLevel,
         irq_cfg: InterruptConfig,
-        syscfg: Option<&mut pac::Sysconfig>,
-        irqsel: Option<&mut pac::Irqsel>,
     ) {
-        self.0
-            .configure_level_interrupt(level, irq_cfg, syscfg, irqsel);
+        self.0.configure_level_interrupt(level);
+        self.0.enable_interrupt(irq_cfg);
     }
 
     /// Configures a filter on the button. This can be useful for debouncing the switch.

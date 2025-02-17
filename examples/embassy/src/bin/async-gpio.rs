@@ -9,7 +9,6 @@ use embassy_executor::Spawner;
 use embassy_sync::channel::{Receiver, Sender};
 use embassy_sync::{blocking_mutex::raw::ThreadModeRawMutex, channel::Channel};
 use embassy_time::{Duration, Instant, Timer};
-use embedded_hal::digital::{InputPin, OutputPin, StatefulOutputPin};
 use embedded_hal_async::digital::Wait;
 use panic_rtt_target as _;
 use rtt_target::{rprintln, rtt_init_print};
@@ -116,7 +115,7 @@ async fn main(spawner: Spawner) {
 
     rprintln!("Example done, toggling LED0");
     loop {
-        led0.toggle().unwrap();
+        led0.toggle();
         Timer::after(Duration::from_millis(500)).await;
     }
 }

@@ -18,7 +18,6 @@ use core::cell::RefCell;
 use critical_section::Mutex;
 use embassy_executor::Spawner;
 use embassy_time::Instant;
-use embedded_hal::digital::StatefulOutputPin;
 use embedded_io::Write;
 use embedded_io_async::Read;
 use heapless::spsc::{Consumer, Producer, Queue};
@@ -30,9 +29,9 @@ use va108xx_hal::{
     pac::{self, interrupt},
     prelude::*,
     uart::{
-        self, on_interrupt_uart_b_overwriting,
-        rx_asynch::{on_interrupt_uart_a, RxAsync},
-        RxAsyncSharedConsumer, Tx,
+        self, on_interrupt_rx_overwriting,
+        rx_asynch::{on_interrupt_rx, RxAsync},
+        Bank, RxAsyncOverwriting, Tx,
     },
     InterruptConfig,
 };
@@ -106,16 +105,16 @@ async fn main(spawner: Spawner) {
         *CONSUMER_UART_B.borrow(cs).borrow_mut() = Some(cons_uart_b);
     });
     let mut async_rx_uart_a = RxAsync::new(rx_uart_a, cons_uart_a);
-    let async_rx_uart_b = RxAsyncSharedConsumer::new(rx_uart_b, &CONSUMER_UART_B);
+    let async_rx_uart_b = RxAsyncOverwriting::new(rx_uart_b, &CONSUMER_UART_B);
     spawner
         .spawn(uart_b_task(async_rx_uart_b, tx_uart_b))
         .unwrap();
     let mut buf = [0u8; 256];
     loop {
         rprintln!("Current time UART A: {}", Instant::now().as_secs());
-        led0.toggle().ok();
-        led1.toggle().ok();
-        led2.toggle().ok();
+        led0.toggle();
+        led1.toggle();
+        led2.toggle();
         let read_bytes = async_rx_uart_a.read(&mut buf).await.unwrap();
         let read_str = core::str::from_utf8(&buf[..read_bytes]).unwrap();
         rprintln!(
@@ -128,7 +127,7 @@ async fn main(spawner: Spawner) {
 }
 
 #[embassy_executor::task]
-async fn uart_b_task(mut async_rx: RxAsyncSharedConsumer<pac::Uartb, 256>, mut tx: Tx<pac::Uartb>) {
+async fn uart_b_task(mut async_rx: RxAsyncOverwriting<pac::Uartb, 256>, mut tx: Tx<pac::Uartb>) {
     let mut buf = [0u8; 256];
     loop {
         rprintln!("Current time UART B: {}", Instant::now().as_secs());
@@ -149,7 +148,7 @@ async fn uart_b_task(mut async_rx: RxAsyncSharedConsumer<pac::Uartb, 256>, mut t
 fn OC2() {
     let mut prod =
         critical_section::with(|cs| PRODUCER_UART_A.borrow(cs).borrow_mut().take().unwrap());
-    let errors = on_interrupt_uart_a(&mut prod);
+    let errors = on_interrupt_rx(Bank::A, &mut prod);
     critical_section::with(|cs| *PRODUCER_UART_A.borrow(cs).borrow_mut() = Some(prod));
     // In a production app, we could use a channel to send the errors to the main task.
     if let Err(errors) = errors {
@@ -162,7 +161,7 @@ fn OC2() {
 fn OC3() {
     let mut prod =
         critical_section::with(|cs| PRODUCER_UART_B.borrow(cs).borrow_mut().take().unwrap());
-    let errors = on_interrupt_uart_b_overwriting(&mut prod, &CONSUMER_UART_B);
+    let errors = on_interrupt_rx_overwriting(Bank::B, &mut prod, &CONSUMER_UART_B);
     critical_section::with(|cs| *PRODUCER_UART_B.borrow(cs).borrow_mut() = Some(prod));
     // In a production app, we could use a channel to send the errors to the main task.
     if let Err(errors) = errors {

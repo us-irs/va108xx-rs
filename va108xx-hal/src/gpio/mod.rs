@@ -72,5 +72,3 @@ pub use pin::*;
 
 pub mod asynch;
 pub use asynch::*;
-
-mod reg;

@@ -8,7 +8,6 @@
 
 use cortex_m_rt::entry;
 use embedded_hal::delay::DelayNs;
-use embedded_hal::digital::{OutputPin, StatefulOutputPin};
 use panic_halt as _;
 use va108xx_hal::{gpio::PinsA, pac, prelude::*, timer::set_up_ms_delay_provider};
 use vorago_reb1::leds::Leds;
@@ -67,22 +66,19 @@ fn main() -> ! {
             let mut led3 = pins.pa6.into_readable_push_pull_output();
             let mut delay = set_up_ms_delay_provider(&mut dp.sysconfig, 50.MHz(), dp.tim0);
             for _ in 0..10 {
-                led1.set_low().ok();
-                led2.set_low().ok();
-                led3.set_low().ok();
+                led1.set_low();
+                led2.set_low();
+                led3.set_low();
                 delay.delay_ms(200);
-                led1.set_high().ok();
-                led2.set_high().ok();
-                led3.set_high().ok();
+                led1.set_high();
+                led2.set_high();
+                led3.set_high();
                 delay.delay_ms(200);
             }
             loop {
-                led1.toggle().ok();
+                led1.toggle();
                 delay.delay_ms(200);
-                led2.toggle().ok();
-                delay.delay_ms(200);
-                // Alternatively use deidscted register.
-                led3.toggle_with_toggle_reg();
+                led2.toggle();
                 delay.delay_ms(200);
             }
         }

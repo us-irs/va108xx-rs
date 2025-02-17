@@ -3,13 +3,10 @@
 //! This module provides the [TxAsync] struct which implements the [embedded_io_async::Write] trait.
 //! This trait allows for asynchronous sending of data streams. Please note that this module does
 //! not specify/declare the interrupt handlers which must be provided for async support to work.
-//! However, it provides two interrupt handlers:
+//! However, it the [on_interrupt_tx] interrupt handler.
 //!
-//! - [on_interrupt_uart_a_tx]
-//! - [on_interrupt_uart_b_tx]
-//!
-//! Those should be called in ALL user interrupt handlers which handle UART TX interrupts,
-//! depending on which UARTs are used.
+//! This handler should be called in ALL user interrupt handlers which handle UART TX interrupts
+//! for a given UART bank.
 //!
 //! # Example
 //!
@@ -30,21 +27,14 @@ static TX_CONTEXTS: [Mutex<RefCell<TxContext>>; 2] =
 // critical section.
 static TX_DONE: [AtomicBool; 2] = [const { AtomicBool::new(false) }; 2];
 
-/// This is a generic interrupt handler to handle asynchronous UART TX operations. The user
-/// has to call this once in the interrupt handler responsible for UART A TX interrupts for
-/// asynchronous operations to work.
-pub fn on_interrupt_uart_a_tx() {
-    on_interrupt_uart_tx(unsafe { pac::Uarta::steal() });
-}
-
-/// This is a generic interrupt handler to handle asynchronous UART TX operations. The user
-/// has to call this once in the interrupt handler responsible for UART B TX interrupts for
-/// asynchronous operations to work.
-pub fn on_interrupt_uart_b_tx() {
-    on_interrupt_uart_tx(unsafe { pac::Uartb::steal() });
-}
-
-fn on_interrupt_uart_tx<Uart: Instance>(uart: Uart) {
+/// This is a generic interrupt handler to handle asynchronous UART TX operations for a given
+/// UART bank.
+///
+/// The user has to call this once in the interrupt handler responsible for the TX interrupts on
+/// the given UART bank.
+pub fn on_interrupt_tx(bank: Bank) {
+    let uart = unsafe { bank.reg_block() };
+    let idx = bank as usize;
     let irq_enb = uart.irq_enb().read();
     // IRQ is not related to TX.
     if irq_enb.irq_tx().bit_is_clear() || irq_enb.irq_tx_empty().bit_is_clear() {
@@ -54,7 +44,7 @@ fn on_interrupt_uart_tx<Uart: Instance>(uart: Uart) {
     let tx_status = uart.txstatus().read();
     let unexpected_overrun = tx_status.wrlost().bit_is_set();
     let mut context = critical_section::with(|cs| {
-        let context_ref = TX_CONTEXTS[Uart::IDX as usize].borrow(cs);
+        let context_ref = TX_CONTEXTS[idx].borrow(cs);
         *context_ref.borrow()
     });
     context.tx_overrun = unexpected_overrun;
@@ -67,12 +57,12 @@ fn on_interrupt_uart_tx<Uart: Instance>(uart: Uart) {
         uart.enable().modify(|_, w| w.txenable().clear_bit());
         // Write back updated context structure.
         critical_section::with(|cs| {
-            let context_ref = TX_CONTEXTS[Uart::IDX as usize].borrow(cs);
+            let context_ref = TX_CONTEXTS[idx].borrow(cs);
             *context_ref.borrow_mut() = context;
         });
         // Transfer is done.
-        TX_DONE[Uart::IDX as usize].store(true, core::sync::atomic::Ordering::Relaxed);
-        UART_TX_WAKERS[Uart::IDX as usize].wake();
+        TX_DONE[idx].store(true, core::sync::atomic::Ordering::Relaxed);
+        UART_TX_WAKERS[idx].wake();
         return;
     }
     // Safety: We documented that the user provided slice must outlive the future, so we convert
@@ -92,7 +82,7 @@ fn on_interrupt_uart_tx<Uart: Instance>(uart: Uart) {
 
     // Write back updated context structure.
     critical_section::with(|cs| {
-        let context_ref = TX_CONTEXTS[Uart::IDX as usize].borrow(cs);
+        let context_ref = TX_CONTEXTS[idx].borrow(cs);
         *context_ref.borrow_mut() = context;
     });
 }
