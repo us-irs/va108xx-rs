@@ -8,9 +8,11 @@ and this project adheres to [Semantic Versioning](http://semver.org/).
 
 ## [unreleased]
 
-## [v0.1.3] 2025-02-17
+## [v0.2.0] 2025-02-17
 
-Bumped va108xx-hal to v0.10.0
+- Bumped va108xx-hal to v0.10.0
+- Remove `embassy` module, expose public functions in library root directly
+
 
 ## [v0.1.2] and [v0.1.1] 2025-02-13
 

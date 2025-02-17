@@ -4,7 +4,6 @@ use embassy_executor::Spawner;
 use embassy_time::{Duration, Instant, Ticker};
 use panic_rtt_target as _;
 use rtt_target::{rprintln, rtt_init_print};
-use va108xx_embassy::embassy;
 
 cfg_if::cfg_if! {
     if #[cfg(feature = "custom-irqs")] {
@@ -27,27 +26,25 @@ async fn main(_spawner: Spawner) {
     let mut dp = pac::Peripherals::take().unwrap();
 
     // Safety: Only called once here.
-    unsafe {
-        cfg_if::cfg_if! {
-            if #[cfg(not(feature = "custom-irqs"))] {
-                embassy::init(
-                    &mut dp.sysconfig,
-                    &dp.irqsel,
-                    SYSCLK_FREQ,
-                    dp.tim23,
-                    dp.tim22,
-                );
-            } else {
-                embassy::init_with_custom_irqs(
-                    &mut dp.sysconfig,
-                    &dp.irqsel,
-                    SYSCLK_FREQ,
-                    dp.tim23,
-                    dp.tim22,
-                    pac::Interrupt::OC23,
-                    pac::Interrupt::OC24,
-                );
-            }
+    cfg_if::cfg_if! {
+        if #[cfg(not(feature = "custom-irqs"))] {
+            va108xx_embassy::init(
+                &mut dp.sysconfig,
+                &dp.irqsel,
+                SYSCLK_FREQ,
+                dp.tim23,
+                dp.tim22,
+            );
+        } else {
+            va108xx_embassy::init_with_custom_irqs(
+                &mut dp.sysconfig,
+                &dp.irqsel,
+                SYSCLK_FREQ,
+                dp.tim23,
+                dp.tim22,
+                pac::Interrupt::OC23,
+                pac::Interrupt::OC24,
+            );
         }
     }
 

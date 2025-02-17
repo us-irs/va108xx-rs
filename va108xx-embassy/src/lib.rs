@@ -1,17 +1,17 @@
 //! # Embassy-rs support for the Vorago VA108xx MCU family
 //!
-//! This repository contains the [embassy-rs](https://github.com/embassy-rs/embassy) support for the
-//! VA108xx family. Currently, it contains the time driver to allow using embassy-rs. It uses the TIM
-//! peripherals provided by the VA108xx family for this purpose.
+//! This repository contains the [embassy-rs](https://github.com/embassy-rs/embassy) support for
+//! the VA108xx family. Currently, it contains the time driver to allow using embassy-rs. It uses
+//! the TIM peripherals provided by the VA108xx family for this purpose.
 //!
 //! ## Usage
 //!
-//! This library only exposes the [embassy::init] method which sets up the time driver. This
-//! function must be called once at the start of the application.
+//! This library exposes the [init] or the [init_with_custom_irqs] functions which set up the time
+//! driver. This function must be called once at the start of the application.
 //!
 //! This implementation requires two TIM peripherals provided by the VA108xx device.
 //! The user can freely specify the two used TIM peripheral by passing the concrete TIM instances
-//! into the [embassy::init_with_custom_irqs] and [embassy::init] method.
+//! into the [init_with_custom_irqs] and [init] method.
 //!
 //! The application also requires two interrupt handlers to handle the timekeeper and alarm
 //! interrupts. By default, this library will define the interrupt handler inside the library
@@ -24,7 +24,7 @@
 //! You can disable the default features and then specify one of the features above to use the
 //! documented combination of IRQs. It is also possible to specify custom IRQs by importing and
 //! using the [embassy_time_driver_irqs] macro to declare the IRQ handlers in the
-//! application code. If this is done, [embassy::init_with_custom_irqs] must be used
+//! application code. If this is done, [init_with_custom_irqs] must be used
 //! method to pass the IRQ numbers to the library.
 //!
 //! ## Examples
@@ -76,7 +76,7 @@ macro_rules! embassy_time_driver_irqs {
         #[allow(non_snake_case)]
         fn $timekeeper_irq() {
             // Safety: We call it once here.
-            unsafe { $crate::embassy::time_driver().on_interrupt_timekeeping() }
+            unsafe { $crate::time_driver().on_interrupt_timekeeping() }
         }
 
         const ALARM_IRQ: pac::Interrupt = pac::Interrupt::$alarm_irq;
@@ -85,7 +85,7 @@ macro_rules! embassy_time_driver_irqs {
         #[allow(non_snake_case)]
         fn $alarm_irq() {
             // Safety: We call it once here.
-            unsafe { $crate::embassy::time_driver().on_interrupt_alarm() }
+            unsafe { $crate::time_driver().on_interrupt_alarm() }
         }
     };
 }
@@ -99,71 +99,58 @@ embassy_time_driver_irqs!(timekeeper_irq = OC30, alarm_irq = OC29);
 #[cfg(feature = "irq-oc28-oc29")]
 embassy_time_driver_irqs!(timekeeper_irq = OC29, alarm_irq = OC28);
 
-pub mod embassy {
-    use super::*;
-    use va108xx_hal::{pac, timer::TimRegInterface};
+/// Expose the time driver so the user can specify the IRQ handlers themselves.
+pub fn time_driver() -> &'static TimerDriver {
+    &TIME_DRIVER
+}
 
-    /// Expose the time driver so the user can specify the IRQ handlers themselves.
-    pub fn time_driver() -> &'static TimerDriver {
-        &TIME_DRIVER
-    }
+/// Initialization method for embassy.
+///
+/// This should be used if the interrupt handler is provided by the library, which is the
+/// default case.
+#[cfg(feature = "irqs-in-lib")]
+pub fn init<TimekeeperTim: TimRegInterface + ValidTim, AlarmTim: TimRegInterface + ValidTim>(
+    syscfg: &mut pac::Sysconfig,
+    irqsel: &pac::Irqsel,
+    sysclk: impl Into<Hertz>,
+    timekeeper_tim: TimekeeperTim,
+    alarm_tim: AlarmTim,
+) {
+    TIME_DRIVER.init(
+        syscfg,
+        irqsel,
+        sysclk,
+        timekeeper_tim,
+        alarm_tim,
+        TIMEKEEPER_IRQ,
+        ALARM_IRQ,
+    )
+}
 
-    /// Initialization method for embassy
-    ///
-    /// # Safety
-    ///
-    /// This has to be called once at initialization time to initiate the time driver for
-    /// embassy.
-    #[cfg(feature = "irqs-in-lib")]
-    pub unsafe fn init<
-        TimekeeperTim: TimRegInterface + ValidTim,
-        AlarmTim: TimRegInterface + ValidTim,
-    >(
-        syscfg: &mut pac::Sysconfig,
-        irqsel: &pac::Irqsel,
-        sysclk: impl Into<Hertz>,
-        timekeeper_tim: TimekeeperTim,
-        alarm_tim: AlarmTim,
-    ) {
-        TIME_DRIVER.init(
-            syscfg,
-            irqsel,
-            sysclk,
-            timekeeper_tim,
-            alarm_tim,
-            TIMEKEEPER_IRQ,
-            ALARM_IRQ,
-        )
-    }
-
-    /// Initialization method for embassy
-    ///
-    /// # Safety
-    ///
-    /// This has to be called once at initialization time to initiate the time driver for
-    /// embassy.
-    pub unsafe fn init_with_custom_irqs<
-        TimekeeperTim: TimRegInterface + ValidTim,
-        AlarmTim: TimRegInterface + ValidTim,
-    >(
-        syscfg: &mut pac::Sysconfig,
-        irqsel: &pac::Irqsel,
-        sysclk: impl Into<Hertz>,
-        timekeeper_tim: TimekeeperTim,
-        alarm_tim: AlarmTim,
-        timekeeper_irq: pac::Interrupt,
-        alarm_irq: pac::Interrupt,
-    ) {
-        TIME_DRIVER.init(
-            syscfg,
-            irqsel,
-            sysclk,
-            timekeeper_tim,
-            alarm_tim,
-            timekeeper_irq,
-            alarm_irq,
-        )
-    }
+/// Initialization method for embassy when using custom IRQ handlers.
+///
+/// Requires an explicit [pac::Interrupt] argument for the timekeeper and alarm IRQs.
+pub fn init_with_custom_irqs<
+    TimekeeperTim: TimRegInterface + ValidTim,
+    AlarmTim: TimRegInterface + ValidTim,
+>(
+    syscfg: &mut pac::Sysconfig,
+    irqsel: &pac::Irqsel,
+    sysclk: impl Into<Hertz>,
+    timekeeper_tim: TimekeeperTim,
+    alarm_tim: AlarmTim,
+    timekeeper_irq: pac::Interrupt,
+    alarm_irq: pac::Interrupt,
+) {
+    TIME_DRIVER.init(
+        syscfg,
+        irqsel,
+        sysclk,
+        timekeeper_tim,
+        alarm_tim,
+        timekeeper_irq,
+        alarm_irq,
+    )
 }
 
 struct AlarmState {
