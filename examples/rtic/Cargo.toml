@@ -22,5 +22,5 @@ rtic-sync = { version = "1.3", features = ["defmt-03"] }
 once_cell = {version = "1", default-features = false, features = ["critical-section"]}
 ringbuf = { version = "0.4.7", default-features = false, features = ["portable-atomic"] }
 
-va108xx-hal = { version = "0.10", path = "../../va108xx-hal" }
-vorago-reb1 = { version = "0.7", path = "../../vorago-reb1" }
+va108xx-hal = { version = "0.10" }
+vorago-reb1 = { version = "0.8", path = "../../vorago-reb1" }
