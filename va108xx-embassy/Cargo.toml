@@ -1,6 +1,6 @@
 [package]
 name = "va108xx-embassy"
-version = "0.1.2"
+version = "0.1.3"
 edition = "2021"
 authors = ["Robin Mueller <muellerr@irs.uni-stuttgart.de>"]
 description = "Embassy-rs support for the Vorago VA108xx family of microcontrollers"
@@ -20,7 +20,7 @@ embassy-time-queue-utils = "0.1"
 
 once_cell = { version = "1", default-features = false, features = ["critical-section"] }
 
-va108xx-hal = { version = "0.10", path = "../va108xx-hal" }
+va108xx-hal = { version = "0.10" }
 
 [target.'cfg(all(target_arch = "arm", target_os = "none"))'.dependencies]
 portable-atomic = { version = "1", features = ["unsafe-assume-single-core"] }
