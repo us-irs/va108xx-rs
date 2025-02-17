@@ -12,7 +12,6 @@ use embassy_time::{Duration, Instant, Timer};
 use embedded_hal_async::digital::Wait;
 use panic_rtt_target as _;
 use rtt_target::{rprintln, rtt_init_print};
-use va108xx_embassy::embassy;
 use va108xx_hal::gpio::{
     on_interrupt_for_async_gpio_for_port, InputDynPinAsync, InputPinAsync, PinsB, Port,
 };
@@ -65,15 +64,13 @@ async fn main(spawner: Spawner) {
     let mut dp = pac::Peripherals::take().unwrap();
 
     // Safety: Only called once here.
-    unsafe {
-        embassy::init(
-            &mut dp.sysconfig,
-            &dp.irqsel,
-            SYSCLK_FREQ,
-            dp.tim23,
-            dp.tim22,
-        )
-    };
+    va108xx_embassy::init(
+        &mut dp.sysconfig,
+        &dp.irqsel,
+        SYSCLK_FREQ,
+        dp.tim23,
+        dp.tim22,
+    );
 
     let porta = PinsA::new(&mut dp.sysconfig, dp.porta);
     let portb = PinsB::new(&mut dp.sysconfig, dp.portb);

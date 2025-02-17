@@ -15,7 +15,6 @@ use embassy_time::{Duration, Instant, Ticker};
 use embedded_io_async::Write;
 use panic_rtt_target as _;
 use rtt_target::{rprintln, rtt_init_print};
-use va108xx_embassy::embassy;
 use va108xx_hal::{
     gpio::PinsA,
     pac::{self, interrupt},
@@ -42,15 +41,13 @@ async fn main(_spawner: Spawner) {
     let mut dp = pac::Peripherals::take().unwrap();
 
     // Safety: Only called once here.
-    unsafe {
-        embassy::init(
-            &mut dp.sysconfig,
-            &dp.irqsel,
-            SYSCLK_FREQ,
-            dp.tim23,
-            dp.tim22,
-        );
-    }
+    va108xx_embassy::init(
+        &mut dp.sysconfig,
+        &dp.irqsel,
+        SYSCLK_FREQ,
+        dp.tim23,
+        dp.tim22,
+    );
 
     let porta = PinsA::new(&mut dp.sysconfig, dp.porta);
     let mut led0 = porta.pa10.into_readable_push_pull_output();
