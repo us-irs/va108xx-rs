@@ -8,6 +8,10 @@ and this project adheres to [Semantic Versioning](http://semver.org/).
 
 ## [unreleased]
 
+## [v0.8.0] 2025-02-17
+
+- Bumped `va108xx-hal` dependency to 0.10
+
 ## [v0.7.0] 2025-02-13
 
 - Bumped `va108xx-hal` dependency to 0.9
