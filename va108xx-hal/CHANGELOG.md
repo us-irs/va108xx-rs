@@ -8,6 +8,16 @@ and this project adheres to [Semantic Versioning](http://semver.org/).
 
 ## [unreleased]
 
+## [v0.11.0] 2025-03-07
+
+## Changed
+
+- Bugfix for I2C `TimingCfg::reg`
+- Simplified UART error handling. All APIs are now infallible because writing to a FIFO or
+  reading from a FIFO never fails. Users can either poll errors using `Rx::poll_errors` or
+  `Uart::poll_rx_errors` / `UartBase::poll_rx_errors`, or detect errors using the provided
+  interrupt handlers.
+
 ## [v0.10.0] 2025-02-17
 
 ## Added
@@ -104,14 +114,14 @@ and this project adheres to [Semantic Versioning](http://semver.org/).
 - Updated `embedded-hal` to v1
 - Added optional `defmt` v0.3 feature and support.
 
-## [v0.5.2] 2024-06-16
+## v0.5.2 2024-06-16
 
 ## Fixed
 
 - Replaced usage to `ptr::write_volatile` in UART module which is denied on more recent Rust
   compilers.
 
-## [v0.5.1]
+## v0.5.1
 
 ### Changes
 
@@ -120,7 +130,7 @@ and this project adheres to [Semantic Versioning](http://semver.org/).
   - `once_cell` to 1.12.0
   - Other dependencies: Only revision has changed
 
-## [v0.5.0]
+## v0.5.0
 
 ### Added
 
@@ -133,14 +143,14 @@ and this project adheres to [Semantic Versioning](http://semver.org/).
 
 - Bugfix in UART code where RX and TX could not be enabled or disabled independently
 
-## [v0.4.3]
+## v0.4.3
 
 - Various smaller fixes for READMEs, update of links in documentation
 - Simplified CI for github, do not use `cross`
 - New `blinky-pac` example
 - Use HAL delay in `blinky` example
 
-## [v0.4.2]
+## v0.4.2
 
 ### Added
 
@@ -150,24 +160,24 @@ and this project adheres to [Semantic Versioning](http://semver.org/).
 
 - Clear TX and RX FIFO in SPI transfer function
 
-## [v0.4.1]
+## v0.4.1
 
 ### Fixed
 
 - Initial blockmode setting was not set in SPI constructor
 
-## [v0.4.0]
+## v0.4.0
 
 ### Changed
 
 - Replaced `Hertz` by `impl Into<Hertz>` completely and removed
   `+ Copy` where not necessary
 
-## [v0.3.1]
+## v0.3.1
 
 - Updated all links to point to new repository
 
-## [v0.3.0]
+## v0.3.0
 
 ### Added
 
@@ -179,7 +189,7 @@ and this project adheres to [Semantic Versioning](http://semver.org/).
 - Primary repository now hosted on IRS external git: https://egit.irs.uni-stuttgart.de/rust/va108xx-hal
 - Relicensed as Apache-2.0
 
-## [0.2.3]
+## v0.2.3
 
 ### Added
 
@@ -191,7 +201,7 @@ and this project adheres to [Semantic Versioning](http://semver.org/).
 
 - Improved Timer API. It is now possible to simply use `new` on `CountDownTimer`
 
-## [0.2.2]
+## v0.2.2
 
 ### Added
 
@@ -203,7 +213,7 @@ and this project adheres to [Semantic Versioning](http://semver.org/).
 
 - API which expects values in Hertz now uses `impl Into<Hertz>` as input parameter
 
-## [0.2.1]
+## v0.2.1
 
 ### Added
 
@@ -217,7 +227,7 @@ and this project adheres to [Semantic Versioning](http://semver.org/).
 - Moved the `FilterClkSel` struct to the `clock` module, re-exporting in `gpio`
 - Clearing output state at initialization of Output pins
 
-## [0.2.0]
+## v0.2.0
 
 ### Changed
 
@@ -232,7 +242,7 @@ and this project adheres to [Semantic Versioning](http://semver.org/).
 - Some bugfixes for GPIO implementation
 - Rust edition updated to 2021
 
-## [0.1.0]
+## v0.1.0
 
 ### Added
 
@@ -241,3 +251,11 @@ and this project adheres to [Semantic Versioning](http://semver.org/).
 - RTT example application
 - Added basic test binary in form of an example
 - README with basic instructions how to set up own binary crate
+
+[unreleased]: https://egit.irs.uni-stuttgart.de/rust/va108xx-rs/compare/va108xx-hal-v0.11.0...HEAD
+[v0.11.0]: https://egit.irs.uni-stuttgart.de/rust/va108xx-rs/compare/va108xx-hal-v0.10.0...va108xx-hal-v0.11.0
+[v0.10.0]: https://egit.irs.uni-stuttgart.de/rust/va108xx-rs/compare/va108xx-hal-v0.9.0...va108xx-hal-v0.10.0
+[v0.9.0]: https://egit.irs.uni-stuttgart.de/rust/va108xx-rs/compare/va108xx-hal-v0.8.0...va108xx-hal-v0.9.0
+[v0.8.0]: https://egit.irs.uni-stuttgart.de/rust/va108xx-rs/compare/va108xx-hal-v0.7.0...va108xx-hal-v0.8.0
+[v0.7.0]: https://egit.irs.uni-stuttgart.de/rust/va108xx-rs/compare/va108xx-hal-v0.6.0...va108xx-hal-v0.7.0
+[v0.6.0]: https://egit.irs.uni-stuttgart.de/rust/va108xx-rs/src/tag/va108xx-hal-v0.6.0

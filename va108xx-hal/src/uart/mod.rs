@@ -64,55 +64,6 @@ pub struct NoInterruptIdWasSet;
 #[error("transer is pending")]
 pub struct TransferPendingError;
 
-#[derive(Debug, PartialEq, Eq, thiserror::Error)]
-#[cfg_attr(feature = "defmt", derive(defmt::Format))]
-pub enum RxError {
-    #[error("overrun error")]
-    Overrun,
-    #[error("framing error")]
-    Framing,
-    #[error("parity error")]
-    Parity,
-}
-#[derive(Debug, PartialEq, Eq, thiserror::Error)]
-#[cfg_attr(feature = "defmt", derive(defmt::Format))]
-pub enum Error {
-    #[error("rx error: {0}")]
-    Rx(#[from] RxError),
-    #[error("break condition")]
-    BreakCondition,
-}
-
-impl embedded_io::Error for Error {
-    fn kind(&self) -> embedded_io::ErrorKind {
-        embedded_io::ErrorKind::Other
-    }
-}
-
-impl embedded_io::Error for RxError {
-    fn kind(&self) -> embedded_io::ErrorKind {
-        embedded_io::ErrorKind::Other
-    }
-}
-impl embedded_hal_nb::serial::Error for RxError {
-    fn kind(&self) -> embedded_hal_nb::serial::ErrorKind {
-        match self {
-            RxError::Overrun => embedded_hal_nb::serial::ErrorKind::Overrun,
-            RxError::Framing => embedded_hal_nb::serial::ErrorKind::FrameFormat,
-            RxError::Parity => embedded_hal_nb::serial::ErrorKind::Parity,
-        }
-    }
-}
-
-impl embedded_hal_nb::serial::Error for Error {
-    fn kind(&self) -> embedded_hal_nb::serial::ErrorKind {
-        match self {
-            Error::Rx(rx_error) => embedded_hal_nb::serial::Error::kind(rx_error),
-            Error::BreakCondition => embedded_hal_nb::serial::ErrorKind::Other,
-        }
-    }
-}
-
 #[derive(Debug, PartialEq, Eq, Copy, Clone)]
 #[cfg_attr(feature = "defmt", derive(defmt::Format))]
 pub enum Event {
@@ -363,7 +314,7 @@ impl UartErrors {
 impl UartErrors {
     #[inline(always)]
     pub fn error(&self) -> bool {
-        self.overflow || self.framing || self.parity
+        self.overflow || self.framing || self.parity || self.other
     }
 }
 
@@ -585,22 +536,27 @@ impl<Uart: Instance> UartBase<Uart> {
         self.uart
     }
 
+    /// Poll receiver errors.
+    pub fn poll_rx_errors(&self) -> Option<UartErrors> {
+        self.rx.poll_errors()
+    }
+
     pub fn split(self) -> (Tx<Uart>, Rx<Uart>) {
         (self.tx, self.rx)
     }
 }
 
 impl<UartInstance> embedded_io::ErrorType for UartBase<UartInstance> {
-    type Error = Error;
+    type Error = Infallible;
 }
 
 impl<UartInstance> embedded_hal_nb::serial::ErrorType for UartBase<UartInstance> {
-    type Error = Error;
+    type Error = Infallible;
 }
 
 impl<Uart: Instance> embedded_hal_nb::serial::Read<u8> for UartBase<Uart> {
     fn read(&mut self) -> nb::Result<u8, Self::Error> {
-        self.rx.read().map_err(|e| e.map(Error::Rx))
+        self.rx.read()
     }
 }
 
@@ -709,6 +665,11 @@ where
     fn init(mut self, config: Config, sys_clk: Hertz) -> Self {
         self.inner = self.inner.init(config, sys_clk);
         self
+    }
+
+    /// Poll receiver errors.
+    pub fn poll_rx_errors(&self) -> Option<UartErrors> {
+        self.inner.poll_rx_errors()
     }
 
     #[inline]
@@ -825,6 +786,23 @@ impl<Uart: Instance> Rx<Uart> {
         &self.0
     }
 
+    pub fn poll_errors(&self) -> Option<UartErrors> {
+        let mut errors = UartErrors::default();
+
+        let uart = unsafe { &(*Uart::ptr()) };
+        let status_reader = uart.rxstatus().read();
+        if status_reader.rxovr().bit_is_set() {
+            errors.overflow = true;
+        } else if status_reader.rxfrm().bit_is_set() {
+            errors.framing = true;
+        } else if status_reader.rxpar().bit_is_set() {
+            errors.parity = true;
+        } else {
+            return None;
+        };
+        Some(errors)
+    }
+
     #[inline]
     pub fn clear_fifo(&self) {
         self.0.fifo_clr().write(|w| w.rxfifo().set_bit());
@@ -887,34 +865,15 @@ impl<Uart: Instance> Rx<Uart> {
 }
 
 impl<Uart> embedded_io::ErrorType for Rx<Uart> {
-    type Error = RxError;
+    type Error = Infallible;
 }
 
 impl<Uart> embedded_hal_nb::serial::ErrorType for Rx<Uart> {
-    type Error = RxError;
+    type Error = Infallible;
 }
 
 impl<Uart: Instance> embedded_hal_nb::serial::Read<u8> for Rx<Uart> {
     fn read(&mut self) -> nb::Result<u8, Self::Error> {
-        let uart = unsafe { &(*Uart::ptr()) };
-        let status_reader = uart.rxstatus().read();
-        let err = if status_reader.rxovr().bit_is_set() {
-            Some(RxError::Overrun)
-        } else if status_reader.rxfrm().bit_is_set() {
-            Some(RxError::Framing)
-        } else if status_reader.rxpar().bit_is_set() {
-            Some(RxError::Parity)
-        } else {
-            None
-        };
-        if let Some(err) = err {
-            // The status code is always related to the next bit for the framing
-            // and parity status bits. We have to read the DATA register
-            // so that the next status reflects the next DATA word
-            // For overrun error, we read as well to clear the peripheral
-            self.read_fifo_unchecked();
-            return Err(err.into());
-        }
         self.read_fifo().map(|val| (val & 0xff) as u8).map_err(|e| {
             if let nb::Error::Other(_) = e {
                 unreachable!()
@@ -926,16 +885,18 @@ impl<Uart: Instance> embedded_hal_nb::serial::Read<u8> for Rx<Uart> {
 
 impl<Uart: Instance> embedded_io::Read for Rx<Uart> {
     fn read(&mut self, buf: &mut [u8]) -> Result<usize, Self::Error> {
-        if buf.is_empty() {
-            return Ok(0);
-        }
-
+        let mut read = 0;
         for byte in buf.iter_mut() {
-            let w = nb::block!(<Self as embedded_hal_nb::serial::Read<u8>>::read(self))?;
-            *byte = w;
+            match <Self as embedded_hal_nb::serial::Read<u8>>::read(self) {
+                Ok(w) => {
+                    *byte = w;
+                    read += 1;
+                }
+                Err(nb::Error::WouldBlock) => break,
+            }
         }
 
-        Ok(buf.len())
+        Ok(read)
     }
 }
 
@@ -1090,14 +1051,12 @@ impl<Uart: Instance> embedded_hal_nb::serial::Write<u8> for Tx<Uart> {
 
 impl<Uart: Instance> embedded_io::Write for Tx<Uart> {
     fn write(&mut self, buf: &[u8]) -> Result<usize, Self::Error> {
-        if buf.is_empty() {
-            return Ok(0);
-        }
-
+        let mut written = 0;
         for byte in buf.iter() {
-            nb::block!(<Self as embedded_hal_nb::serial::Write<u8>>::write(
-                self, *byte
-            ))?;
+            match <Self as embedded_hal_nb::serial::Write<u8>>::write(self, *byte) {
+                Ok(_) => written += 1,
+                Err(nb::Error::WouldBlock) => return Ok(written),
+            }
         }
 
         Ok(buf.len())
@@ -1218,15 +1177,10 @@ impl<Uart: Instance> RxWithInterrupt<Uart> {
 
         // Timeout, empty the FIFO completely.
         if irq_end.irq_rx_to().bit_is_set() {
-            loop {
-                // While there is data in the FIFO, write it into the reception buffer
-                let read_result = self.0.read();
-                if let Some(byte) = self.read_handler(&mut result.errors, &read_result) {
-                    buf[result.bytes_read] = byte;
-                    result.bytes_read += 1;
-                } else {
-                    break;
-                }
+            // While there is data in the FIFO, write it into the reception buffer
+            while let Ok(byte) = self.0.read_fifo() {
+                buf[result.bytes_read] = byte as u8;
+                result.bytes_read += 1;
             }
         }
 
@@ -1303,12 +1257,13 @@ impl<Uart: Instance> RxWithInterrupt<Uart> {
                 if context.rx_idx == context.max_len {
                     break;
                 }
-                let read_result = self.0.read();
-                if let Some(byte) = self.read_handler(&mut result.errors, &read_result) {
-                    buf[context.rx_idx] = byte;
-                    context.rx_idx += 1;
-                } else {
-                    break;
+                // While there is data in the FIFO, write it into the reception buffer
+                match self.0.read() {
+                    Ok(byte) => {
+                        buf[result.bytes_read] = byte;
+                        result.bytes_read += 1;
+                    }
+                    Err(_) => break,
                 }
             }
             self.irq_completion_handler_max_size_timeout(&mut result, context);
@@ -1325,29 +1280,6 @@ impl<Uart: Instance> RxWithInterrupt<Uart> {
             .irq_clr()
             .write(|w| unsafe { w.bits(irq_end.bits()) });
         Ok(result)
-    }
-
-    fn read_handler(
-        &self,
-        errors: &mut Option<UartErrors>,
-        read_res: &nb::Result<u8, RxError>,
-    ) -> Option<u8> {
-        match read_res {
-            Ok(byte) => Some(*byte),
-            Err(nb::Error::WouldBlock) => None,
-            Err(nb::Error::Other(e)) => {
-                // Ensure `errors` is Some(IrqUartError), initializing if it's None
-                let err = errors.get_or_insert(UartErrors::default());
-
-                // Now we can safely modify fields inside `err`
-                match e {
-                    RxError::Overrun => err.overflow = true,
-                    RxError::Framing => err.framing = true,
-                    RxError::Parity => err.parity = true,
-                }
-                None
-            }
-        }
     }
 
     fn check_for_errors(&self, errors: &mut Option<UartErrors>) {
