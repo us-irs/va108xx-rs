@@ -11,6 +11,7 @@ and this project adheres to [Semantic Versioning](http://semver.org/).
 ## [v0.8.1] 2025-03-07
 
 - Bumped allowed `va108xx-hal` dependency to 0.11
+- Bumped `bitfield` dependency
 
 ## [v0.8.0] 2025-02-17
 
