@@ -8,6 +8,14 @@ and this project adheres to [Semantic Versioning](http://semver.org/).
 
 ## [unreleased]
 
+## [v0.11.1] 2025-03-10
+
+## Fixed
+
+- Fix `embedded_io` UART implementation to implement the documented contract properly.
+  The implementation will now block until at least one byte is available or can be written, unless
+  the send or receive buffer is empty.
+
 ## [v0.11.0] 2025-03-07
 
 ## Changed
@@ -253,6 +261,7 @@ and this project adheres to [Semantic Versioning](http://semver.org/).
 - README with basic instructions how to set up own binary crate
 
 [unreleased]: https://egit.irs.uni-stuttgart.de/rust/va108xx-rs/compare/va108xx-hal-v0.11.0...HEAD
+[v0.11.1]: https://egit.irs.uni-stuttgart.de/rust/va108xx-rs/compare/va108xx-hal-v0.11.0...va108xx-hal-v0.11.1
 [v0.11.0]: https://egit.irs.uni-stuttgart.de/rust/va108xx-rs/compare/va108xx-hal-v0.10.0...va108xx-hal-v0.11.0
 [v0.10.0]: https://egit.irs.uni-stuttgart.de/rust/va108xx-rs/compare/va108xx-hal-v0.9.0...va108xx-hal-v0.10.0
 [v0.9.0]: https://egit.irs.uni-stuttgart.de/rust/va108xx-rs/compare/va108xx-hal-v0.8.0...va108xx-hal-v0.9.0
