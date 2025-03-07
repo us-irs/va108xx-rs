@@ -1,5 +1,12 @@
 //! # API for the UART peripheral
 //!
+//! The core of this API are the [Uart], [UartBase], [Rx] and [Tx] structures.
+//! The RX structure also has a dedicated [RxWithInterrupt] variant which allows reading the receiver
+//! using interrupts.
+//!
+//! The [rx_asynch] and [tx_asynch] modules provide an asynchronous non-blocking API for the UART
+//! peripheral.
+//!
 //! ## Examples
 //!
 //! - [UART simple example](https://egit.irs.uni-stuttgart.de/rust/va108xx-rs/src/branch/main/examples/simple/examples/uart.rs)
