@@ -45,9 +45,6 @@ fn main() -> ! {
                     .expect("TX send error");
             }
             Err(nb::Error::WouldBlock) => (),
-            Err(nb::Error::Other(uart_error)) => {
-                rprintln!("UART receive error {:?}", uart_error);
-            }
         }
     }
 }
