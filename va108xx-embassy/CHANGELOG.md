@@ -8,6 +8,10 @@ and this project adheres to [Semantic Versioning](http://semver.org/).
 
 ## [unreleased]
 
+## [v0.2.1] 2025-03-07
+
+- Bumped allowed va108xx-hal to v0.11
+
 ## [v0.2.0] 2025-02-17
 
 - Bumped va108xx-hal to v0.10.0
@@ -21,3 +25,7 @@ Docs patch
 ## [v0.1.0] 2025-02-13
 
 Initial release
+
+[unreleased]: https://egit.irs.uni-stuttgart.de/rust/va108xx-rs/compare/va108xx-embassy-v0.2.1...HEAD
+[v0.2.1]: https://egit.irs.uni-stuttgart.de/rust/va108xx-rs/compare/va108xx-embassy-v0.2.0...va10xx-embassy-v0.2.1
+[v0.2.0]: https://egit.irs.uni-stuttgart.de/rust/va108xx-rs/compare/va108xx-embassy-v0.1.2...va10xx-embassy-v0.2.0
