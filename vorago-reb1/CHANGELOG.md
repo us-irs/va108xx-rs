@@ -62,7 +62,7 @@ and this project adheres to [Semantic Versioning](http://semver.org/).
 - Added ADC base library and example building on the new max116xx-10bit device driver crate
 
 [unreleased]: https://egit.irs.uni-stuttgart.de/rust/va108xx-rs/compare/vorago-reb1-v0.8.1...HEAD
-[v0.8.1]: https://egit.irs.uni-stuttgart.de/rust/va108xx-rs/compare/vorago-reg-v0.8.0...vorago-reb-v0.8.1
-[v0.8.0]: https://egit.irs.uni-stuttgart.de/rust/va108xx-rs/compare/vorago-reg-v0.7.0...vorago-reb-v0.8.0
-[v0.7.0]: https://egit.irs.uni-stuttgart.de/rust/va108xx-rs/compare/vorago-reg-v0.6.0...vorago-reb-v0.7.0
-[v0.6.0]: https://egit.irs.uni-stuttgart.de/rust/va108xx-rs/compare/vorago-reg-v0.5.0...vorago-reb-v0.6.0
+[v0.8.1]: https://egit.irs.uni-stuttgart.de/rust/va108xx-rs/compare/vorago-reb1-v0.8.0...vorago-reb1-v0.8.1
+[v0.8.0]: https://egit.irs.uni-stuttgart.de/rust/va108xx-rs/compare/vorago-reb1-v0.7.0...vorago-reb1-v0.8.0
+[v0.7.0]: https://egit.irs.uni-stuttgart.de/rust/va108xx-rs/compare/vorago-reb1-v0.6.0...vorago-reb1-v0.7.0
+[v0.6.0]: https://egit.irs.uni-stuttgart.de/rust/va108xx-rs/compare/vorago-reb1-v0.5.0...vorago-reb1-v0.6.0
