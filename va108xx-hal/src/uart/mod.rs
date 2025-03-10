@@ -892,7 +892,15 @@ impl<Uart: Instance> embedded_hal_nb::serial::Read<u8> for Rx<Uart> {
 
 impl<Uart: Instance> embedded_io::Read for Rx<Uart> {
     fn read(&mut self, buf: &mut [u8]) -> Result<usize, Self::Error> {
+        if buf.is_empty() {
+            return Ok(0);
+        }
         let mut read = 0;
+        loop {
+            if self.0.rxstatus().read().rdavl().bit_is_set() {
+                break;
+            }
+        }
         for byte in buf.iter_mut() {
             match <Self as embedded_hal_nb::serial::Read<u8>>::read(self) {
                 Ok(w) => {
@@ -1058,6 +1066,14 @@ impl<Uart: Instance> embedded_hal_nb::serial::Write<u8> for Tx<Uart> {
 
 impl<Uart: Instance> embedded_io::Write for Tx<Uart> {
     fn write(&mut self, buf: &[u8]) -> Result<usize, Self::Error> {
+        if buf.is_empty() {
+            return Ok(0);
+        }
+        loop {
+            if self.0.txstatus().read().wrrdy().bit_is_set() {
+                break;
+            }
+        }
         let mut written = 0;
         for byte in buf.iter() {
             match <Self as embedded_hal_nb::serial::Write<u8>>::write(self, *byte) {
@@ -1066,7 +1082,7 @@ impl<Uart: Instance> embedded_io::Write for Tx<Uart> {
             }
         }
 
-        Ok(buf.len())
+        Ok(written)
     }
 
     fn flush(&mut self) -> Result<(), Self::Error> {
