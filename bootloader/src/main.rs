@@ -6,17 +6,16 @@ use cortex_m_rt::entry;
 use crc::{Crc, CRC_16_IBM_3740};
 use embedded_hal::delay::DelayNs;
 use num_enum::TryFromPrimitive;
-#[cfg(not(feature = "rtt-panic"))]
-use panic_halt as _;
-#[cfg(feature = "rtt-panic")]
-use panic_rtt_target as _;
-use rtt_target::{rprintln, rtt_init_print};
-use va108xx_hal::{pac, time::Hertz, timer::CountdownTimer};
+// Import panic provider.
+use panic_probe as _;
+// Import logger.
+use defmt_rtt as _;
+use va108xx_hal::{pac, spi::SpiClkConfig, time::Hertz, timer::CountdownTimer};
 use vorago_reb1::m95m01::M95M01;
 
 // Useful for debugging and see what the bootloader is doing. Enabled currently, because
 // the binary stays small enough.
-const RTT_PRINTOUT: bool = true;
+const DEFMT_PRINTOUT: bool = true;
 const DEBUG_PRINTOUTS: bool = true;
 // Small delay, allows RTT printout to catch up.
 const BOOT_DELAY_MS: u32 = 2000;
@@ -74,7 +73,7 @@ pub const PREFERRED_SLOT_OFFSET: u32 = 0x20000 - 1;
 
 const CRC_ALGO: Crc<u16> = Crc::<u16>::new(&CRC_16_IBM_3740);
 
-#[derive(Debug, Copy, Clone, PartialEq, Eq, TryFromPrimitive)]
+#[derive(Debug, Copy, Clone, PartialEq, Eq, TryFromPrimitive, defmt::Format)]
 #[repr(u8)]
 enum AppSel {
     A = 0,
@@ -100,15 +99,15 @@ impl NvmInterface for NvmWrapper {
 
 #[entry]
 fn main() -> ! {
-    if RTT_PRINTOUT {
-        rtt_init_print!();
-        rprintln!("-- VA108xx bootloader --");
+    if DEFMT_PRINTOUT {
+        defmt::println!("-- VA108xx bootloader --");
     }
-    let mut dp = pac::Peripherals::take().unwrap();
+    let dp = pac::Peripherals::take().unwrap();
     let cp = cortex_m::Peripherals::take().unwrap();
-    let mut timer = CountdownTimer::new(&mut dp.sysconfig, CLOCK_FREQ, dp.tim0);
+    let mut timer = CountdownTimer::new(dp.tim0, CLOCK_FREQ);
 
-    let mut nvm = M95M01::new(&mut dp.sysconfig, CLOCK_FREQ, dp.spic);
+    let clk_config = SpiClkConfig::new(2, 4);
+    let mut nvm = M95M01::new(dp.spic, clk_config);
 
     if FLASH_SELF {
         let mut first_four_bytes: [u8; 4] = [0; 4];
@@ -131,21 +130,21 @@ fn main() -> ! {
         nvm.write(0x4, bootloader_data)
             .expect("writing to NVM failed");
         if let Err(e) = nvm.verify(0x0, &first_four_bytes) {
-            if RTT_PRINTOUT {
-                rprintln!("verification of self-flash to NVM failed: {:?}", e);
+            if DEFMT_PRINTOUT {
+                defmt::error!("verification of self-flash to NVM failed: {:?}", e);
             }
         }
         if let Err(e) = nvm.verify(0x4, bootloader_data) {
-            if RTT_PRINTOUT {
-                rprintln!("verification of self-flash to NVM failed: {:?}", e);
+            if DEFMT_PRINTOUT {
+                defmt::error!("verification of self-flash to NVM failed: {:?}", e);
             }
         }
 
         nvm.write(BOOTLOADER_CRC_ADDR as usize, &bootloader_crc.to_be_bytes())
             .expect("writing CRC failed");
         if let Err(e) = nvm.verify(BOOTLOADER_CRC_ADDR as usize, &bootloader_crc.to_be_bytes()) {
-            if RTT_PRINTOUT {
-                rprintln!(
+            if DEFMT_PRINTOUT {
+                defmt::error!(
                     "error: CRC verification for bootloader self-flash failed: {:?}",
                     e
                 );
@@ -173,8 +172,8 @@ fn main() -> ! {
     } else if check_app_crc(other_app) {
         boot_app(&dp.sysconfig, &cp, other_app, &mut timer)
     } else {
-        if DEBUG_PRINTOUTS && RTT_PRINTOUT {
-            rprintln!("both images corrupt! booting image A");
+        if DEBUG_PRINTOUTS && DEFMT_PRINTOUT {
+            defmt::error!("both images corrupt! booting image A");
         }
         // TODO: Shift a CCSDS packet out to inform host/OBC about image corruption.
         // Both images seem to be corrupt. Boot default image A.
@@ -186,7 +185,7 @@ fn check_own_crc(
     sysconfig: &pac::Sysconfig,
     cp: &cortex_m::Peripherals,
     nvm: &mut NvmWrapper,
-    timer: &mut CountdownTimer<pac::Tim0>,
+    timer: &mut CountdownTimer,
 ) {
     let crc_exp = unsafe { (BOOTLOADER_CRC_ADDR as *const u16).read_unaligned().to_be() };
     // I'd prefer to use [core::slice::from_raw_parts], but that is problematic
@@ -204,8 +203,8 @@ fn check_own_crc(
     });
     let crc_calc = digest.finalize();
     if crc_exp == 0x0000 || crc_exp == 0xffff {
-        if DEBUG_PRINTOUTS && RTT_PRINTOUT {
-            rprintln!("BL CRC blank - prog new CRC");
+        if DEBUG_PRINTOUTS && DEFMT_PRINTOUT {
+            defmt::info!("BL CRC blank - prog new CRC");
         }
         // Blank CRC, write it to NVM.
         nvm.write(BOOTLOADER_CRC_ADDR as usize, &crc_calc.to_be_bytes())
@@ -215,8 +214,8 @@ fn check_own_crc(
         // cortex_m::peripheral::SCB::sys_reset();
     } else if crc_exp != crc_calc {
         // Bootloader is corrupted. Try to run App A.
-        if DEBUG_PRINTOUTS && RTT_PRINTOUT {
-            rprintln!(
+        if DEBUG_PRINTOUTS && DEFMT_PRINTOUT {
+            defmt::warn!(
                 "bootloader CRC corrupt, read {} and expected {}. booting image A immediately",
                 crc_calc,
                 crc_exp
@@ -241,8 +240,8 @@ fn read_four_bytes_at_addr_zero(buf: &mut [u8; 4]) {
     }
 }
 fn check_app_crc(app_sel: AppSel) -> bool {
-    if DEBUG_PRINTOUTS && RTT_PRINTOUT {
-        rprintln!("Checking image {:?}", app_sel);
+    if DEBUG_PRINTOUTS && DEFMT_PRINTOUT {
+        defmt::info!("Checking image {:?}", app_sel);
     }
     if app_sel == AppSel::A {
         check_app_given_addr(APP_A_CRC_ADDR, APP_A_START_ADDR, APP_A_SIZE_ADDR)
@@ -256,8 +255,8 @@ fn check_app_given_addr(crc_addr: u32, start_addr: u32, image_size_addr: u32) ->
     let image_size = unsafe { (image_size_addr as *const u32).read_unaligned().to_be() };
     // Sanity check.
     if image_size > APP_A_END_ADDR - APP_A_START_ADDR - 8 {
-        if RTT_PRINTOUT {
-            rprintln!("detected invalid app size {}", image_size);
+        if DEFMT_PRINTOUT {
+            defmt::error!("detected invalid app size {}", image_size);
         }
         return false;
     }
@@ -276,10 +275,10 @@ fn boot_app(
     syscfg: &pac::Sysconfig,
     cp: &cortex_m::Peripherals,
     app_sel: AppSel,
-    timer: &mut CountdownTimer<pac::Tim0>,
+    timer: &mut CountdownTimer,
 ) -> ! {
-    if DEBUG_PRINTOUTS && RTT_PRINTOUT {
-        rprintln!("booting app {:?}", app_sel);
+    if DEBUG_PRINTOUTS && DEFMT_PRINTOUT {
+        defmt::info!("booting app {:?}", app_sel);
     }
     timer.delay_ms(BOOT_DELAY_MS);
 

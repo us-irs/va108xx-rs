@@ -15,6 +15,10 @@
             "device": "Cortex-M0",
             "svdFile": "./va108xx/svd/va108xx.svd.patched",
             "preLaunchTask": "rust: cargo build led blinky",
+            "serverArgs": [
+                "-jtagconf",
+                "-1,-1"
+            ],
             "executable": "${workspaceFolder}/target/thumbv6m-none-eabi/debug/examples/blinky-leds",
             "interface": "jtag",
             "runToEntryPoint": "main",
@@ -39,31 +43,11 @@
             "device": "Cortex-M0",
             "svdFile": "./va108xx/svd/va108xx.svd.patched",
             "preLaunchTask": "rust: cargo build hal tests",
+            "serverArgs": [
+                "-jtagconf",
+                "-1,-1"
+            ],
             "executable": "${workspaceFolder}/target/thumbv6m-none-eabi/debug/board-tests",
-            "interface": "jtag",
-            "runToEntryPoint": "main",
-            "rttConfig": {
-                "enabled": true,
-                "address": "auto",
-                "decoders": [
-                    {
-                        "port": 0,
-                        "timestamp": true,
-                        "type": "console"
-                    }
-                ]
-            }
-        },
-        {
-            "type": "cortex-debug",
-            "request": "launch",
-            "name": "Debug RTT",
-            "servertype": "jlink",
-            "cwd": "${workspaceRoot}",
-            "device": "Cortex-M0",
-            "svdFile": "./va108xx/svd/va108xx.svd.patched",
-            "preLaunchTask": "rust: cargo build rtt",
-            "executable": "${workspaceFolder}/target/thumbv6m-none-eabi/debug/examples/rtt-log",
             "interface": "jtag",
             "runToEntryPoint": "main",
             "rttConfig": {
@@ -87,6 +71,10 @@
             "device": "Cortex-M0",
             "svdFile": "./va108xx/svd/va108xx.svd.patched",
             "preLaunchTask": "rust: cargo build button blinky",
+            "serverArgs": [
+                "-jtagconf",
+                "-1,-1"
+            ],
             "executable": "${workspaceFolder}/target/thumbv6m-none-eabi/debug/examples/blinky-button-irq",
             "interface": "jtag",
             "runToEntryPoint": "main",
@@ -113,6 +101,10 @@
             "preLaunchTask": "rust: cargo build systick",
             "executable": "${workspaceFolder}/target/thumbv6m-none-eabi/debug/examples/timer-ticks",
             "interface": "jtag",
+            "serverArgs": [
+                "-jtagconf",
+                "-1,-1"
+            ],
             "runToEntryPoint": "main",
             "rttConfig": {
                 "enabled": true,
@@ -133,7 +125,11 @@
             "servertype": "jlink",
             "cwd": "${workspaceRoot}",
             "device": "Cortex-M0",
-            "svdFile": "./va108xx/svd/va108xx-base.svd.patched",
+            "svdFile": "./va108xx/svd/va108xx.svd.patched",
+            "serverArgs": [
+                "-jtagconf",
+                "-1,-1"
+            ],
             "preLaunchTask": "rust: cargo build uart",
             "executable": "${workspaceFolder}/target/thumbv6m-none-eabi/debug/examples/uart",
             "interface": "jtag",
@@ -158,6 +154,10 @@
             "cwd": "${workspaceRoot}",
             "device": "Cortex-M0",
             "svdFile": "./va108xx/svd/va108xx.svd.patched",
+            "serverArgs": [
+                "-jtagconf",
+                "-1,-1"
+            ],
             "preLaunchTask": "rust: cargo build spi",
             "executable": "${workspaceFolder}/target/thumbv6m-none-eabi/debug/examples/spi",
             "interface": "jtag",
@@ -182,6 +182,10 @@
             "cwd": "${workspaceRoot}",
             "device": "Cortex-M0",
             "svdFile": "./va108xx/svd/va108xx-base.svd.patched",
+            "serverArgs": [
+                "-jtagconf",
+                "-1,-1"
+            ],
             "preLaunchTask": "rust: cargo build temp sensor",
             "executable": "${workspaceFolder}/target/thumbv6m-none-eabi/debug/examples/adt75-temp-sensor",
             "interface": "jtag",
@@ -206,6 +210,10 @@
             "cwd": "${workspaceRoot}",
             "device": "Cortex-M0",
             "svdFile": "./va108xx/svd/va108xx-base.svd.patched",
+            "serverArgs": [
+                "-jtagconf",
+                "-1,-1"
+            ],
             "preLaunchTask": "rust: cargo build button blinky rtic",
             "executable": "${workspaceFolder}/target/thumbv6m-none-eabi/debug/examples/blinky-button-rtic",
             "interface": "jtag",
@@ -230,6 +238,10 @@
             "cwd": "${workspaceRoot}",
             "device": "Cortex-M0",
             "svdFile": "./va108xx/svd/va108xx-base.svd.patched",
+            "serverArgs": [
+                "-jtagconf",
+                "-1,-1"
+            ],
             "preLaunchTask": "uart-echo-rtic-example",
             "executable": "${workspaceFolder}/target/thumbv6m-none-eabi/debug/uart-echo-rtic",
             "interface": "jtag",
@@ -254,6 +266,10 @@
             "cwd": "${workspaceRoot}",
             "device": "Cortex-M0",
             "svdFile": "./va108xx/svd/va108xx.svd.patched",
+            "serverArgs": [
+                "-jtagconf",
+                "-1,-1"
+            ],
             "preLaunchTask": "rust: cargo build pwm",
             "executable": "${workspaceFolder}/target/thumbv6m-none-eabi/debug/examples/pwm",
             "interface": "jtag",
@@ -278,6 +294,10 @@
             "cwd": "${workspaceRoot}",
             "device": "Cortex-M0",
             "svdFile": "./va108xx/svd/va108xx.svd.patched",
+            "serverArgs": [
+                "-jtagconf",
+                "-1,-1"
+            ],
             "preLaunchTask": "rust: cargo build cascade",
             "executable": "${workspaceFolder}/target/thumbv6m-none-eabi/debug/examples/cascade",
             "interface": "jtag",
@@ -302,6 +322,10 @@
             "cwd": "${workspaceRoot}",
             "device": "Cortex-M0",
             "svdFile": "./va108xx/svd/va108xx.svd.patched",
+            "serverArgs": [
+                "-jtagconf",
+                "-1,-1"
+            ],
             "preLaunchTask": "rust: cargo build accelerometer",
             "executable": "${workspaceFolder}/target/thumbv6m-none-eabi/debug/examples/adxl343-accelerometer",
             "interface": "jtag",
@@ -321,24 +345,15 @@
         {
             "type": "cortex-debug",
             "request": "launch",
-            "name": "Blinky HAL",
-            "servertype": "jlink",
-            "cwd": "${workspaceRoot}",
-            "device": "Cortex-M0",
-            "svdFile": "./va108xx/svd/va108xx.svd.patched",
-            "preLaunchTask": "blinky-hal",
-            "executable": "${workspaceFolder}/target/thumbv6m-none-eabi/debug/examples/blinky",
-            "interface": "jtag",
-            "runToEntryPoint": "main",
-        },
-        {
-            "type": "cortex-debug",
-            "request": "launch",
             "name": "ADC Example",
             "servertype": "jlink",
             "cwd": "${workspaceRoot}",
             "device": "Cortex-M0",
             "svdFile": "./va108xx/svd/va108xx.svd.patched",
+            "serverArgs": [
+                "-jtagconf",
+                "-1,-1"
+            ],
             "preLaunchTask": "rust: cargo build adc",
             "executable": "${workspaceFolder}/target/thumbv6m-none-eabi/debug/examples/max11619-adc",
             "interface": "jtag",
@@ -363,6 +378,10 @@
             "cwd": "${workspaceRoot}",
             "device": "Cortex-M0",
             "svdFile": "./va108xx/svd/va108xx.svd.patched",
+            "serverArgs": [
+                "-jtagconf",
+                "-1,-1"
+            ],
             "preLaunchTask": "uart-echo-rtic-example",
             "executable": "${workspaceFolder}/target/thumbv6m-none-eabi/debug/uart-echo-rtic",
             "interface": "jtag",
@@ -387,6 +406,10 @@
             "cwd": "${workspaceRoot}",
             "device": "Cortex-M0",
             "svdFile": "./va108xx/svd/va108xx.svd.patched",
+            "serverArgs": [
+                "-jtagconf",
+                "-1,-1"
+            ],
             "preLaunchTask": "reb1-nvm",
             "executable": "${workspaceFolder}/target/thumbv6m-none-eabi/debug/examples/nvm",
             "interface": "jtag",
@@ -411,6 +434,10 @@
             "cwd": "${workspaceRoot}",
             "device": "Cortex-M0",
             "svdFile": "./va108xx/svd/va108xx.svd.patched",
+            "serverArgs": [
+                "-jtagconf",
+                "-1,-1"
+            ],
             "preLaunchTask": "rtic-example",
             "executable": "${workspaceFolder}/target/thumbv6m-none-eabi/debug/rtic-example",
             "interface": "jtag",
@@ -435,6 +462,10 @@
             "cwd": "${workspaceRoot}",
             "device": "Cortex-M0",
             "svdFile": "./va108xx/svd/va108xx.svd.patched",
+            "serverArgs": [
+                "-jtagconf",
+                "-1,-1"
+            ],
             "preLaunchTask": "embassy-example",
             "executable": "${workspaceFolder}/target/thumbv6m-none-eabi/debug/embassy-example",
             "interface": "jtag",
@@ -459,6 +490,10 @@
             "cwd": "${workspaceRoot}",
             "device": "Cortex-M0",
             "svdFile": "./va108xx/svd/va108xx.svd.patched",
+            "serverArgs": [
+                "-jtagconf",
+                "-1,-1"
+            ],
             "preLaunchTask": "bootloader",
             "executable": "${workspaceFolder}/target/thumbv6m-none-eabi/release/bootloader",
             "interface": "jtag",
@@ -483,6 +518,10 @@
             "cwd": "${workspaceRoot}",
             "device": "Cortex-M0",
             "svdFile": "./va108xx/svd/va108xx.svd.patched",
+            "serverArgs": [
+                "-jtagconf",
+                "-1,-1"
+            ],
             "preLaunchTask": "flashloader",
             "executable": "${workspaceFolder}/target/thumbv6m-none-eabi/release/flashloader",
             "interface": "jtag",
@@ -507,6 +546,10 @@
             "cwd": "${workspaceRoot}",
             "device": "Cortex-M0",
             "svdFile": "./va108xx/svd/va108xx.svd.patched",
+            "serverArgs": [
+                "-jtagconf",
+                "-1,-1"
+            ],
             "preLaunchTask": "async-gpio",
             "executable": "${workspaceFolder}/target/thumbv6m-none-eabi/debug/async-gpio",
             "interface": "jtag",
@@ -531,6 +574,10 @@
             "cwd": "${workspaceRoot}",
             "device": "Cortex-M0",
             "svdFile": "./va108xx/svd/va108xx.svd.patched",
+            "serverArgs": [
+                "-jtagconf",
+                "-1,-1"
+            ],
             "preLaunchTask": "async-uart-tx",
             "executable": "${workspaceFolder}/target/thumbv6m-none-eabi/debug/async-uart-tx",
             "interface": "jtag",
@@ -555,6 +602,10 @@
             "cwd": "${workspaceRoot}",
             "device": "Cortex-M0",
             "svdFile": "./va108xx/svd/va108xx.svd.patched",
+            "serverArgs": [
+                "-jtagconf",
+                "-1,-1"
+            ],
             "preLaunchTask": "async-uart-rx",
             "executable": "${workspaceFolder}/target/thumbv6m-none-eabi/debug/async-uart-rx",
             "interface": "jtag",

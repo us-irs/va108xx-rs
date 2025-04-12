@@ -9,7 +9,13 @@
 use cortex_m_rt::entry;
 use embedded_hal::delay::DelayNs;
 use panic_halt as _;
-use va108xx_hal::{gpio::PinsA, pac, prelude::*, timer::set_up_ms_delay_provider};
+use va108xx_hal::{
+    gpio::{Output, PinState},
+    pac,
+    pins::PinsA,
+    prelude::*,
+    timer::CountdownTimer,
+};
 use vorago_reb1::leds::Leds;
 
 // REB LED pin definitions. All on port A
@@ -26,7 +32,7 @@ enum LibType {
 
 #[entry]
 fn main() -> ! {
-    let mut dp = pac::Peripherals::take().unwrap();
+    let dp = pac::Peripherals::take().unwrap();
 
     let lib_type = LibType::Bsp;
 
@@ -60,11 +66,11 @@ fn main() -> ! {
             }
         }
         LibType::Hal => {
-            let pins = PinsA::new(&mut dp.sysconfig, dp.porta);
-            let mut led1 = pins.pa10.into_readable_push_pull_output();
-            let mut led2 = pins.pa7.into_readable_push_pull_output();
-            let mut led3 = pins.pa6.into_readable_push_pull_output();
-            let mut delay = set_up_ms_delay_provider(&mut dp.sysconfig, 50.MHz(), dp.tim0);
+            let pins = PinsA::new(dp.porta);
+            let mut led1 = Output::new(pins.pa10, PinState::Low);
+            let mut led2 = Output::new(pins.pa7, PinState::Low);
+            let mut led3 = Output::new(pins.pa6, PinState::Low);
+            let mut delay = CountdownTimer::new(dp.tim0, 50.MHz());
             for _ in 0..10 {
                 led1.set_low();
                 led2.set_low();
@@ -83,13 +89,9 @@ fn main() -> ! {
             }
         }
         LibType::Bsp => {
-            let pinsa = PinsA::new(&mut dp.sysconfig, dp.porta);
-            let mut leds = Leds::new(
-                pinsa.pa10.into_push_pull_output(),
-                pinsa.pa7.into_push_pull_output(),
-                pinsa.pa6.into_push_pull_output(),
-            );
-            let mut delay = set_up_ms_delay_provider(&mut dp.sysconfig, 50.MHz(), dp.tim0);
+            let pinsa = PinsA::new(dp.porta);
+            let mut leds = Leds::new(pinsa.pa10, pinsa.pa7, pinsa.pa6);
+            let mut delay = CountdownTimer::new(dp.tim0, 50.MHz());
             for _ in 0..10 {
                 // Blink all LEDs quickly
                 for led in leds.iter_mut() {
