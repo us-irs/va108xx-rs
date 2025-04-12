@@ -1,3 +1,3 @@
 #!/bin/bash
-JLinkGDBServer -select USB -device Cortex-M0 -endian little -if JTAG -speed auto \
-  -LocalhostOnly
+JLinkGDBServer -select USB -device VA10820 -endian little -if JTAG -speed auto \
+  -LocalhostOnly -jtagconf -1,-1

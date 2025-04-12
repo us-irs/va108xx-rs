@@ -9,17 +9,16 @@ cortex-m-rt = "0.7"
 embedded-hal = "1"
 embedded-hal-nb = "1"
 embedded-io = "0.6"
-panic-rtt-target = "0.2"
-rtt-target = "0.6"
+defmt = "1"
+defmt-rtt = { version = "0.4" }
+panic-probe = { version = "0.3", features = ["print-defmt"] }
 num_enum = { version = "0.7", default-features = false }
-log = "0.4"
 crc = "3"
 cobs = { version = "0.3", default-features = false }
 satrs = { version = "0.2", default-features = false }
-rtt-log = "0.5"
 ringbuf = { version = "0.4.7", default-features = false, features = ["portable-atomic"] }
 once_cell = { version = "1", default-features = false, features = ["critical-section"] }
-spacepackets = { version = "0.11", default-features = false }
+spacepackets = { version = "0.11", default-features = false, features = ["defmt"] }
 # Even though we do not use this directly, we need to activate this feature explicitely
 # so that RTIC compiles because thumv6 does not have CAS operations natively.
 portable-atomic = {version = "1", features = ["unsafe-assume-single-core"]}
@@ -30,6 +29,7 @@ rtic-sync = {version = "1", features = ["defmt-03"]}
 
 [dependencies.va108xx-hal]
 version = "0.11"
+features = ["defmt"]
 
 [dependencies.vorago-reb1]
 version = "0.8"

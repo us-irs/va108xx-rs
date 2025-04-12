@@ -4,7 +4,8 @@
 #![no_std]
 
 use num_enum::TryFromPrimitive;
-use panic_rtt_target as _;
+use panic_probe as _;
+use defmt_rtt as _; // global logger
 use ringbuf::{
     traits::{Consumer, Observer, Producer},
     StaticRb,
@@ -29,7 +30,7 @@ pub enum ActionId {
     SetBootSlot = 130,
 }
 
-#[derive(Debug, Copy, Clone, PartialEq, Eq, TryFromPrimitive)]
+#[derive(Debug, Copy, Clone, PartialEq, Eq, TryFromPrimitive, defmt::Format)]
 #[repr(u8)]
 enum AppSel {
     A = 0,
@@ -60,10 +61,8 @@ mod app {
     use super::*;
     use cortex_m::asm;
     use embedded_io::Write;
-    use panic_rtt_target as _;
     use rtic::Mutex;
     use rtic_monotonics::systick::prelude::*;
-    use rtt_target::rprintln;
     use satrs::pus::verification::{FailParams, VerificationReportCreator};
     use spacepackets::ecss::PusServiceId;
     use spacepackets::ecss::{
@@ -102,8 +101,7 @@ mod app {
 
     #[init]
     fn init(cx: init::Context) -> (Shared, Local) {
-        rtt_log::init();
-        rprintln!("-- Vorago flashloader --");
+        defmt::println!("-- Vorago flashloader --");
 
         Mono::start(cx.core.SYST, SYSCLK_FREQ.raw());
 
@@ -181,8 +179,8 @@ mod app {
         {
             Ok(result) => {
                 if RX_DEBUGGING {
-                    log::debug!("RX Info: {:?}", cx.local.rx_context);
-                    log::debug!("RX Result: {:?}", result);
+                    defmt::debug!("RX Info: {:?}", cx.local.rx_context);
+                    defmt::debug!("RX Result: {:?}", result);
                 }
                 if result.complete() {
                     // Check frame validity (must have COBS format) and decode the frame.
@@ -193,7 +191,7 @@ mod app {
                         let decoded_size =
                             cobs::decode_in_place(&mut cx.local.rx_buf[1..result.bytes_read]);
                         if decoded_size.is_err() {
-                            log::warn!("COBS decoding failed");
+                            defmt::warn!("COBS decoding failed");
                         } else {
                             let decoded_size = decoded_size.unwrap();
                             let mut tc_rb_full = false;
@@ -207,11 +205,13 @@ mod app {
                                 }
                             });
                             if tc_rb_full {
-                                log::warn!("COBS TC queue full");
+                                defmt::warn!("COBS TC queue full");
                             }
                         }
                     } else {
-                        log::warn!("COBS frame with invalid format, start and end bytes are not 0");
+                        defmt::warn!(
+                            "COBS frame with invalid format, start and end bytes are not 0"
+                        );
                     }
 
                     // Initiate next transfer.
@@ -221,11 +221,11 @@ mod app {
                         .expect("read operation failed");
                 }
                 if result.has_errors() {
-                    log::warn!("UART error: {:?}", result.errors.unwrap());
+                    defmt::warn!("UART error: {:?}", result.errors.unwrap());
                 }
             }
             Err(e) => {
-                log::warn!("UART error: {:?}", e);
+                defmt::warn!("UART error: {:?}", e);
             }
         }
     }
@@ -252,7 +252,7 @@ mod app {
                 continue;
             }
             let packet_len = packet_len.unwrap();
-            log::info!(target: "TC Handler", "received packet with length {}", packet_len);
+            defmt::info!("received packet with length {}", packet_len);
             let popped_packet_len = cx
                 .shared
                 .tc_rb
@@ -266,7 +266,7 @@ mod app {
     fn handle_valid_pus_tc(cx: &mut pus_tc_handler::Context) {
         let pus_tc = PusTcReader::new(cx.local.tc_buf);
         if pus_tc.is_err() {
-            log::warn!(target: "TC Handler", "PUS TC error: {}", pus_tc.unwrap_err());
+            defmt::warn!("PUS TC error: {}", pus_tc.unwrap_err());
             return;
         }
         let (pus_tc, _) = pus_tc.unwrap();
@@ -312,22 +312,25 @@ mod app {
                 write_and_send(&tm);
             };
             if pus_tc.subservice() == ActionId::CorruptImageA as u8 {
-                rprintln!("corrupting App Image A");
+                defmt::info!("corrupting App Image A");
                 corrupt_image(APP_A_START_ADDR);
             }
             if pus_tc.subservice() == ActionId::CorruptImageB as u8 {
-                rprintln!("corrupting App Image B");
+                defmt::info!("corrupting App Image B");
                 corrupt_image(APP_B_START_ADDR);
             }
             if pus_tc.subservice() == ActionId::SetBootSlot as u8 {
                 if pus_tc.app_data().is_empty() {
-                    log::warn!(target: "TC Handler", "App data for preferred image command too short");
+                    defmt::warn!("App data for preferred image command too short");
                 }
                 let app_sel_result = AppSel::try_from(pus_tc.app_data()[0]);
                 if app_sel_result.is_err() {
-                    log::warn!("Invalid app selection value: {}", pus_tc.app_data()[0]);
+                    defmt::warn!("Invalid app selection value: {}", pus_tc.app_data()[0]);
                 }
-                log::info!(target: "TC Handler", "received boot selection command with app select: {:?}", app_sel_result.unwrap());
+                defmt::info!(
+                    "received boot selection command with app select: {:?}",
+                    app_sel_result.unwrap()
+                );
                 cx.local
                     .nvm
                     .write(PREFERRED_SLOT_OFFSET as usize, &[pus_tc.app_data()[0]])
@@ -341,7 +344,7 @@ mod app {
             }
         }
         if pus_tc.service() == PusServiceId::Test as u8 && pus_tc.subservice() == 1 {
-            log::info!(target: "TC Handler", "received ping TC");
+            defmt::info!("received ping TC");
             let tm = cx
                 .local
                 .verif_reporter
@@ -366,23 +369,21 @@ mod app {
             if pus_tc.subservice() == 2 {
                 let app_data = pus_tc.app_data();
                 if app_data.len() < 10 {
-                    log::warn!(
-                        target: "TC Handler",
+                    defmt::warn!(
                         "app data for raw memory write is too short: {}",
                         app_data.len()
                     );
                 }
                 let memory_id = app_data[0];
                 if memory_id != BOOT_NVM_MEMORY_ID {
-                    log::warn!(target: "TC Handler", "memory ID {} not supported", memory_id);
+                    defmt::warn!("memory ID {} not supported", memory_id);
                     // TODO: Error reporting
                     return;
                 }
                 let offset = u32::from_be_bytes(app_data[2..6].try_into().unwrap());
                 let data_len = u32::from_be_bytes(app_data[6..10].try_into().unwrap());
                 if 10 + data_len as usize > app_data.len() {
-                    log::warn!(
-                        target: "TC Handler",
+                    defmt::warn!(
                         "invalid data length {} for raw mem write detected",
                         data_len
                     );
@@ -390,12 +391,7 @@ mod app {
                     return;
                 }
                 let data = &app_data[10..10 + data_len as usize];
-                log::info!(
-                    target: "TC Handler",
-                    "writing {} bytes at offset {} to NVM",
-                    data_len,
-                    offset
-                );
+                defmt::info!("writing {} bytes at offset {} to NVM", data_len, offset);
                 cx.local
                     .nvm
                     .write(offset as usize, data)
@@ -406,7 +402,7 @@ mod app {
                     .verify(offset as usize, data)
                     .expect("NVM verification failed")
                 {
-                    log::warn!("verification of data written to NVM failed");
+                    defmt::warn!("verification of data written to NVM failed");
                     cx.local
                         .verif_reporter
                         .completion_failure(
@@ -424,9 +420,7 @@ mod app {
                         .expect("completion success failed")
                 };
                 write_and_send(&tm);
-                log::info!(
-                    target: "TC Handler",
-                    "NVM operation done");
+                defmt::info!("NVM operation done");
             }
         }
     }

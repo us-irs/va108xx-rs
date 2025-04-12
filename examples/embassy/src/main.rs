@@ -2,8 +2,7 @@
 #![no_main]
 use embassy_executor::Spawner;
 use embassy_time::{Duration, Instant, Ticker};
-use panic_rtt_target as _;
-use rtt_target::{rprintln, rtt_init_print};
+use embassy_example as _;
 
 cfg_if::cfg_if! {
     if #[cfg(feature = "custom-irqs")] {
@@ -20,8 +19,7 @@ const SYSCLK_FREQ: Hertz = Hertz::from_raw(50_000_000);
 // main is itself an async function.
 #[embassy_executor::main]
 async fn main(_spawner: Spawner) {
-    rtt_init_print!();
-    rprintln!("-- VA108xx Embassy Demo --");
+    defmt::println!("-- VA108xx Embassy Demo --");
 
     let mut dp = pac::Peripherals::take().unwrap();
 
@@ -55,7 +53,7 @@ async fn main(_spawner: Spawner) {
     let mut ticker = Ticker::every(Duration::from_secs(1));
     loop {
         ticker.next().await;
-        rprintln!("Current time: {}", Instant::now().as_secs());
+        defmt::info!("Current time: {}", Instant::now().as_secs());
         led0.toggle();
         led1.toggle();
         led2.toggle();

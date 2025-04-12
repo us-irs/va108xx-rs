@@ -13,16 +13,16 @@
 //!    RTT logs to see received data.
 #![no_std]
 #![no_main]
-use core::cell::RefCell;
+// This imports the logger and the panic handler.
+use embassy_example as _;
 
+use core::cell::RefCell;
 use critical_section::Mutex;
 use embassy_executor::Spawner;
 use embassy_time::Instant;
 use embedded_io::Write;
 use embedded_io_async::Read;
 use heapless::spsc::{Consumer, Producer, Queue};
-use panic_rtt_target as _;
-use rtt_target::{rprintln, rtt_init_print};
 use va108xx_hal::{
     gpio::PinsA,
     pac::{self, interrupt},
@@ -49,8 +49,7 @@ static CONSUMER_UART_B: Mutex<RefCell<Option<Consumer<u8, 256>>>> = Mutex::new(R
 // main is itself an async function.
 #[embassy_executor::main]
 async fn main(spawner: Spawner) {
-    rtt_init_print!();
-    rprintln!("-- VA108xx Async UART RX Demo --");
+    defmt::println!("-- VA108xx Async UART RX Demo --");
 
     let mut dp = pac::Peripherals::take().unwrap();
 
@@ -108,13 +107,13 @@ async fn main(spawner: Spawner) {
         .unwrap();
     let mut buf = [0u8; 256];
     loop {
-        rprintln!("Current time UART A: {}", Instant::now().as_secs());
+        defmt::info!("Current time UART A: {}", Instant::now().as_secs());
         led0.toggle();
         led1.toggle();
         led2.toggle();
         let read_bytes = async_rx_uart_a.read(&mut buf).await.unwrap();
         let read_str = core::str::from_utf8(&buf[..read_bytes]).unwrap();
-        rprintln!(
+        defmt::info!(
             "Read {} bytes asynchronously on UART A: {:?}",
             read_bytes,
             read_str
@@ -127,11 +126,11 @@ async fn main(spawner: Spawner) {
 async fn uart_b_task(mut async_rx: RxAsyncOverwriting<pac::Uartb, 256>, mut tx: Tx<pac::Uartb>) {
     let mut buf = [0u8; 256];
     loop {
-        rprintln!("Current time UART B: {}", Instant::now().as_secs());
+        defmt::info!("Current time UART B: {}", Instant::now().as_secs());
         // Infallible asynchronous operation.
         let read_bytes = async_rx.read(&mut buf).await.unwrap();
         let read_str = core::str::from_utf8(&buf[..read_bytes]).unwrap();
-        rprintln!(
+        defmt::info!(
             "Read {} bytes asynchronously on UART B: {:?}",
             read_bytes,
             read_str
@@ -149,7 +148,7 @@ fn OC2() {
     critical_section::with(|cs| *PRODUCER_UART_A.borrow(cs).borrow_mut() = Some(prod));
     // In a production app, we could use a channel to send the errors to the main task.
     if let Err(errors) = errors {
-        rprintln!("UART A errors: {:?}", errors);
+        defmt::info!("UART A errors: {:?}", errors);
     }
 }
 
@@ -162,6 +161,6 @@ fn OC3() {
     critical_section::with(|cs| *PRODUCER_UART_B.borrow(cs).borrow_mut() = Some(prod));
     // In a production app, we could use a channel to send the errors to the main task.
     if let Err(errors) = errors {
-        rprintln!("UART B errors: {:?}", errors);
+        defmt::info!("UART B errors: {:?}", errors);
     }
 }
