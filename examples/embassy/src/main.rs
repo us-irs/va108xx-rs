@@ -1,8 +1,8 @@
 #![no_std]
 #![no_main]
+use embassy_example as _;
 use embassy_executor::Spawner;
 use embassy_time::{Duration, Instant, Ticker};
-use embassy_example as _;
 
 cfg_if::cfg_if! {
     if #[cfg(feature = "custom-irqs")] {

@@ -631,8 +631,8 @@ where
     /// - `pins`: UART TX and RX pin tuple.
     /// - `config`: UART specific configuration parameters like baudrate.
     /// - `irq_cfg`: Optional interrupt configuration. This should be a valid value if the plan
-    ///    is to use TX or RX functionality relying on interrupts. If only the blocking API without
-    ///    any interrupt support is used, this can be [None].
+    ///   is to use TX or RX functionality relying on interrupts. If only the blocking API without
+    ///   any interrupt support is used, this can be [None].
     pub fn new(
         syscfg: &mut va108xx::Sysconfig,
         sys_clk: impl Into<Hertz>,

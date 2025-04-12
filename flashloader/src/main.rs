@@ -3,9 +3,9 @@
 #![no_main]
 #![no_std]
 
+use defmt_rtt as _; // global logger
 use num_enum::TryFromPrimitive;
 use panic_probe as _;
-use defmt_rtt as _; // global logger
 use ringbuf::{
     traits::{Consumer, Observer, Producer},
     StaticRb,

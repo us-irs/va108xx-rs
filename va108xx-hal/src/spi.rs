@@ -1004,7 +1004,7 @@ where
     /// * `sys_clk` - System clock
     /// * `spi` - SPI bus to use
     /// * `pins` - Pins to be used for SPI transactions. These pins are consumed
-    ///     to ensure the pins can not be used for other purposes anymore
+    ///   to ensure the pins can not be used for other purposes anymore
     /// * `spi_cfg` - Configuration specific to the SPI bus
     pub fn new(
         syscfg: &mut pac::Sysconfig,
