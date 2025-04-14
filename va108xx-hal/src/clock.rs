@@ -65,14 +65,16 @@ pub fn set_clk_div_register(syscfg: &mut va108xx::Sysconfig, clk_sel: FilterClkS
 }
 
 #[inline]
-pub fn enable_peripheral_clock(syscfg: &mut va108xx::Sysconfig, clock: PeripheralClocks) {
+pub fn enable_peripheral_clock(clock: PeripheralClocks) {
+    let syscfg = unsafe { va108xx::Sysconfig::steal() };
     syscfg
         .peripheral_clk_enable()
         .modify(|r, w| unsafe { w.bits(r.bits() | (1 << clock as u8)) });
 }
 
 #[inline]
-pub fn disable_peripheral_clock(syscfg: &mut va108xx::Sysconfig, clock: PeripheralClocks) {
+pub fn disable_peripheral_clock(clock: PeripheralClocks) {
+    let syscfg = unsafe { va108xx::Sysconfig::steal() };
     syscfg
         .peripheral_clk_enable()
         .modify(|r, w| unsafe { w.bits(r.bits() & !(1 << clock as u8)) });

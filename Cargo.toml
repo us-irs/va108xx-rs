@@ -10,7 +10,8 @@ members = [
   "examples/embassy",
   "board-tests",
   "bootloader",
-  "flashloader", "vorago-shared-peripherals",
+  "flashloader",
+  "vorago-shared-periphs",
 ]
 exclude = [
   "flashloader/slot-a-blinky",

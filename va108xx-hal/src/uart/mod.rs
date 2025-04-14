@@ -14,16 +14,17 @@
 //! - [Flashloader exposing a CCSDS interface via UART](https://egit.irs.uni-stuttgart.de/rust/va108xx-rs/src/branch/main/flashloader)
 use core::{convert::Infallible, ops::Deref};
 use fugit::RateExtU32;
+use vorago_shared_periphs::{gpio::Pin, FunSel};
 
 pub use crate::InterruptConfig;
 use crate::{
     clock::enable_peripheral_clock,
     enable_nvic_interrupt,
-    gpio::pin::{
-        AltFunc1, AltFunc2, AltFunc3, Pin, PA16, PA17, PA18, PA19, PA2, PA26, PA27, PA3, PA30,
-        PA31, PA8, PA9, PB18, PB19, PB20, PB21, PB22, PB23, PB6, PB7, PB8, PB9,
-    },
     pac::{self, uarta as uart_base},
+    pins::{
+        Pa16, Pa17, Pa18, Pa19, Pa2, Pa26, Pa27, Pa3, Pa30, Pa31, Pa8, Pa9, Pb18, Pb19, Pb20, Pb21,
+        Pb22, Pb23, Pb6, Pb7, Pb8, Pb9,
+    },
     time::Hertz,
     PeripheralSelect,
 };
@@ -31,31 +32,136 @@ use embedded_hal_nb::serial::Read;
 
 #[derive(Debug, Clone, Copy)]
 #[cfg_attr(feature = "defmt", derive(defmt::Format))]
-pub enum Bank {
+pub enum UartId {
     A = 0,
     B = 1,
+}
+
+impl UartId {
+    // TODO: Safety docs.
+    pub const unsafe fn reg_block(&self) -> &'static uart_base::RegisterBlock {
+        match self {
+            UartId::A => unsafe { &*pac::Uarta::PTR },
+            UartId::B => unsafe { &*pac::Uartb::PTR },
+        }
+    }
 }
 
 //==================================================================================================
 // Type-Level support
 //==================================================================================================
 
-pub trait Pins<UART> {}
+pub trait TxPin {
+    const UART_ID: UartId;
+    const FUN_SEL: FunSel;
+}
+pub trait RxPin {
+    const UART_ID: UartId;
+    const FUN_SEL: FunSel;
+}
 
-impl Pins<pac::Uarta> for (Pin<PA9, AltFunc2>, Pin<PA8, AltFunc2>) {}
-impl Pins<pac::Uarta> for (Pin<PA17, AltFunc3>, Pin<PA16, AltFunc3>) {}
-impl Pins<pac::Uarta> for (Pin<PA31, AltFunc3>, Pin<PA30, AltFunc3>) {}
+// UART A pins
 
-impl Pins<pac::Uarta> for (Pin<PB9, AltFunc1>, Pin<PB8, AltFunc1>) {}
-impl Pins<pac::Uarta> for (Pin<PB23, AltFunc1>, Pin<PB22, AltFunc1>) {}
+impl TxPin for Pin<Pa9> {
+    const UART_ID: UartId = UartId::A;
+    const FUN_SEL: FunSel = FunSel::Sel2;
+}
+impl RxPin for Pin<Pa8> {
+    const UART_ID: UartId = UartId::A;
+    const FUN_SEL: FunSel = FunSel::Sel2;
+}
 
-impl Pins<pac::Uartb> for (Pin<PA3, AltFunc2>, Pin<PA2, AltFunc2>) {}
-impl Pins<pac::Uartb> for (Pin<PA19, AltFunc3>, Pin<PA18, AltFunc3>) {}
-impl Pins<pac::Uartb> for (Pin<PA27, AltFunc3>, Pin<PA26, AltFunc3>) {}
+impl TxPin for Pin<Pa17> {
+    const UART_ID: UartId = UartId::A;
+    const FUN_SEL: FunSel = FunSel::Sel3;
+}
+impl RxPin for Pin<Pa16> {
+    const UART_ID: UartId = UartId::A;
+    const FUN_SEL: FunSel = FunSel::Sel3;
+}
 
-impl Pins<pac::Uartb> for (Pin<PB7, AltFunc1>, Pin<PB6, AltFunc1>) {}
-impl Pins<pac::Uartb> for (Pin<PB19, AltFunc2>, Pin<PB18, AltFunc2>) {}
-impl Pins<pac::Uartb> for (Pin<PB21, AltFunc1>, Pin<PB20, AltFunc1>) {}
+impl TxPin for Pin<Pa31> {
+    const UART_ID: UartId = UartId::A;
+    const FUN_SEL: FunSel = FunSel::Sel3;
+}
+impl RxPin for Pin<Pa30> {
+    const UART_ID: UartId = UartId::A;
+    const FUN_SEL: FunSel = FunSel::Sel3;
+}
+
+impl TxPin for Pin<Pb9> {
+    const UART_ID: UartId = UartId::A;
+    const FUN_SEL: FunSel = FunSel::Sel1;
+}
+impl RxPin for Pin<Pb8> {
+    const UART_ID: UartId = UartId::A;
+    const FUN_SEL: FunSel = FunSel::Sel1;
+}
+
+impl TxPin for Pin<Pb23> {
+    const UART_ID: UartId = UartId::A;
+    const FUN_SEL: FunSel = FunSel::Sel1;
+}
+impl RxPin for Pin<Pb22> {
+    const UART_ID: UartId = UartId::A;
+    const FUN_SEL: FunSel = FunSel::Sel1;
+}
+
+// UART B pins
+
+impl TxPin for Pin<Pa3> {
+    const UART_ID: UartId = UartId::B;
+    const FUN_SEL: FunSel = FunSel::Sel2;
+}
+impl RxPin for Pin<Pa2> {
+    const UART_ID: UartId = UartId::B;
+    const FUN_SEL: FunSel = FunSel::Sel2;
+}
+
+impl TxPin for Pin<Pa19> {
+    const UART_ID: UartId = UartId::B;
+    const FUN_SEL: FunSel = FunSel::Sel3;
+}
+impl RxPin for Pin<Pa18> {
+    const UART_ID: UartId = UartId::B;
+    const FUN_SEL: FunSel = FunSel::Sel3;
+}
+
+impl TxPin for Pin<Pa27> {
+    const UART_ID: UartId = UartId::B;
+    const FUN_SEL: FunSel = FunSel::Sel3;
+}
+impl RxPin for Pin<Pa26> {
+    const UART_ID: UartId = UartId::B;
+    const FUN_SEL: FunSel = FunSel::Sel3;
+}
+
+impl TxPin for Pin<Pb7> {
+    const UART_ID: UartId = UartId::B;
+    const FUN_SEL: FunSel = FunSel::Sel1;
+}
+impl RxPin for Pin<Pb6> {
+    const UART_ID: UartId = UartId::B;
+    const FUN_SEL: FunSel = FunSel::Sel1;
+}
+
+impl TxPin for Pin<Pb19> {
+    const UART_ID: UartId = UartId::B;
+    const FUN_SEL: FunSel = FunSel::Sel2;
+}
+impl RxPin for Pin<Pb18> {
+    const UART_ID: UartId = UartId::B;
+    const FUN_SEL: FunSel = FunSel::Sel2;
+}
+
+impl TxPin for Pin<Pb21> {
+    const UART_ID: UartId = UartId::B;
+    const FUN_SEL: FunSel = FunSel::Sel1;
+}
+impl RxPin for Pin<Pb20> {
+    const UART_ID: UartId = UartId::B;
+    const FUN_SEL: FunSel = FunSel::Sel1;
+}
 
 //==================================================================================================
 // Regular Definitions
@@ -336,8 +442,8 @@ pub struct BufferTooShortError {
 // UART peripheral wrapper
 //==================================================================================================
 
-pub trait Instance: Deref<Target = uart_base::RegisterBlock> {
-    const IDX: u8;
+pub trait UartPeripheralMarker: Deref<Target = uart_base::RegisterBlock> {
+    const ID: UartId;
     const PERIPH_SEL: PeripheralSelect;
     const PTR: *const uart_base::RegisterBlock;
 
@@ -364,8 +470,8 @@ pub trait Instance: Deref<Target = uart_base::RegisterBlock> {
     }
 }
 
-impl Instance for pac::Uarta {
-    const IDX: u8 = 0;
+impl UartPeripheralMarker for pac::Uarta {
+    const ID: UartId = UartId::A;
 
     const PERIPH_SEL: PeripheralSelect = PeripheralSelect::Uart0;
     const PTR: *const uart_base::RegisterBlock = Self::PTR;
@@ -376,8 +482,8 @@ impl Instance for pac::Uarta {
     }
 }
 
-impl Instance for pac::Uartb {
-    const IDX: u8 = 1;
+impl UartPeripheralMarker for pac::Uartb {
+    const ID: UartId = UartId::B;
 
     const PERIPH_SEL: PeripheralSelect = PeripheralSelect::Uart1;
     const PTR: *const uart_base::RegisterBlock = Self::PTR;
@@ -388,35 +494,60 @@ impl Instance for pac::Uartb {
     }
 }
 
-impl Bank {
-    /// Retrieve the peripheral register block.
-    ///
-    /// # Safety
-    ///
-    /// Circumvents the HAL safety guarantees.
-    pub unsafe fn reg_block(&self) -> &'static uart_base::RegisterBlock {
-        match self {
-            Bank::A => unsafe { pac::Uarta::reg_block() },
-            Bank::B => unsafe { pac::Uartb::reg_block() },
-        }
-    }
-}
-
 //==================================================================================================
 // UART implementation
 //==================================================================================================
 
 /// Type erased variant of a UART. Can be created with the [`Uart::downgrade`] function.
-pub struct UartBase<Uart> {
-    uart: Uart,
-    tx: Tx<Uart>,
-    rx: Rx<Uart>,
+pub struct Uart {
+    tx: Tx,
+    rx: Rx,
 }
 
-impl<Uart: Instance> UartBase<Uart> {
-    /// This function assumes that the peripheral clock was alredy enabled
-    /// in the SYSCONFIG register
-    fn init(self, config: Config, sys_clk: Hertz) -> Self {
+impl Uart {
+    /// Calls [Self::new] with the interrupt configuration to some valid value.
+    pub fn new_with_interrupt<UartI: UartPeripheralMarker, Tx: TxPin, Rx: RxPin>(
+        sys_clk: Hertz,
+        uart: UartI,
+        pins: (Tx, Rx),
+        config: Config,
+        irq_cfg: InterruptConfig,
+    ) -> Self {
+        Self::new(sys_clk, uart, pins, config, Some(irq_cfg))
+    }
+
+    /// Calls [Self::new] with the interrupt configuration to [None].
+    pub fn new_without_interrupt<UartI: UartPeripheralMarker, Tx: TxPin, Rx: RxPin>(
+        sys_clk: Hertz,
+        uart: UartI,
+        pins: (Tx, Rx),
+        config: Config,
+    ) -> Self {
+        Self::new(sys_clk, uart, pins, config, None)
+    }
+
+    /// Create a new UART peripheral with an interrupt configuration.
+    ///
+    /// # Arguments
+    ///
+    /// - `syscfg`: The system configuration register block
+    /// - `sys_clk`: The system clock frequency
+    /// - `uart`: The concrete UART peripheral instance.
+    /// - `pins`: UART TX and RX pin tuple.
+    /// - `config`: UART specific configuration parameters like baudrate.
+    /// - `irq_cfg`: Optional interrupt configuration. This should be a valid value if the plan
+    ///   is to use TX or RX functionality relying on interrupts. If only the blocking API without
+    ///   any interrupt support is used, this can be [None].
+    pub fn new<UartI: UartPeripheralMarker, TxPinI: TxPin, RxPinI: RxPin>(
+        sys_clk: Hertz,
+        uart: UartI,
+        pins: (TxPinI, RxPinI),
+        config: Config,
+        opt_irq_cfg: Option<InterruptConfig>,
+    ) -> Self {
+        crate::clock::enable_peripheral_clock(UartI::PERIPH_SEL);
+
+        let reg_block = unsafe { UartI::reg_block() };
         let baud_multiplier = match config.baud8 {
             false => 16,
             true => 8,
@@ -430,7 +561,7 @@ impl<Uart: Instance> UartBase<Uart> {
         // Calculations here are derived from chapter 4.8.5 (p.79) of the datasheet.
         let x = sys_clk.raw() as f32 / (config.baudrate.raw() * baud_multiplier) as f32;
         let integer_part = x as u32;
-        self.uart.clkscale().write(|w| unsafe {
+        reg_block.clkscale().write(|w| unsafe {
             w.frac().bits(frac as u8);
             w.int().bits(integer_part)
         });
@@ -446,7 +577,7 @@ impl<Uart: Instance> UartBase<Uart> {
         };
         let wordsize = config.wordsize as u8;
         let baud8 = config.baud8;
-        self.uart.ctrl().write(|w| {
+        reg_block.ctrl().write(|w| {
             w.paren().bit(paren);
             w.pareven().bit(pareven);
             w.stopbits().bit(stopbits);
@@ -455,59 +586,101 @@ impl<Uart: Instance> UartBase<Uart> {
         });
         let (txenb, rxenb) = (config.enable_tx, config.enable_rx);
         // Clear the FIFO
-        self.uart.fifo_clr().write(|w| {
+        reg_block.fifo_clr().write(|w| {
             w.rxfifo().set_bit();
             w.txfifo().set_bit()
         });
-        self.uart.enable().write(|w| {
+        reg_block.enable().write(|w| {
             w.rxenable().bit(rxenb);
             w.txenable().bit(txenb)
         });
-        self
+
+        if let Some(irq_cfg) = opt_irq_cfg {
+            if irq_cfg.route {
+                enable_peripheral_clock(PeripheralSelect::Irqsel);
+                unsafe { pac::Irqsel::steal() }
+                    .uart0(UartI::ID as usize)
+                    .write(|w| unsafe { w.bits(irq_cfg.id as u32) });
+            }
+            if irq_cfg.enable_in_nvic {
+                // Safety: User has specifically configured this.
+                unsafe { enable_nvic_interrupt(irq_cfg.id) };
+            }
+        }
+
+        // TODO: Validity checks.
+        Uart {
+            tx: Tx::new(UartI::ID),
+            rx: Rx::new(UartI::ID),
+        }
     }
 
     #[inline]
     pub fn enable_rx(&mut self) {
-        self.uart.enable().modify(|_, w| w.rxenable().set_bit());
+        self.tx
+            .regs_priv()
+            .enable()
+            .modify(|_, w| w.rxenable().set_bit());
     }
 
     #[inline]
     pub fn disable_rx(&mut self) {
-        self.uart.enable().modify(|_, w| w.rxenable().clear_bit());
+        self.tx
+            .regs_priv()
+            .enable()
+            .modify(|_, w| w.rxenable().clear_bit());
     }
 
     #[inline]
     pub fn enable_tx(&mut self) {
-        self.uart.enable().modify(|_, w| w.txenable().set_bit());
+        self.tx
+            .regs_priv()
+            .enable()
+            .modify(|_, w| w.txenable().set_bit());
     }
 
     #[inline]
     pub fn disable_tx(&mut self) {
-        self.uart.enable().modify(|_, w| w.txenable().clear_bit());
+        self.tx
+            .regs_priv()
+            .enable()
+            .modify(|_, w| w.txenable().clear_bit());
     }
 
     #[inline]
     pub fn clear_rx_fifo(&mut self) {
-        self.uart.fifo_clr().write(|w| w.rxfifo().set_bit());
+        self.tx
+            .regs_priv()
+            .fifo_clr()
+            .write(|w| w.rxfifo().set_bit());
     }
 
     #[inline]
     pub fn clear_tx_fifo(&mut self) {
-        self.uart.fifo_clr().write(|w| w.txfifo().set_bit());
+        self.tx
+            .regs_priv()
+            .fifo_clr()
+            .write(|w| w.txfifo().set_bit());
     }
 
     #[inline]
     pub fn clear_rx_status(&mut self) {
-        self.uart.fifo_clr().write(|w| w.rxsts().set_bit());
+        self.tx
+            .regs_priv()
+            .fifo_clr()
+            .write(|w| w.rxsts().set_bit());
     }
 
     #[inline]
     pub fn clear_tx_status(&mut self) {
-        self.uart.fifo_clr().write(|w| w.txsts().set_bit());
+        self.tx
+            .regs_priv()
+            .fifo_clr()
+            .write(|w| w.txsts().set_bit());
     }
 
     pub fn listen(&self, event: Event) {
-        self.uart.irq_enb().modify(|_, w| match event {
+        self.tx.regs_priv().irq_enb().modify(|_, w| match event {
             Event::RxError => w.irq_rx_status().set_bit(),
             Event::RxFifoHalfFull => w.irq_rx().set_bit(),
             Event::RxTimeout => w.irq_rx_to().set_bit(),
@@ -519,7 +692,7 @@ impl<Uart: Instance> UartBase<Uart> {
     }
 
     pub fn unlisten(&self, event: Event) {
-        self.uart.irq_enb().modify(|_, w| match event {
+        self.tx.regs_priv().irq_enb().modify(|_, w| match event {
             Event::RxError => w.irq_rx_status().clear_bit(),
             Event::RxFifoHalfFull => w.irq_rx().clear_bit(),
             Event::RxTimeout => w.irq_rx_to().clear_bit(),
@@ -530,44 +703,31 @@ impl<Uart: Instance> UartBase<Uart> {
         });
     }
 
-    pub fn release(self) -> Uart {
-        // Clear the FIFO
-        self.uart.fifo_clr().write(|w| {
-            w.rxfifo().set_bit();
-            w.txfifo().set_bit()
-        });
-        self.uart.enable().write(|w| {
-            w.rxenable().clear_bit();
-            w.txenable().clear_bit()
-        });
-        self.uart
-    }
-
     /// Poll receiver errors.
     pub fn poll_rx_errors(&self) -> Option<UartErrors> {
         self.rx.poll_errors()
     }
 
-    pub fn split(self) -> (Tx<Uart>, Rx<Uart>) {
+    pub fn split(self) -> (Tx, Rx) {
         (self.tx, self.rx)
     }
 }
 
-impl<UartInstance> embedded_io::ErrorType for UartBase<UartInstance> {
+impl embedded_io::ErrorType for Uart {
     type Error = Infallible;
 }
 
-impl<UartInstance> embedded_hal_nb::serial::ErrorType for UartBase<UartInstance> {
+impl embedded_hal_nb::serial::ErrorType for Uart {
     type Error = Infallible;
 }
 
-impl<Uart: Instance> embedded_hal_nb::serial::Read<u8> for UartBase<Uart> {
+impl embedded_hal_nb::serial::Read<u8> for Uart {
     fn read(&mut self) -> nb::Result<u8, Self::Error> {
         self.rx.read()
     }
 }
 
-impl<Uart: Instance> embedded_hal_nb::serial::Write<u8> for UartBase<Uart> {
+impl embedded_hal_nb::serial::Write<u8> for Uart {
     fn write(&mut self, word: u8) -> nb::Result<(), Self::Error> {
         self.tx.write(word).map_err(|e| {
             if let nb::Error::Other(_) = e {
@@ -584,163 +744,6 @@ impl<Uart: Instance> embedded_hal_nb::serial::Write<u8> for UartBase<Uart> {
             }
             nb::Error::WouldBlock
         })
-    }
-}
-
-/// Serial abstraction. Entry point to create a new UART
-pub struct Uart<Uart, Pins> {
-    inner: UartBase<Uart>,
-    pins: Pins,
-}
-
-impl<UartInstance, PinsInstance> Uart<UartInstance, PinsInstance>
-where
-    UartInstance: Instance,
-    PinsInstance: Pins<UartInstance>,
-{
-    /// Calls [Self::new] with the interrupt configuration to some valid value.
-    pub fn new_with_interrupt(
-        syscfg: &mut va108xx::Sysconfig,
-        sys_clk: impl Into<Hertz>,
-        uart: UartInstance,
-        pins: PinsInstance,
-        config: impl Into<Config>,
-        irq_cfg: InterruptConfig,
-    ) -> Self {
-        Self::new(syscfg, sys_clk, uart, pins, config, Some(irq_cfg))
-    }
-
-    /// Calls [Self::new] with the interrupt configuration to [None].
-    pub fn new_without_interrupt(
-        syscfg: &mut va108xx::Sysconfig,
-        sys_clk: impl Into<Hertz>,
-        uart: UartInstance,
-        pins: PinsInstance,
-        config: impl Into<Config>,
-    ) -> Self {
-        Self::new(syscfg, sys_clk, uart, pins, config, None)
-    }
-
-    /// Create a new UART peripheral with an interrupt configuration.
-    ///
-    /// # Arguments
-    ///
-    /// - `syscfg`: The system configuration register block
-    /// - `sys_clk`: The system clock frequency
-    /// - `uart`: The concrete UART peripheral instance.
-    /// - `pins`: UART TX and RX pin tuple.
-    /// - `config`: UART specific configuration parameters like baudrate.
-    /// - `irq_cfg`: Optional interrupt configuration. This should be a valid value if the plan
-    ///   is to use TX or RX functionality relying on interrupts. If only the blocking API without
-    ///   any interrupt support is used, this can be [None].
-    pub fn new(
-        syscfg: &mut va108xx::Sysconfig,
-        sys_clk: impl Into<Hertz>,
-        uart: UartInstance,
-        pins: PinsInstance,
-        config: impl Into<Config>,
-        opt_irq_cfg: Option<InterruptConfig>,
-    ) -> Self {
-        crate::clock::enable_peripheral_clock(syscfg, UartInstance::PERIPH_SEL);
-        let uart = Uart {
-            inner: UartBase {
-                uart,
-                tx: Tx::new(unsafe { UartInstance::steal() }),
-                rx: Rx::new(unsafe { UartInstance::steal() }),
-            },
-            pins,
-        }
-        .init(config.into(), sys_clk.into());
-
-        if let Some(irq_cfg) = opt_irq_cfg {
-            if irq_cfg.route {
-                enable_peripheral_clock(syscfg, PeripheralSelect::Irqsel);
-                unsafe { pac::Irqsel::steal() }
-                    .uart0(UartInstance::IDX as usize)
-                    .write(|w| unsafe { w.bits(irq_cfg.id as u32) });
-            }
-            if irq_cfg.enable_in_nvic {
-                // Safety: User has specifically configured this.
-                unsafe { enable_nvic_interrupt(irq_cfg.id) };
-            }
-        }
-        uart
-    }
-
-    /// This function assumes that the peripheral clock was alredy enabled
-    /// in the SYSCONFIG register
-    fn init(mut self, config: Config, sys_clk: Hertz) -> Self {
-        self.inner = self.inner.init(config, sys_clk);
-        self
-    }
-
-    /// Poll receiver errors.
-    pub fn poll_rx_errors(&self) -> Option<UartErrors> {
-        self.inner.poll_rx_errors()
-    }
-
-    #[inline]
-    pub fn enable_rx(&mut self) {
-        self.inner.enable_rx();
-    }
-
-    #[inline]
-    pub fn disable_rx(&mut self) {
-        self.inner.enable_rx();
-    }
-
-    #[inline]
-    pub fn enable_tx(&mut self) {
-        self.inner.enable_tx();
-    }
-
-    #[inline]
-    pub fn disable_tx(&mut self) {
-        self.inner.disable_tx();
-    }
-
-    #[inline]
-    pub fn clear_rx_fifo(&mut self) {
-        self.inner.clear_rx_fifo();
-    }
-
-    #[inline]
-    pub fn clear_tx_fifo(&mut self) {
-        self.inner.clear_tx_fifo();
-    }
-
-    #[inline]
-    pub fn clear_rx_status(&mut self) {
-        self.inner.clear_rx_status();
-    }
-
-    #[inline]
-    pub fn clear_tx_status(&mut self) {
-        self.inner.clear_tx_status();
-    }
-
-    pub fn listen(&self, event: Event) {
-        self.inner.listen(event);
-    }
-
-    pub fn unlisten(&self, event: Event) {
-        self.inner.unlisten(event);
-    }
-
-    pub fn release(self) -> (UartInstance, PinsInstance) {
-        (self.inner.release(), self.pins)
-    }
-
-    pub fn downgrade(self) -> UartBase<UartInstance> {
-        UartBase {
-            uart: self.inner.uart,
-            tx: self.inner.tx,
-            rx: self.inner.rx,
-        }
-    }
-
-    pub fn split(self) -> (Tx<UartInstance>, Rx<UartInstance>) {
-        self.inner.split()
     }
 }
 
@@ -775,12 +778,12 @@ pub fn disable_rx_interrupts(uart: &uart_base::RegisterBlock) {
 /// Serial receiver.
 ///
 /// Can be created by using the [Uart::split] or [UartBase::split] API.
-pub struct Rx<Uart>(Uart);
+pub struct Rx(UartId);
 
-impl<Uart: Instance> Rx<Uart> {
+impl Rx {
     #[inline(always)]
-    const fn new(uart: Uart) -> Self {
-        Self(uart)
+    const fn new(id: UartId) -> Self {
+        Self(id)
     }
 
     /// Direct access to the peripheral structure.
@@ -789,15 +792,19 @@ impl<Uart: Instance> Rx<Uart> {
     ///
     /// You must ensure that only registers related to the operation of the RX side are used.
     #[inline(always)]
-    pub const unsafe fn uart(&self) -> &Uart {
-        &self.0
+    pub const unsafe fn regs(&self) -> &'static uart_base::RegisterBlock {
+        self.regs_priv()
+    }
+
+    #[inline(always)]
+    const fn regs_priv(&self) -> &'static uart_base::RegisterBlock {
+        unsafe { self.0.reg_block() }
     }
 
     pub fn poll_errors(&self) -> Option<UartErrors> {
         let mut errors = UartErrors::default();
 
-        let uart = unsafe { &(*Uart::ptr()) };
-        let status_reader = uart.rxstatus().read();
+        let status_reader = self.regs_priv().rxstatus().read();
         if status_reader.rxovr().bit_is_set() {
             errors.overflow = true;
         } else if status_reader.rxfrm().bit_is_set() {
@@ -812,26 +819,26 @@ impl<Uart: Instance> Rx<Uart> {
 
     #[inline]
     pub fn clear_fifo(&self) {
-        self.0.fifo_clr().write(|w| w.rxfifo().set_bit());
+        self.regs_priv().fifo_clr().write(|w| w.rxfifo().set_bit());
     }
 
     #[inline]
     pub fn disable_interrupts(&mut self) {
-        disable_rx_interrupts(unsafe { Uart::reg_block() });
+        disable_rx_interrupts(self.regs_priv());
     }
     #[inline]
     pub fn enable_interrupts(&mut self) {
-        enable_rx_interrupts(unsafe { Uart::reg_block() });
+        enable_rx_interrupts(self.regs_priv());
     }
 
     #[inline]
     pub fn enable(&mut self) {
-        enable_rx(unsafe { Uart::reg_block() });
+        enable_rx(self.regs_priv());
     }
 
     #[inline]
     pub fn disable(&mut self) {
-        disable_rx(unsafe { Uart::reg_block() });
+        disable_rx(self.regs_priv());
     }
 
     /// Low level function to read a word from the UART FIFO.
@@ -841,8 +848,8 @@ impl<Uart: Instance> Rx<Uart> {
     /// Please note that you might have to mask the returned value with 0xff to retrieve the actual
     /// value if you use the manual parity mode. See chapter 4.6.2 for more information.
     #[inline(always)]
-    pub fn read_fifo(&self) -> nb::Result<u32, Infallible> {
-        if self.0.rxstatus().read().rdavl().bit_is_clear() {
+    pub fn read_fifo(&mut self) -> nb::Result<u32, Infallible> {
+        if self.regs_priv().rxstatus().read().rdavl().bit_is_clear() {
             return Err(nb::Error::WouldBlock);
         }
         Ok(self.read_fifo_unchecked())
@@ -857,29 +864,24 @@ impl<Uart: Instance> Rx<Uart> {
     /// Please note that you might have to mask the returned value with 0xff to retrieve the actual
     /// value if you use the manual parity mode. See chapter 4.6.2 for more information.
     #[inline(always)]
-    pub fn read_fifo_unchecked(&self) -> u32 {
-        self.0.data().read().bits()
+    pub fn read_fifo_unchecked(&mut self) -> u32 {
+        self.regs_priv().data().read().bits()
     }
 
-    pub fn into_rx_with_irq(self) -> RxWithInterrupt<Uart> {
+    pub fn into_rx_with_irq(self) -> RxWithInterrupt {
         RxWithInterrupt::new(self)
     }
-
-    #[inline(always)]
-    pub fn release(self) -> Uart {
-        self.0
-    }
 }
 
-impl<Uart> embedded_io::ErrorType for Rx<Uart> {
+impl embedded_io::ErrorType for Rx {
     type Error = Infallible;
 }
 
-impl<Uart> embedded_hal_nb::serial::ErrorType for Rx<Uart> {
+impl embedded_hal_nb::serial::ErrorType for Rx {
     type Error = Infallible;
 }
 
-impl<Uart: Instance> embedded_hal_nb::serial::Read<u8> for Rx<Uart> {
+impl embedded_hal_nb::serial::Read<u8> for Rx {
     fn read(&mut self) -> nb::Result<u8, Self::Error> {
         self.read_fifo().map(|val| (val & 0xff) as u8).map_err(|e| {
             if let nb::Error::Other(_) = e {
@@ -890,14 +892,14 @@ impl<Uart: Instance> embedded_hal_nb::serial::Read<u8> for Rx<Uart> {
     }
 }
 
-impl<Uart: Instance> embedded_io::Read for Rx<Uart> {
+impl embedded_io::Read for Rx {
     fn read(&mut self, buf: &mut [u8]) -> Result<usize, Self::Error> {
         if buf.is_empty() {
             return Ok(0);
         }
         let mut read = 0;
         loop {
-            if self.0.rxstatus().read().rdavl().bit_is_set() {
+            if self.regs_priv().rxstatus().read().rdavl().bit_is_set() {
                 break;
             }
         }
@@ -946,22 +948,22 @@ pub fn disable_tx_interrupts(uart: &uart_base::RegisterBlock) {
 /// Serial transmitter
 ///
 /// Can be created by using the [Uart::split] or [UartBase::split] API.
-pub struct Tx<Uart>(Uart);
+pub struct Tx(UartId);
 
-impl<Uart: Instance> Tx<Uart> {
+impl Tx {
     /// Retrieve a TX pin without expecting an explicit UART structure
     ///
     /// # Safety
     ///
     /// Circumvents the HAL safety guarantees.
     #[inline(always)]
-    pub unsafe fn steal() -> Self {
-        Self(Uart::steal())
+    pub unsafe fn steal(id: UartId) -> Self {
+        Self::new(id)
     }
 
     #[inline(always)]
-    fn new(uart: Uart) -> Self {
-        Self(uart)
+    fn new(id: UartId) -> Self {
+        Self(id)
     }
 
     /// Direct access to the peripheral structure.
@@ -970,23 +972,32 @@ impl<Uart: Instance> Tx<Uart> {
     ///
     /// You must ensure that only registers related to the operation of the TX side are used.
     #[inline(always)]
-    pub const unsafe fn uart(&self) -> &Uart {
-        &self.0
+    pub unsafe fn regs(&self) -> &'static uart_base::RegisterBlock {
+        &self.0.reg_block()
+    }
+
+    #[inline(always)]
+    fn regs_priv(&self) -> &'static uart_base::RegisterBlock {
+        unsafe { self.regs() }
     }
 
     #[inline]
-    pub fn clear_fifo(&self) {
-        self.0.fifo_clr().write(|w| w.txfifo().set_bit());
+    pub fn clear_fifo(&mut self) {
+        self.regs_priv().fifo_clr().write(|w| w.txfifo().set_bit());
     }
 
     #[inline]
     pub fn enable(&mut self) {
-        self.0.enable().modify(|_, w| w.txenable().set_bit());
+        self.regs_priv()
+            .enable()
+            .modify(|_, w| w.txenable().set_bit());
     }
 
     #[inline]
     pub fn disable(&mut self) {
-        self.0.enable().modify(|_, w| w.txenable().clear_bit());
+        self.regs_priv()
+            .enable()
+            .modify(|_, w| w.txenable().clear_bit());
     }
 
     /// Enables the IRQ_TX, IRQ_TX_STATUS and IRQ_TX_EMPTY interrupts.
@@ -998,7 +1009,7 @@ impl<Uart: Instance> Tx<Uart> {
     #[inline]
     pub fn enable_interrupts(&self) {
         // Safety: We own the UART structure
-        enable_tx_interrupts(unsafe { Uart::reg_block() });
+        enable_tx_interrupts(self.regs_priv());
     }
 
     /// Disables the IRQ_TX, IRQ_TX_STATUS and IRQ_TX_EMPTY interrupts.
@@ -1007,7 +1018,7 @@ impl<Uart: Instance> Tx<Uart> {
     #[inline]
     pub fn disable_interrupts(&self) {
         // Safety: We own the UART structure
-        disable_tx_interrupts(unsafe { Uart::reg_block() });
+        disable_tx_interrupts(self.regs_priv());
     }
 
     /// Low level function to write a word to the UART FIFO.
@@ -1017,8 +1028,8 @@ impl<Uart: Instance> Tx<Uart> {
     /// Please note that you might have to mask the returned value with 0xff to retrieve the actual
     /// value if you use the manual parity mode. See chapter 11.4.1 for more information.
     #[inline(always)]
-    pub fn write_fifo(&self, data: u32) -> nb::Result<(), Infallible> {
-        if self.0.txstatus().read().wrrdy().bit_is_clear() {
+    pub fn write_fifo(&mut self, data: u32) -> nb::Result<(), Infallible> {
+        if self.regs_priv().txstatus().read().wrrdy().bit_is_clear() {
             return Err(nb::Error::WouldBlock);
         }
         self.write_fifo_unchecked(data);
@@ -1032,31 +1043,31 @@ impl<Uart: Instance> Tx<Uart> {
     /// Use the [Self::write_fifo] function to write a word to the FIFO reliably using the [nb]
     /// API.
     #[inline(always)]
-    pub fn write_fifo_unchecked(&self, data: u32) {
-        self.0.data().write(|w| unsafe { w.bits(data) });
+    pub fn write_fifo_unchecked(&mut self, data: u32) {
+        self.regs_priv().data().write(|w| unsafe { w.bits(data) });
     }
 
-    pub fn into_async(self) -> TxAsync<Uart> {
+    pub fn into_async(self) -> TxAsync {
         TxAsync::new(self)
     }
 }
 
-impl<Uart> embedded_io::ErrorType for Tx<Uart> {
+impl embedded_io::ErrorType for Tx {
     type Error = Infallible;
 }
 
-impl<Uart> embedded_hal_nb::serial::ErrorType for Tx<Uart> {
+impl embedded_hal_nb::serial::ErrorType for Tx {
     type Error = Infallible;
 }
 
-impl<Uart: Instance> embedded_hal_nb::serial::Write<u8> for Tx<Uart> {
+impl embedded_hal_nb::serial::Write<u8> for Tx {
     fn write(&mut self, word: u8) -> nb::Result<(), Self::Error> {
         self.write_fifo(word as u32)
     }
 
     fn flush(&mut self) -> nb::Result<(), Self::Error> {
         // SAFETY: Only TX related registers are used.
-        let reader = unsafe { &(*Uart::ptr()) }.txstatus().read();
+        let reader = self.regs_priv().txstatus().read();
         if reader.wrbusy().bit_is_set() {
             return Err(nb::Error::WouldBlock);
         }
@@ -1064,13 +1075,13 @@ impl<Uart: Instance> embedded_hal_nb::serial::Write<u8> for Tx<Uart> {
     }
 }
 
-impl<Uart: Instance> embedded_io::Write for Tx<Uart> {
+impl embedded_io::Write for Tx {
     fn write(&mut self, buf: &[u8]) -> Result<usize, Self::Error> {
         if buf.is_empty() {
             return Ok(0);
         }
         loop {
-            if self.0.txstatus().read().wrrdy().bit_is_set() {
+            if self.regs_priv().txstatus().read().wrrdy().bit_is_set() {
                 break;
             }
         }
@@ -1106,10 +1117,10 @@ impl<Uart: Instance> embedded_io::Write for Tx<Uart> {
 ///     then call the [Self::on_interrupt_max_size_or_timeout_based] in the interrupt service
 ///     routine. You have to call [Self::read_fixed_len_or_timeout_based_using_irq] in the ISR to
 ///     start reading the next packet.
-pub struct RxWithInterrupt<Uart>(Rx<Uart>);
+pub struct RxWithInterrupt(Rx);
 
-impl<Uart: Instance> RxWithInterrupt<Uart> {
-    pub fn new(rx: Rx<Uart>) -> Self {
+impl RxWithInterrupt {
+    pub fn new(rx: Rx) -> Self {
         Self(rx)
     }
 
@@ -1121,8 +1132,8 @@ impl<Uart: Instance> RxWithInterrupt<Uart> {
     }
 
     #[inline(always)]
-    pub fn uart(&self) -> &Uart {
-        &self.0 .0
+    pub fn rx(&self) -> &Rx {
+        &self.0
     }
 
     /// This function is used together with the [Self::on_interrupt_max_size_or_timeout_based]
@@ -1148,7 +1159,7 @@ impl<Uart: Instance> RxWithInterrupt<Uart> {
 
     #[inline]
     fn enable_rx_irq_sources(&mut self, timeout: bool) {
-        self.uart().irq_enb().modify(|_, w| {
+        self.rx().regs_priv().irq_enb().modify(|_, w| {
             if timeout {
                 w.irq_rx_to().set_bit();
             }
@@ -1159,7 +1170,7 @@ impl<Uart: Instance> RxWithInterrupt<Uart> {
 
     #[inline]
     fn disable_rx_irq_sources(&mut self) {
-        self.uart().irq_enb().modify(|_, w| {
+        self.rx().regs_priv().irq_enb().modify(|_, w| {
             w.irq_rx_to().clear_bit();
             w.irq_rx_status().clear_bit();
             w.irq_rx().clear_bit()
@@ -1182,18 +1193,19 @@ impl<Uart: Instance> RxWithInterrupt<Uart> {
     pub fn on_interrupt(&mut self, buf: &mut [u8; 16]) -> IrqResult {
         let mut result = IrqResult::default();
 
-        let irq_end = self.uart().irq_end().read();
-        let enb_status = self.uart().enable().read();
+        let rx = self.rx();
+        let irq_end = rx.regs_priv().irq_end().read();
+        let enb_status = rx.regs_priv().enable().read();
         let rx_enabled = enb_status.rxenable().bit_is_set();
 
         // Half-Full interrupt. We have a guaranteed amount of data we can read.
         if irq_end.irq_rx().bit_is_set() {
-            let available_bytes = self.uart().rxfifoirqtrg().read().bits() as usize;
+            let available_bytes = rx.regs_priv().rxfifoirqtrg().read().bits() as usize;
 
             // If this interrupt bit is set, the trigger level is available at the very least.
             // Read everything as fast as possible
             for _ in 0..available_bytes {
-                buf[result.bytes_read] = (self.uart().data().read().bits() & 0xff) as u8;
+                buf[result.bytes_read] = (rx.regs_priv().data().read().bits() & 0xff) as u8;
                 result.bytes_read += 1;
             }
         }
@@ -1213,7 +1225,8 @@ impl<Uart: Instance> RxWithInterrupt<Uart> {
         }
 
         // Clear the interrupt status bits
-        self.uart()
+        self.0
+            .regs_priv()
             .irq_clr()
             .write(|w| unsafe { w.bits(irq_end.bits()) });
         result
@@ -1243,9 +1256,10 @@ impl<Uart: Instance> RxWithInterrupt<Uart> {
             });
         }
         let mut result = IrqResultMaxSizeOrTimeout::default();
+        let rx = self.rx();
 
-        let irq_end = self.uart().irq_end().read();
-        let enb_status = self.uart().enable().read();
+        let irq_end = rx.regs_priv().irq_end().read();
+        let enb_status = rx.regs_priv().enable().read();
         let rx_enabled = enb_status.rxenable().bit_is_set();
 
         // Half-Full interrupt. We have a guaranteed amount of data we can read.
@@ -1254,7 +1268,7 @@ impl<Uart: Instance> RxWithInterrupt<Uart> {
             // We use this trick/hack because the timeout feature of the peripheral relies on data
             // being in the RX FIFO. If data continues arriving, another half-full IRQ will fire.
             // If not, the last byte(s) is/are emptied by the timeout interrupt.
-            let available_bytes = self.uart().rxfifoirqtrg().read().bits() as usize;
+            let available_bytes = rx.regs_priv().rxfifoirqtrg().read().bits() as usize;
 
             let bytes_to_read = core::cmp::min(
                 available_bytes.saturating_sub(1),
@@ -1264,7 +1278,7 @@ impl<Uart: Instance> RxWithInterrupt<Uart> {
             // If this interrupt bit is set, the trigger level is available at the very least.
             // Read everything as fast as possible
             for _ in 0..bytes_to_read {
-                buf[context.rx_idx] = (self.uart().data().read().bits() & 0xff) as u8;
+                buf[context.rx_idx] = (rx.regs_priv().data().read().bits() & 0xff) as u8;
                 context.rx_idx += 1;
             }
 
@@ -1299,14 +1313,14 @@ impl<Uart: Instance> RxWithInterrupt<Uart> {
         }
 
         // Clear the interrupt status bits
-        self.uart()
+        rx.regs_priv()
             .irq_clr()
             .write(|w| unsafe { w.bits(irq_end.bits()) });
         Ok(result)
     }
 
     fn check_for_errors(&self, errors: &mut Option<UartErrors>) {
-        let rx_status = self.uart().rxstatus().read();
+        let rx_status = self.rx().regs_priv().rxstatus().read();
 
         if rx_status.rxovr().bit_is_set()
             || rx_status.rxfrm().bit_is_set()
@@ -1344,8 +1358,9 @@ impl<Uart: Instance> RxWithInterrupt<Uart> {
     /// This API allows creating multiple UART instances when releasing the TX structure as well.
     /// The user must ensure that these instances are not used to create multiple overlapping
     /// UART drivers.
-    pub unsafe fn release(self) -> Uart {
-        self.0.release()
+    pub unsafe fn release(mut self) -> Rx {
+        self.disable_rx_irq_sources();
+        self.0
     }
 }
 

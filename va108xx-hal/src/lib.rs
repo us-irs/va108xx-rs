@@ -8,23 +8,16 @@ pub use va108xx as pac;
 pub mod clock;
 pub mod gpio;
 pub mod i2c;
+pub mod pins;
 pub mod prelude;
 pub mod pwm;
 pub mod spi;
 pub mod sysconfig;
 pub mod time;
 pub mod timer;
-pub mod typelevel;
 pub mod uart;
 
-#[derive(Debug, Eq, Copy, Clone, PartialEq)]
-#[cfg_attr(feature = "defmt", derive(defmt::Format))]
-pub enum FunSel {
-    Sel0 = 0b00,
-    Sel1 = 0b01,
-    Sel2 = 0b10,
-    Sel3 = 0b11,
-}
+pub use vorago_shared_periphs::FunSel;
 
 #[derive(Debug, Copy, Clone, PartialEq, Eq)]
 #[cfg_attr(feature = "defmt", derive(defmt::Format))]
@@ -117,4 +110,9 @@ pub unsafe fn enable_nvic_interrupt(irq: pac::Interrupt) {
 #[inline]
 pub fn disable_nvic_interrupt(irq: pac::Interrupt) {
     cortex_m::peripheral::NVIC::mask(irq);
+}
+
+#[allow(dead_code)]
+pub(crate) mod sealed {
+    pub trait Sealed {}
 }

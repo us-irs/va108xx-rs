@@ -8,20 +8,23 @@ pub use crate::InterruptConfig;
 use crate::{
     clock::{enable_peripheral_clock, PeripheralClocks},
     enable_nvic_interrupt,
-    gpio::{
-        AltFunc1, AltFunc2, AltFunc3, DynPinId, Pin, PinId, PA0, PA1, PA10, PA11, PA12, PA13, PA14,
-        PA15, PA2, PA24, PA25, PA26, PA27, PA28, PA29, PA3, PA30, PA31, PA4, PA5, PA6, PA7, PA8,
-        PA9, PB0, PB1, PB10, PB11, PB12, PB13, PB14, PB15, PB16, PB17, PB18, PB19, PB2, PB20, PB21,
-        PB22, PB23, PB3, PB4, PB5, PB6,
-    },
     pac::{self, tim0},
+    pins::{
+        Pa0, Pa1, Pa10, Pa11, Pa12, Pa13, Pa14, Pa15, Pa2, Pa24, Pa25, Pa26, Pa27, Pa28, Pa29, Pa3,
+        Pa30, Pa31, Pa4, Pa5, Pa6, Pa7, Pa8, Pa9, Pb0, Pb1, Pb10, Pb11, Pb12, Pb13, Pb14, Pb15,
+        Pb16, Pb17, Pb18, Pb19, Pb2, Pb20, Pb21, Pb22, Pb23, Pb3, Pb4, Pb5, Pb6,
+    },
+    sealed::Sealed,
     time::Hertz,
-    timer,
-    typelevel::Sealed,
 };
 use core::cell::Cell;
 use critical_section::Mutex;
 use fugit::RateExtU32;
+use vorago_shared_periphs::{
+    gpio::{Pin, PinId},
+    ioconfig::regs::FunSel,
+    Port,
+};
 
 const IRQ_DST_NONE: u32 = 0xffffffff;
 pub static MS_COUNTER: Mutex<Cell<u32>> = Mutex::new(Cell::new(0));
@@ -163,18 +166,21 @@ impl CascadeSource {
 //==================================================================================================
 
 pub trait TimPin {
-    const DYN: DynPinId;
+    const PORT: Port;
+    const OFFSET: usize;
+    const FUN_SEL: FunSel;
+    const TIM: Tim;
 }
 
-pub trait ValidTim {
+pub trait TimPeripheralMarker {
     // TIM ID ranging from 0 to 23 for 24 TIM peripherals
-    const TIM_ID: u8;
+    const TIM: Tim;
 }
 
 macro_rules! tim_marker {
     ($TIMX:path, $ID:expr) => {
-        impl ValidTim for $TIMX {
-            const TIM_ID: u8 = $ID;
+        impl TimPeripheralMarker for $TIMX {
+            const TIM: Tim = Tim($ID);
         }
     };
 }
@@ -204,8 +210,9 @@ tim_marker!(pac::Tim21, 21);
 tim_marker!(pac::Tim22, 22);
 tim_marker!(pac::Tim23, 23);
 
-pub trait ValidTimAndPin<PIN: TimPin, TIM: ValidTim>: Sealed {}
+pub trait ValidTimAndPin<Pin: TimPin, Tim: TimPeripheralMarker>: Sealed {}
 
+/*
 macro_rules! pin_and_tim {
     ($PAX:ident, $ALTFUNC:ident, $ID:expr, $TIMX:path) => {
         impl TimPin for Pin<$PAX, $ALTFUNC>
@@ -274,6 +281,81 @@ pin_and_tim!(PB3, AltFunc3, 3, pac::Tim3);
 pin_and_tim!(PB2, AltFunc3, 2, pac::Tim2);
 pin_and_tim!(PB1, AltFunc3, 1, pac::Tim1);
 pin_and_tim!(PB0, AltFunc3, 0, pac::Tim0);
+*/
+
+macro_rules! pin_and_tim {
+    ($Px:ident, $FunSel:path, $ID:expr) => {
+        impl TimPin for Pin<$Px>
+        where
+            $Px: PinId,
+        {
+            const PORT: Port = $Px::PORT;
+            const OFFSET: usize = $Px::OFFSET;
+            const FUN_SEL: FunSel = $FunSel;
+            const TIM: Tim = Tim($ID);
+        }
+
+        /*
+        impl<Pin: TimPin, Tim: ValidTim> ValidTimAndPin<Pin, Tim> for (Pin<$Px>, $TIMX)
+        where
+            Pin<$PAX, $ALTFUNC>: TimPin,
+            $PAX: PinId,
+        {
+        }
+
+        impl Sealed for (Pin<$PAX, $ALTFUNC>, $TIMX) {}
+        */
+    };
+}
+
+pin_and_tim!(Pa0, FunSel::Sel1, 0);
+pin_and_tim!(Pa1, FunSel::Sel1, 1);
+pin_and_tim!(Pa2, FunSel::Sel1, 2);
+pin_and_tim!(Pa3, FunSel::Sel1, 3);
+pin_and_tim!(Pa4, FunSel::Sel1, 4);
+pin_and_tim!(Pa5, FunSel::Sel1, 5);
+pin_and_tim!(Pa6, FunSel::Sel1, 6);
+pin_and_tim!(Pa7, FunSel::Sel1, 7);
+pin_and_tim!(Pa8, FunSel::Sel1, 8);
+pin_and_tim!(Pa9, FunSel::Sel1, 9);
+pin_and_tim!(Pa10, FunSel::Sel1, 10);
+pin_and_tim!(Pa11, FunSel::Sel1, 11);
+pin_and_tim!(Pa12, FunSel::Sel1, 12);
+pin_and_tim!(Pa13, FunSel::Sel1, 13);
+pin_and_tim!(Pa14, FunSel::Sel1, 14);
+pin_and_tim!(Pa15, FunSel::Sel1, 15);
+
+pin_and_tim!(Pa24, FunSel::Sel2, 16);
+pin_and_tim!(Pa25, FunSel::Sel2, 17);
+pin_and_tim!(Pa26, FunSel::Sel2, 18);
+pin_and_tim!(Pa27, FunSel::Sel2, 19);
+pin_and_tim!(Pa28, FunSel::Sel2, 20);
+pin_and_tim!(Pa29, FunSel::Sel2, 21);
+pin_and_tim!(Pa30, FunSel::Sel2, 22);
+pin_and_tim!(Pa31, FunSel::Sel2, 23);
+
+pin_and_tim!(Pb0, FunSel::Sel3, 0);
+pin_and_tim!(Pb1, FunSel::Sel3, 1);
+pin_and_tim!(Pb2, FunSel::Sel3, 2);
+pin_and_tim!(Pb3, FunSel::Sel3, 3);
+pin_and_tim!(Pb4, FunSel::Sel3, 4);
+pin_and_tim!(Pb5, FunSel::Sel3, 5);
+pin_and_tim!(Pb6, FunSel::Sel3, 6);
+
+pin_and_tim!(Pb10, FunSel::Sel3, 10);
+pin_and_tim!(Pb11, FunSel::Sel3, 11);
+pin_and_tim!(Pb12, FunSel::Sel3, 12);
+pin_and_tim!(Pb13, FunSel::Sel3, 13);
+pin_and_tim!(Pb14, FunSel::Sel3, 14);
+pin_and_tim!(Pb15, FunSel::Sel3, 15);
+pin_and_tim!(Pb16, FunSel::Sel3, 16);
+pin_and_tim!(Pb17, FunSel::Sel3, 17);
+pin_and_tim!(Pb18, FunSel::Sel3, 18);
+pin_and_tim!(Pb19, FunSel::Sel3, 19);
+pin_and_tim!(Pb20, FunSel::Sel3, 20);
+pin_and_tim!(Pb21, FunSel::Sel3, 21);
+pin_and_tim!(Pb22, FunSel::Sel3, 22);
+pin_and_tim!(Pb23, FunSel::Sel3, 23);
 
 //==================================================================================================
 // Register Interface for TIM registers and TIM pins
@@ -337,16 +419,23 @@ pub unsafe trait TimRegInterface {
     }
 }
 
-unsafe impl<Tim: ValidTim> TimRegInterface for Tim {
+#[derive(Debug)]
+pub struct Tim(u8);
+
+impl Tim {
+    pub const fn raw_id(&self) -> u8 {
+        self.0
+    }
+}
+
+unsafe impl TimRegInterface for Tim {
     fn tim_id(&self) -> u8 {
-        Tim::TIM_ID
+        self.0
     }
 }
 
 pub(crate) struct TimDynRegister {
     pub(crate) tim_id: u8,
-    #[allow(dead_code)]
-    pub(crate) pin_id: DynPinId,
 }
 
 unsafe impl TimRegInterface for TimDynRegister {
@@ -361,44 +450,28 @@ unsafe impl TimRegInterface for TimDynRegister {
 //==================================================================================================
 
 /// Hardware timers
-pub struct CountdownTimer<Tim: ValidTim> {
+pub struct CountdownTimer {
     tim: Tim,
     curr_freq: Hertz,
-    irq_cfg: Option<InterruptConfig>,
     sys_clk: Hertz,
     rst_val: u32,
     last_cnt: u32,
     listening: bool,
 }
 
-#[inline(always)]
-pub fn enable_tim_clk(syscfg: &mut pac::Sysconfig, idx: u8) {
-    syscfg
-        .tim_clk_enable()
-        .modify(|r, w| unsafe { w.bits(r.bits() | (1 << idx)) });
-}
-
-#[inline(always)]
-pub fn disable_tim_clk(syscfg: &mut pac::Sysconfig, idx: u8) {
-    syscfg
-        .tim_clk_enable()
-        .modify(|r, w| unsafe { w.bits(r.bits() & !(1 << idx)) });
-}
-
-unsafe impl<TIM: ValidTim> TimRegInterface for CountdownTimer<TIM> {
+unsafe impl TimRegInterface for CountdownTimer {
     fn tim_id(&self) -> u8 {
-        TIM::TIM_ID
+        self.tim.0
     }
 }
 
-impl<Tim: ValidTim> CountdownTimer<Tim> {
+impl CountdownTimer {
     /// Configures a TIM peripheral as a periodic count down timer
-    pub fn new(syscfg: &mut pac::Sysconfig, sys_clk: impl Into<Hertz>, tim: Tim) -> Self {
-        enable_tim_clk(syscfg, Tim::TIM_ID);
+    pub fn new(sys_clk: impl Into<Hertz>, tim_id: u8) -> Self {
+        enable_tim_clk(tim_id);
         let cd_timer = CountdownTimer {
-            tim,
+            tim: Tim(tim_id),
             sys_clk: sys_clk.into(),
-            irq_cfg: None,
             rst_val: 0,
             curr_freq: 0.Hz(),
             listening: false,
@@ -414,44 +487,36 @@ impl<Tim: ValidTim> CountdownTimer<Tim> {
 
     /// Listen for events. Depending on the IRQ configuration, this also activates the IRQ in the
     /// IRQSEL peripheral for the provided interrupt and unmasks the interrupt
-    pub fn listen(
-        &mut self,
-        event: Event,
-        irq_cfg: InterruptConfig,
-        irq_sel: Option<&mut pac::Irqsel>,
-        sys_cfg: Option<&mut pac::Sysconfig>,
-    ) {
+    pub fn listen(&mut self, event: Event, irq_cfg: InterruptConfig) {
+        enable_peripheral_clock(PeripheralClocks::Irqsel);
+        if irq_cfg.route {
+            let irqsel = unsafe { pac::Irqsel::steal() };
+            irqsel
+                .tim0(self.tim_id() as usize)
+                .write(|w| unsafe { w.bits(irq_cfg.id as u32) });
+        }
+        if irq_cfg.enable_in_nvic {
+            unsafe { enable_nvic_interrupt(irq_cfg.id) };
+        }
         match event {
             Event::TimeOut => {
                 cortex_m::peripheral::NVIC::mask(irq_cfg.id);
                 self.irq_cfg = Some(irq_cfg);
-                if irq_cfg.route {
-                    if let Some(sys_cfg) = sys_cfg {
-                        enable_peripheral_clock(sys_cfg, PeripheralClocks::Irqsel);
-                    }
-                    if let Some(irq_sel) = irq_sel {
-                        irq_sel
-                            .tim0(Tim::TIM_ID as usize)
-                            .write(|w| unsafe { w.bits(irq_cfg.id as u32) });
-                    }
-                }
                 self.listening = true;
             }
         }
     }
 
-    pub fn unlisten(
-        &mut self,
-        event: Event,
-        syscfg: &mut pac::Sysconfig,
-        irqsel: &mut pac::Irqsel,
-    ) {
+    pub fn unlisten(&mut self, event: Event, unroute_irq: bool) {
         match event {
             Event::TimeOut => {
-                enable_peripheral_clock(syscfg, PeripheralClocks::Irqsel);
-                irqsel
-                    .tim0(Tim::TIM_ID as usize)
-                    .write(|w| unsafe { w.bits(IRQ_DST_NONE) });
+                enable_peripheral_clock(PeripheralClocks::Irqsel);
+                if unroute_irq {
+                    let irqsel = unsafe { pac::Irqsel::steal() };
+                    irqsel
+                        .tim0(self.tim_id() as usize)
+                        .write(|w| unsafe { w.bits(IRQ_DST_NONE) });
+                }
                 self.disable_interrupt();
                 self.listening = false;
             }
@@ -481,7 +546,7 @@ impl<Tim: ValidTim> CountdownTimer<Tim> {
             .write(|w| w.enable().clear_bit());
         syscfg
             .tim_clk_enable()
-            .modify(|r, w| unsafe { w.bits(r.bits() & !(1 << Tim::TIM_ID)) });
+            .modify(|r, w| unsafe { w.bits(r.bits() & !(1 << self.tim_id())) });
         self.tim
     }
 
@@ -628,7 +693,7 @@ impl<Tim: ValidTim> CountdownTimer<Tim> {
 }
 
 /// CountDown implementation for TIMx
-impl<TIM: ValidTim> CountdownTimer<TIM> {
+impl CountdownTimer {
     #[inline]
     pub fn start<T>(&mut self, timeout: T)
     where
@@ -664,7 +729,7 @@ impl<TIM: ValidTim> CountdownTimer<TIM> {
     }
 }
 
-impl<TIM: ValidTim> embedded_hal::delay::DelayNs for CountdownTimer<TIM> {
+impl embedded_hal::delay::DelayNs for CountdownTimer {
     fn delay_ns(&mut self, ns: u32) {
         let ticks = (u64::from(ns)) * (u64::from(self.sys_clk.raw())) / 1_000_000_000;
 
@@ -718,27 +783,11 @@ impl<TIM: ValidTim> embedded_hal::delay::DelayNs for CountdownTimer<TIM> {
     }
 }
 
-// Set up a millisecond timer on TIM0. Please note that the user still has to provide an IRQ handler
-// which should call [default_ms_irq_handler].
-pub fn set_up_ms_tick<TIM: ValidTim>(
-    irq_cfg: InterruptConfig,
-    sys_cfg: &mut pac::Sysconfig,
-    irq_sel: Option<&mut pac::Irqsel>,
+pub fn set_up_ms_delay_provider(
     sys_clk: impl Into<Hertz>,
-    tim0: TIM,
-) -> CountdownTimer<TIM> {
-    let mut ms_timer = CountdownTimer::new(sys_cfg, sys_clk, tim0);
-    ms_timer.listen(timer::Event::TimeOut, irq_cfg, irq_sel, Some(sys_cfg));
-    ms_timer.start(1000.Hz());
-    ms_timer
-}
-
-pub fn set_up_ms_delay_provider<TIM: ValidTim>(
-    sys_cfg: &mut pac::Sysconfig,
-    sys_clk: impl Into<Hertz>,
-    tim: TIM,
-) -> CountdownTimer<TIM> {
-    let mut provider = CountdownTimer::new(sys_cfg, sys_clk, tim);
+    tim: impl TimPeripheralMarker,
+) -> CountdownTimer {
+    let mut provider = CountdownTimer::new(sys_clk, tim);
     provider.start(1000.Hz());
     provider
 }
@@ -762,6 +811,7 @@ pub fn get_ms_ticks() -> u32 {
 // Delay implementations
 //==================================================================================================
 
+/*
 pub struct DelayMs(CountdownTimer<pac::Tim0>);
 
 impl DelayMs {
@@ -786,4 +836,21 @@ impl embedded_hal::delay::DelayNs for DelayMs {
             cortex_m::asm::nop();
         }
     }
+}
+*/
+
+#[inline(always)]
+pub fn enable_tim_clk(idx: u8) {
+    let syscfg = unsafe { va108xx::Sysconfig::steal() };
+    syscfg
+        .tim_clk_enable()
+        .modify(|r, w| unsafe { w.bits(r.bits() | (1 << idx)) });
+}
+
+#[inline(always)]
+pub fn disable_tim_clk(idx: u8) {
+    let syscfg = unsafe { va108xx::Sysconfig::steal() };
+    syscfg
+        .tim_clk_enable()
+        .modify(|r, w| unsafe { w.bits(r.bits() & !(1 << idx)) });
 }

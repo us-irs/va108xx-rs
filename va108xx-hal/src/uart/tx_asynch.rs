@@ -32,7 +32,7 @@ static TX_DONE: [AtomicBool; 2] = [const { AtomicBool::new(false) }; 2];
 ///
 /// The user has to call this once in the interrupt handler responsible for the TX interrupts on
 /// the given UART bank.
-pub fn on_interrupt_tx(bank: Bank) {
+pub fn on_interrupt_tx(bank: UartId) {
     let uart = unsafe { bank.reg_block() };
     let idx = bank as usize;
     let irq_enb = uart.irq_enb().read();
@@ -153,20 +153,20 @@ impl TxFuture {
     ///
     /// This function stores the raw pointer of the passed data slice. The user MUST ensure
     /// that the slice outlives the data structure.
-    pub unsafe fn new<Uart: Instance>(tx: &mut Tx<Uart>, data: &[u8]) -> Self {
-        TX_DONE[Uart::IDX as usize].store(false, core::sync::atomic::Ordering::Relaxed);
+    pub unsafe fn new(tx: &mut Tx, data: &[u8]) -> Self {
+        TX_DONE[tx.0 as usize].store(false, core::sync::atomic::Ordering::Relaxed);
         tx.disable_interrupts();
         tx.disable();
         tx.clear_fifo();
 
-        let uart_tx = unsafe { tx.uart() };
+        let uart_tx = tx.regs_priv();
         let init_fill_count = core::cmp::min(data.len(), 16);
         // We fill the FIFO.
         for data in data.iter().take(init_fill_count) {
             uart_tx.data().write(|w| unsafe { w.bits(*data as u32) });
         }
         critical_section::with(|cs| {
-            let context_ref = TX_CONTEXTS[Uart::IDX as usize].borrow(cs);
+            let context_ref = TX_CONTEXTS[tx.0 as usize].borrow(cs);
             let mut context = context_ref.borrow_mut();
             context.slice.set(data);
             context.progress = init_fill_count;
@@ -177,7 +177,7 @@ impl TxFuture {
             tx.enable();
         });
         Self {
-            uart_idx: Uart::IDX as usize,
+            uart_idx: tx.0 as usize,
         }
     }
 }
@@ -213,17 +213,15 @@ impl Drop for TxFuture {
     }
 }
 
-pub struct TxAsync<Uart: Instance> {
-    tx: Tx<Uart>,
-}
+pub struct TxAsync(Tx);
 
-impl<Uart: Instance> TxAsync<Uart> {
-    pub fn new(tx: Tx<Uart>) -> Self {
-        Self { tx }
+impl TxAsync {
+    pub fn new(tx: Tx) -> Self {
+        Self(tx)
     }
 
-    pub fn release(self) -> Tx<Uart> {
-        self.tx
+    pub fn release(self) -> Tx {
+        self.0
     }
 }
 
@@ -238,17 +236,17 @@ impl embedded_io_async::Error for TxOverrunError {
     }
 }
 
-impl<Uart: Instance> embedded_io::ErrorType for TxAsync<Uart> {
+impl embedded_io::ErrorType for TxAsync {
     type Error = TxOverrunError;
 }
 
-impl<Uart: Instance> Write for TxAsync<Uart> {
+impl Write for TxAsync {
     /// Write a buffer asynchronously.
     ///
     /// This implementation is not side effect free, and a started future might have already
     /// written part of the passed buffer.
     async fn write(&mut self, buf: &[u8]) -> Result<usize, Self::Error> {
-        let fut = unsafe { TxFuture::new(&mut self.tx, buf) };
+        let fut = unsafe { TxFuture::new(&mut self.0, buf) };
         fut.await
     }
 }
