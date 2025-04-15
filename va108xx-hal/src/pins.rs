@@ -1,4 +1,4 @@
-pub use vorago_shared_periphs::gpio::{Pin, PinId, Port};
+pub use vorago_shared_periphs::gpio::{Pin, PinIdProvider, Port};
 
 use crate::{sysconfig::reset_peripheral_for_cycles, PeripheralSelect};
 
@@ -19,7 +19,7 @@ macro_rules! pin_id {
     };
 }
 
-impl<I: PinId + crate::sealed::Sealed> crate::sealed::Sealed for Pin<I> {}
+impl<I: PinIdProvider + crate::sealed::Sealed> crate::sealed::Sealed for Pin<I> {}
 
 pin_id!(Pa0, Port::A, 0);
 pin_id!(Pa1, Port::A, 1);

@@ -51,10 +51,13 @@ pub struct Gpio {
     irq_edge: u32,
     irq_evt: u32,
     irq_enb: u32,
+    /// Raw interrupt status. This register is not latched and may not indicated edge sensitive
+    /// events.
     #[mmio(PureRead)]
     irq_raw: u32,
+    /// Read only register which shows the AND of IRQ_RAW and IRQ_ENB. Called IRQ_END by Vorago.
     #[mmio(PureRead)]
-    irq_end: u32,
+    irq_active: u32,
     #[mmio(PureRead)]
     edge_status: u32,
 

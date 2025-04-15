@@ -5,19 +5,19 @@ pub use ll::{Port, Pull};
 
 use crate::ioconfig::regs::FunSel;
 
+pub mod asynch;
 pub mod ll;
 pub mod regs;
 
-pub trait PinId {
-    const PORT: Port;
-    const OFFSET: usize;
+pub trait PinIdProvider {
+    const ID: ll::PinId;
 }
 
-pub struct Pin<I: PinId> {
+pub struct Pin<I: PinIdProvider> {
     phantom: core::marker::PhantomData<I>,
 }
 
-impl<I: PinId> Pin<I> {
+impl<I: PinIdProvider> Pin<I> {
     #[allow(clippy::new_without_default)]
     pub const fn new() -> Self {
         Self {
@@ -29,8 +29,8 @@ impl<I: PinId> Pin<I> {
 pub struct Output(ll::LowLevelGpio);
 
 impl Output {
-    pub fn new<I: PinId>(_pin: Pin<I>, init_level: PinState) -> Self {
-        let mut ll = ll::LowLevelGpio::new(I::PORT, I::OFFSET).unwrap();
+    pub fn new<I: PinIdProvider>(_pin: Pin<I>, init_level: PinState) -> Self {
+        let mut ll = ll::LowLevelGpio::new(I::ID);
         ll.configure_as_output_push_pull(init_level);
         Output(ll)
     }
@@ -101,14 +101,14 @@ impl embedded_hal::digital::StatefulOutputPin for Output {
 pub struct Input(ll::LowLevelGpio);
 
 impl Input {
-    pub fn new_floating<I: PinId>(_pin: Pin<I>) -> Self {
-        let mut ll = ll::LowLevelGpio::new(I::PORT, I::OFFSET).unwrap();
+    pub fn new_floating<I: PinIdProvider>(_pin: Pin<I>) -> Self {
+        let mut ll = ll::LowLevelGpio::new(I::ID);
         ll.configure_as_input_floating();
         Input(ll)
     }
 
-    pub fn new_with_pull<I: PinId>(_pin: Pin<I>, pull: Pull) -> Self {
-        let mut ll = ll::LowLevelGpio::new(I::PORT, I::OFFSET).unwrap();
+    pub fn new_with_pull<I: PinIdProvider>(_pin: Pin<I>, pull: Pull) -> Self {
+        let mut ll = ll::LowLevelGpio::new(I::ID);
         ll.configure_as_input_with_pull(pull);
         Input(ll)
     }
@@ -121,6 +121,14 @@ impl Input {
     #[inline]
     pub fn offset(&self) -> usize {
         self.0.offset()
+    }
+
+    #[cfg(feature = "vor1x")]
+    pub fn enable_interrupt(&mut self, irq_cfg: crate::InterruptConfig) {
+        self.0.enable_interrupt(irq_cfg);
+    }
+    pub fn configure_edge_interrupt(&mut self, edge: ll::InterruptEdge) {
+        self.0.configure_edge_interrupt(edge);
     }
 }
 
@@ -161,8 +169,8 @@ pub struct Flex {
 }
 
 impl Flex {
-    pub fn new<I: PinId>(_pin: Pin<I>) -> Self {
-        let mut ll = ll::LowLevelGpio::new(I::PORT, I::OFFSET).unwrap();
+    pub fn new<I: PinIdProvider>(_pin: Pin<I>) -> Self {
+        let mut ll = ll::LowLevelGpio::new(I::ID);
         ll.configure_as_input_floating();
         Flex {
             ll,
@@ -270,8 +278,8 @@ pub struct IoPeriphPin {
 }
 
 impl IoPeriphPin {
-    pub fn new<I: PinId>(_pin: Pin<I>, fun_sel: FunSel, pull: Option<Pull>) -> Self {
-        let mut ll = ll::LowLevelGpio::new(I::PORT, I::OFFSET).unwrap();
+    pub fn new<I: PinIdProvider>(_pin: Pin<I>, fun_sel: FunSel, pull: Option<Pull>) -> Self {
+        let mut ll = ll::LowLevelGpio::new(I::ID);
         ll.configure_as_peripheral_pin(fun_sel, pull);
         IoPeriphPin { ll, fun_sel }
     }

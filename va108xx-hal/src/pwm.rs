@@ -11,183 +11,31 @@ use core::marker::PhantomData;
 use crate::clock::enable_peripheral_clock;
 use crate::pac;
 use crate::time::Hertz;
-use crate::timer::{Tim, TimPeripheralMarker, TimPin, TimRegInterface};
+use crate::timer::{TimId, TimPeripheralMarker, TimPin, TimRegInterface};
 
 const DUTY_MAX: u16 = u16::MAX;
 
 #[derive(Debug)]
 #[cfg_attr(feature = "defmt", derive(defmt::Format))]
-pub(crate) struct PwmCommon {}
-
 enum StatusSelPwm {
     PwmA = 3,
     PwmB = 4,
 }
 
+#[derive(Debug)]
+#[cfg_attr(feature = "defmt", derive(defmt::Format))]
 pub struct PwmA {}
+#[derive(Debug)]
+#[cfg_attr(feature = "defmt", derive(defmt::Format))]
 pub struct PwmB {}
 
-//==================================================================================================
-// Strongly typed PWM pin
-//==================================================================================================
-
-/*
-pub struct PwmPin<Pin: TimPin, Tim: TimMarker, Mode = PwmA> {
-    pin_and_tim: (Pin, Tim),
-    inner: ReducedPwmPin<Mode>,
-    mode: PhantomData<Mode>,
+#[derive(Debug, thiserror::Error)]
+#[cfg_attr(feature = "defmt", derive(defmt::Format))]
+#[error("pin tim ID {pin_tim:?} and timer tim id {tim_id:?} do not match")]
+pub struct TimMissmatchError {
+    pin_tim: TimId,
+    tim_id: TimId,
 }
-
-impl<Pin: TimPin, Tim: ValidTim, Mode> PwmPin<Pin, Tim, Mode>
-where
-    (Pin, Tim): ValidTimAndPin<Pin, Tim>,
-{
-    /// Create a new stronlgy typed PWM pin
-    pub fn new(
-        sys_cfg: &mut pac::Sysconfig,
-        sys_clk: impl Into<Hertz> + Copy,
-        pin_and_tim: (Pin, Tim),
-        initial_period: impl Into<Hertz> + Copy,
-    ) -> Self {
-        let mut pin = PwmPin {
-            pin_and_tim,
-            inner: ReducedPwmPin::<Mode>::new(
-                Tim::TIM_ID,
-                Pin::DYN,
-                PwmCommon {
-                    current_duty: 0,
-                    current_lower_limit: 0,
-                    current_period: initial_period.into(),
-                    current_rst_val: 0,
-                    sys_clk: sys_clk.into(),
-                },
-            ),
-            //unsafe { TimAndPin::new(tim_and_pin.0, tim_and_pin.1) },
-            mode: PhantomData,
-        };
-        enable_peripheral_clock(sys_cfg, crate::clock::PeripheralClocks::Gpio);
-        enable_peripheral_clock(sys_cfg, crate::clock::PeripheralClocks::Ioconfig);
-        sys_cfg
-            .tim_clk_enable()
-            .modify(|r, w| unsafe { w.bits(r.bits() | pin.pin_and_tim.1.mask_32()) });
-        pin.enable_pwm_a();
-        pin.set_period(initial_period);
-        pin
-    }
-
-    pub fn downgrade(self) -> ReducedPwmPin<Mode> {
-        self.inner
-    }
-
-    pub fn release(self) -> (Pin, Tim) {
-        self.pin_and_tim
-    }
-
-    #[inline]
-    fn enable_pwm_a(&mut self) {
-        self.inner.enable_pwm_a();
-    }
-
-    #[inline]
-    fn enable_pwm_b(&mut self) {
-        self.inner.enable_pwm_b();
-    }
-
-    #[inline]
-    pub fn get_period(&self) -> Hertz {
-        self.inner.get_period()
-    }
-
-    #[inline]
-    pub fn set_period(&mut self, period: impl Into<Hertz>) {
-        self.inner.set_period(period);
-    }
-
-    #[inline]
-    pub fn disable(&mut self) {
-        self.inner.disable();
-    }
-
-    #[inline]
-    pub fn enable(&mut self) {
-        self.inner.enable();
-    }
-
-    #[inline]
-    pub fn period(&self) -> Hertz {
-        self.inner.period()
-    }
-
-    #[inline(always)]
-    pub fn duty(&self) -> u16 {
-        self.inner.duty()
-    }
-}
-
-impl<Pin: TimPin, Tim: ValidTim> From<PwmPin<Pin, Tim, PwmA>> for PwmPin<Pin, Tim, PwmB>
-where
-    (Pin, Tim): ValidTimAndPin<Pin, Tim>,
-{
-    fn from(other: PwmPin<Pin, Tim, PwmA>) -> Self {
-        let mut pwmb = Self {
-            mode: PhantomData,
-            pin_and_tim: other.pin_and_tim,
-            inner: other.inner.into(),
-        };
-        pwmb.enable_pwm_b();
-        pwmb
-    }
-}
-
-impl<PIN: TimPin, TIM: ValidTim> From<PwmPin<PIN, TIM, PwmB>> for PwmPin<PIN, TIM, PwmA>
-where
-    (PIN, TIM): ValidTimAndPin<PIN, TIM>,
-{
-    fn from(other: PwmPin<PIN, TIM, PwmB>) -> Self {
-        let mut pwma = Self {
-            mode: PhantomData,
-            pin_and_tim: other.pin_and_tim,
-            inner: other.inner.into(),
-        };
-        pwma.enable_pwm_a();
-        pwma
-    }
-}
-
-impl<Pin: TimPin, Tim: ValidTim> PwmPin<Pin, Tim, PwmA>
-where
-    (Pin, Tim): ValidTimAndPin<Pin, Tim>,
-{
-    pub fn pwma(
-        sys_cfg: &mut pac::Sysconfig,
-        sys_clk: impl Into<Hertz> + Copy,
-        pin_and_tim: (Pin, Tim),
-        initial_period: impl Into<Hertz> + Copy,
-    ) -> Self {
-        let mut pin: PwmPin<Pin, Tim, PwmA> =
-            Self::new(sys_cfg, sys_clk, pin_and_tim, initial_period);
-        pin.enable_pwm_a();
-        pin
-    }
-}
-
-impl<Pin: TimPin, Tim: ValidTim> PwmPin<Pin, Tim, PwmB>
-where
-    (Pin, Tim): ValidTimAndPin<Pin, Tim>,
-{
-    pub fn pwmb(
-        sys_cfg: &mut pac::Sysconfig,
-        sys_clk: impl Into<Hertz> + Copy,
-        pin_and_tim: (Pin, Tim),
-        initial_period: impl Into<Hertz> + Copy,
-    ) -> Self {
-        let mut pin: PwmPin<Pin, Tim, PwmB> =
-            Self::new(sys_cfg, sys_clk, pin_and_tim, initial_period);
-        pin.enable_pwm_b();
-        pin
-    }
-}
-*/
 
 //==================================================================================================
 // PWM pin
@@ -195,7 +43,7 @@ where
 
 /// Reduced version where type information is deleted
 pub struct PwmPin<Mode = PwmA> {
-    tim: Tim,
+    tim_id: TimId,
     sys_clk: Hertz,
     /// For PWMB, this is the upper limit
     current_duty: u16,
@@ -208,14 +56,20 @@ pub struct PwmPin<Mode = PwmA> {
 
 impl<Mode> PwmPin<Mode> {
     /// Create a new strongly typed PWM pin
-    pub fn new<Pin: TimPin, Tim: TimPeripheralMarker>(
+    pub fn new<Pin: TimPin, Tim: TimPeripheralMarker + TimRegInterface>(
         sys_cfg: &mut pac::Sysconfig,
         sys_clk: impl Into<Hertz> + Copy,
         pin_and_tim: (Pin, Tim),
         initial_period: impl Into<Hertz> + Copy,
-    ) -> Self {
+    ) -> Result<Self, TimMissmatchError> {
+        if Pin::TIM_ID != Tim::ID {
+            return Err(TimMissmatchError {
+                pin_tim: Pin::TIM_ID,
+                tim_id: Tim::ID,
+            });
+        }
         let mut pin = PwmPin {
-            tim: Tim::TIM,
+            tim_id: Tim::ID,
             current_duty: 0,
             current_lower_limit: 0,
             current_period: initial_period.into(),
@@ -227,15 +81,15 @@ impl<Mode> PwmPin<Mode> {
         enable_peripheral_clock(crate::clock::PeripheralClocks::Ioconfig);
         sys_cfg
             .tim_clk_enable()
-            .modify(|r, w| unsafe { w.bits(r.bits() | pin.pin_and_tim.1.mask_32()) });
+            .modify(|r, w| unsafe { w.bits(r.bits() | pin_and_tim.1.mask_32()) });
         pin.enable_pwm_a();
         pin.set_period(initial_period);
-        pin
+        Ok(pin)
     }
 
     #[inline]
     fn enable_pwm_a(&mut self) {
-        self.tim
+        self.tim_id
             .reg_block()
             .ctrl()
             .modify(|_, w| unsafe { w.status_sel().bits(StatusSelPwm::PwmA as u8) });
@@ -243,7 +97,7 @@ impl<Mode> PwmPin<Mode> {
 
     #[inline]
     fn enable_pwm_b(&mut self) {
-        self.tim
+        self.tim_id
             .reg_block()
             .ctrl()
             .modify(|_, w| unsafe { w.status_sel().bits(StatusSelPwm::PwmB as u8) });
@@ -261,8 +115,8 @@ impl<Mode> PwmPin<Mode> {
         if self.current_period.raw() == 0 {
             return;
         }
-        self.current_rst_val = self.common.sys_clk.raw() / self.common.current_period.raw();
-        self.tim
+        self.current_rst_val = self.sys_clk.raw() / self.current_period.raw();
+        self.tim_id
             .reg_block()
             .rst_value()
             .write(|w| unsafe { w.bits(self.current_rst_val) });
@@ -270,7 +124,7 @@ impl<Mode> PwmPin<Mode> {
 
     #[inline]
     pub fn disable(&mut self) {
-        self.tim
+        self.tim_id
             .reg_block()
             .ctrl()
             .modify(|_, w| w.enable().clear_bit());
@@ -278,7 +132,7 @@ impl<Mode> PwmPin<Mode> {
 
     #[inline]
     pub fn enable(&mut self) {
-        self.tim
+        self.tim_id
             .reg_block()
             .ctrl()
             .modify(|_, w| w.enable().set_bit());
@@ -299,7 +153,7 @@ impl From<PwmPin<PwmA>> for PwmPin<PwmB> {
     fn from(other: PwmPin<PwmA>) -> Self {
         let mut pwmb = Self {
             mode: PhantomData,
-            tim: other.tim,
+            tim_id: other.tim_id,
             sys_clk: other.sys_clk,
             current_duty: other.current_duty,
             current_lower_limit: other.current_lower_limit,
@@ -315,7 +169,7 @@ impl From<PwmPin<PwmB>> for PwmPin<PwmA> {
     fn from(other: PwmPin<PwmB>) -> Self {
         let mut pwmb = Self {
             mode: PhantomData,
-            tim: other.tim,
+            tim_id: other.tim_id,
             sys_clk: other.sys_clk,
             current_duty: other.current_duty,
             current_lower_limit: other.current_lower_limit,
@@ -353,7 +207,7 @@ impl PwmPin<PwmB> {
         self.current_lower_limit = duty;
         let pwmb_val: u64 =
             (self.current_rst_val as u64 * self.current_lower_limit as u64) / DUTY_MAX as u64;
-        self.tim
+        self.tim_id
             .reg_block()
             .pwmb_value()
             .write(|w| unsafe { w.bits(pwmb_val as u32) });
@@ -369,7 +223,7 @@ impl PwmPin<PwmB> {
         self.current_duty = duty;
         let pwma_val: u64 =
             (self.current_rst_val as u64 * self.current_duty as u64) / DUTY_MAX as u64;
-        self.tim
+        self.tim_id
             .reg_block()
             .pwma_value()
             .write(|w| unsafe { w.bits(pwma_val as u32) });
@@ -396,7 +250,7 @@ impl embedded_hal::pwm::SetDutyCycle for PwmPin {
         let pwma_val: u64 = (self.current_rst_val as u64
             * (DUTY_MAX as u64 - self.current_duty as u64))
             / DUTY_MAX as u64;
-        self.tim
+        self.tim_id
             .reg_block()
             .pwma_value()
             .write(|w| unsafe { w.bits(pwma_val as u32) });

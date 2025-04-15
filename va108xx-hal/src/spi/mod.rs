@@ -50,6 +50,12 @@ pub enum SpiId {
 }
 
 impl SpiId {
+    /// Unsafely steal a peripheral MMIO block for the given UART.
+    ///
+    /// # Safety
+    ///
+    /// Circumvents ownership and safety guarantees by the HAL which can lead to data races
+    /// on cuncurrent usage.
     pub unsafe fn reg_block(&self) -> &'static SpiRegBlock {
         unsafe {
             match self {

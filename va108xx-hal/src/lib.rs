@@ -19,6 +19,9 @@ pub mod uart;
 
 pub use vorago_shared_periphs::FunSel;
 
+/// This is the NONE destination reigster value for the IRQSEL peripheral.
+pub const IRQ_DST_NONE: u32 = 0xffffffff;
+
 #[derive(Debug, Copy, Clone, PartialEq, Eq)]
 #[cfg_attr(feature = "defmt", derive(defmt::Format))]
 pub enum PeripheralSelect {
@@ -35,32 +38,6 @@ pub enum PeripheralSelect {
     Ioconfig = 22,
     Utility = 23,
     Gpio = 24,
-}
-
-/// Generic interrupt config which can be used to specify whether the HAL driver will
-/// use the IRQSEL register to route an interrupt, and whether the IRQ will be unmasked in the
-/// Cortex-M0 NVIC. Both are generally necessary for IRQs to work, but the user might want to
-/// perform those steps themselves.
-#[derive(Debug, PartialEq, Eq, Clone, Copy)]
-#[cfg_attr(feature = "defmt", derive(defmt::Format))]
-pub struct InterruptConfig {
-    /// Interrupt target vector. Should always be set, might be required for disabling IRQs
-    pub id: pac::Interrupt,
-    /// Specfiy whether IRQ should be routed to an IRQ vector using the IRQSEL peripheral.
-    pub route: bool,
-    /// Specify whether the IRQ is unmasked in the Cortex-M NVIC. If an interrupt is used for
-    /// multiple purposes, the user can enable the interrupts themselves.
-    pub enable_in_nvic: bool,
-}
-
-impl InterruptConfig {
-    pub fn new(id: pac::Interrupt, route: bool, enable_in_nvic: bool) -> Self {
-        InterruptConfig {
-            id,
-            route,
-            enable_in_nvic,
-        }
-    }
 }
 
 pub type IrqCfg = InterruptConfig;

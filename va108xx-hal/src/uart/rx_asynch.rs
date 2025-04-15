@@ -26,7 +26,7 @@ use embedded_io::ErrorType;
 use portable_atomic::AtomicBool;
 use va108xx::uarta as uart_base;
 
-use super::{Rx, UartErrors, UartId, UartPeripheralMarker};
+use super::{Rx, UartErrors, UartId};
 
 static UART_RX_WAKERS: [AtomicWaker; 2] = [const { AtomicWaker::new() }; 2];
 static RX_READ_ACTIVE: [AtomicBool; 2] = [const { AtomicBool::new(false) }; 2];

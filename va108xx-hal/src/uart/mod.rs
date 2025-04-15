@@ -30,7 +30,7 @@ use crate::{
 };
 use embedded_hal_nb::serial::Read;
 
-#[derive(Debug, Clone, Copy)]
+#[derive(Debug, PartialEq, Eq, Clone, Copy)]
 #[cfg_attr(feature = "defmt", derive(defmt::Format))]
 pub enum UartId {
     A = 0,
@@ -38,7 +38,12 @@ pub enum UartId {
 }
 
 impl UartId {
-    // TODO: Safety docs.
+    /// Unsafely steal a peripheral MMIO block for the given UART.
+    ///
+    /// # Safety
+    ///
+    /// Circumvents ownership and safety guarantees by the HAL which can lead to data races
+    /// on cuncurrent usage.
     pub const unsafe fn reg_block(&self) -> &'static uart_base::RegisterBlock {
         match self {
             UartId::A => unsafe { &*pac::Uarta::PTR },
@@ -494,6 +499,11 @@ impl UartPeripheralMarker for pac::Uartb {
     }
 }
 
+#[derive(Debug, thiserror::Error)]
+#[cfg_attr(feature = "defmt", derive(defmt::Format))]
+#[error("UART ID missmatch between peripheral and pins.")]
+pub struct UartIdMissmatchError;
+
 //==================================================================================================
 // UART implementation
 //==================================================================================================
@@ -512,7 +522,7 @@ impl Uart {
         pins: (Tx, Rx),
         config: Config,
         irq_cfg: InterruptConfig,
-    ) -> Self {
+    ) -> Result<Uart, UartIdMissmatchError> {
         Self::new(sys_clk, uart, pins, config, Some(irq_cfg))
     }
 
@@ -522,7 +532,7 @@ impl Uart {
         uart: UartI,
         pins: (Tx, Rx),
         config: Config,
-    ) -> Self {
+    ) -> Result<Self, UartIdMissmatchError> {
         Self::new(sys_clk, uart, pins, config, None)
     }
 
@@ -540,11 +550,14 @@ impl Uart {
     ///   any interrupt support is used, this can be [None].
     pub fn new<UartI: UartPeripheralMarker, TxPinI: TxPin, RxPinI: RxPin>(
         sys_clk: Hertz,
-        uart: UartI,
-        pins: (TxPinI, RxPinI),
+        _uart: UartI,
+        _pins: (TxPinI, RxPinI),
         config: Config,
         opt_irq_cfg: Option<InterruptConfig>,
-    ) -> Self {
+    ) -> Result<Self, UartIdMissmatchError> {
+        if UartI::ID != TxPinI::UART_ID || UartI::ID != RxPinI::UART_ID {
+            return Err(UartIdMissmatchError);
+        }
         crate::clock::enable_peripheral_clock(UartI::PERIPH_SEL);
 
         let reg_block = unsafe { UartI::reg_block() };
@@ -608,11 +621,10 @@ impl Uart {
             }
         }
 
-        // TODO: Validity checks.
-        Uart {
+        Ok(Uart {
             tx: Tx::new(UartI::ID),
             rx: Rx::new(UartI::ID),
-        }
+        })
     }
 
     #[inline]
@@ -973,7 +985,7 @@ impl Tx {
     /// You must ensure that only registers related to the operation of the TX side are used.
     #[inline(always)]
     pub unsafe fn regs(&self) -> &'static uart_base::RegisterBlock {
-        &self.0.reg_block()
+        self.0.reg_block()
     }
 
     #[inline(always)]

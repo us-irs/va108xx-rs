@@ -5,37 +5,63 @@ pub use crate::Port;
 pub use crate::ioconfig::regs::Pull;
 use crate::ioconfig::regs::{FunSel, IoConfig, MmioIoConfig};
 
-pub struct LowLevelGpio {
-    gpio: super::regs::MmioGpio<'static>,
-    ioconfig: MmioIoConfig<'static>,
+#[derive(Debug, PartialEq, Eq)]
+#[cfg_attr(feature = "defmt", derive(defmt::Format))]
+pub enum InterruptEdge {
+    HighToLow,
+    LowToHigh,
+    BothEdges,
+}
+
+#[derive(Debug, PartialEq, Eq)]
+#[cfg_attr(feature = "defmt", derive(defmt::Format))]
+pub enum InterruptLevel {
+    Low = 0,
+    High = 1,
+}
+
+#[derive(Debug, PartialEq, Eq)]
+#[cfg_attr(feature = "defmt", derive(defmt::Format))]
+pub struct PinId {
     port: Port,
     offset: usize,
 }
 
-impl LowLevelGpio {
-    pub fn new(port: Port, offset: usize) -> Result<Self, InvalidOffsetError> {
+impl PinId {
+    pub const fn new(port: Port, offset: usize) -> Result<Self, InvalidOffsetError> {
         if offset >= port.max_offset() {
-            return Err(InvalidOffsetError {
-                offset,
-                port: Port::A,
-            });
+            return Err(InvalidOffsetError { offset, port });
         }
-        Ok(LowLevelGpio {
-            gpio: super::regs::Gpio::new_mmio(port),
-            ioconfig: IoConfig::new_mmio(),
-            port,
-            offset,
-        })
+        Ok(PinId { port, offset })
     }
 
-    #[inline]
-    pub fn port(&self) -> Port {
+    pub const fn port(&self) -> Port {
         self.port
     }
 
+    pub const fn offset(&self) -> usize {
+        self.port
+    }
+}
+
+pub struct LowLevelGpio {
+    gpio: super::regs::MmioGpio<'static>,
+    ioconfig: MmioIoConfig<'static>,
+    id: PinId,
+}
+
+impl LowLevelGpio {
+    pub fn new(id: PinId) -> Self {
+        LowLevelGpio {
+            gpio: super::regs::Gpio::new_mmio(id.port),
+            ioconfig: IoConfig::new_mmio(),
+            id,
+        }
+    }
+
     #[inline]
-    pub fn offset(&self) -> usize {
-        self.offset
+    pub fn id(&self) -> PinId {
+        self.id
     }
 
     pub fn configure_as_input_floating(&mut self) {
@@ -54,7 +80,7 @@ impl LowLevelGpio {
                 });
         }
         self.gpio.modify_dir(|mut dir| {
-            dir &= !(1 << self.offset);
+            dir &= !self.mask_32();
             dir
         });
     }
@@ -76,7 +102,7 @@ impl LowLevelGpio {
                 });
         }
         self.gpio.modify_dir(|mut dir| {
-            dir &= !(1 << self.offset);
+            dir &= !self.mask_32();
             dir
         });
     }
@@ -101,7 +127,7 @@ impl LowLevelGpio {
             PinState::High => self.gpio.write_set_out(1 << self.offset),
         }
         self.gpio.modify_dir(|mut dir| {
-            dir |= 1 << self.offset;
+            dir |= self.mask_32();
             dir
         });
     }
@@ -160,12 +186,12 @@ impl LowLevelGpio {
 
     #[inline]
     pub fn set_high(&mut self) {
-        self.gpio.write_set_out(1 << self.offset);
+        self.gpio.write_set_out(self.mask_32());
     }
 
     #[inline]
     pub fn set_low(&mut self) {
-        self.gpio.write_clr_out(1 << self.offset);
+        self.gpio.write_clr_out(self.mask_32());
     }
 
     #[inline]
@@ -180,6 +206,57 @@ impl LowLevelGpio {
 
     #[inline]
     pub fn toggle(&mut self) {
-        self.gpio.write_tog_out(1 << self.offset);
+        self.gpio.write_tog_out(self.mask_32());
+    }
+
+    #[cfg(feature = "vor1x")]
+    pub fn enable_interrupt(&mut self, irq_cfg: crate::InterruptConfig) {
+        if irq_cfg.route {
+            self.configure_irqsel(irq_cfg.id);
+        }
+        if irq_cfg.enable_in_nvic {
+            unsafe { crate::enable_nvic_interrupt(irq_cfg.id) };
+        }
+        self.gpio.modify_irq_enb(|mut value| {
+            value |= self.mask_32();
+            value
+        });
+    }
+
+    /// Only useful for interrupt pins. Configure whether to use edges or level as interrupt soure
+    /// When using edge mode, it is possible to generate interrupts on both edges as well
+    #[inline]
+    pub fn configure_edge_interrupt(&mut self, edge_type: InterruptEdge) {
+        unsafe {
+            self.gpio.modify_irq_sen(|mut value| {
+                value &= !self.mask_32();
+                value
+            });
+            match edge_type {
+                InterruptEdge::HighToLow => {
+                    self.gpio.modify_irq_evt(|mut value| {
+                        value &= !self.mask_32();
+                        value
+                    });
+                }
+                InterruptEdge::LowToHigh => {
+                    self.gpio.modify_irq_evt(|mut value| {
+                        value |= self.mask_32();
+                        value
+                    });
+                }
+                InterruptEdge::BothEdges => {
+                    self.gpio.modify_irq_edge(|mut value| {
+                        value |= self.mask_32();
+                        value
+                    });
+                }
+            }
+        }
+    }
+
+    #[inline(always)]
+    pub const fn mask_32(&self) -> u32 {
+        1 << self.offset
     }
 }
