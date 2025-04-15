@@ -167,7 +167,7 @@ impl MmioIoConfig<'_> {
         }
     }
 
-    pub fn modify_pin_config<F: FnMut(Config) -> Config>(
+    pub fn modify_pin_config<F: FnOnce(Config) -> Config>(
         &mut self,
         port: crate::Port,
         offset: usize,
@@ -185,7 +185,7 @@ impl MmioIoConfig<'_> {
     /// # Safety
     ///
     /// Calling this function with an invalid offset can lead to undefined behaviour.
-    pub unsafe fn modify_pin_config_unchecked<F: FnMut(Config) -> Config>(
+    pub unsafe fn modify_pin_config_unchecked<F: FnOnce(Config) -> Config>(
         &mut self,
         port: crate::Port,
         offset: usize,

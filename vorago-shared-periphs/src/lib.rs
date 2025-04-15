@@ -1,11 +1,31 @@
 #![no_std]
 pub mod gpio;
 pub mod ioconfig;
+pub mod sysconfig;
 
 #[cfg(not(feature = "_family-selected"))]
 compile_error!("no Vorago CPU family was select. Choices: vor1x or vor4x");
 
 pub use ioconfig::regs::FunSel;
+
+#[cfg(feature = "vor1x")]
+#[derive(Debug, Copy, Clone, PartialEq, Eq)]
+#[cfg_attr(feature = "defmt", derive(defmt::Format))]
+pub enum PeripheralSelect {
+    PortA = 0,
+    PortB = 1,
+    Spi0 = 4,
+    Spi1 = 5,
+    Spi2 = 6,
+    Uart0 = 8,
+    Uart1 = 9,
+    I2c0 = 16,
+    I2c1 = 17,
+    Irqsel = 21,
+    Ioconfig = 22,
+    Utility = 23,
+    Gpio = 24,
+}
 
 cfg_if::cfg_if! {
     if #[cfg(feature = "vor1x")] {
@@ -43,7 +63,7 @@ pub enum Port {
 }
 
 impl Port {
-    pub fn max_offset(&self) -> usize {
+    pub const fn max_offset(&self) -> usize {
         match self {
             Port::A => NUM_PORT_A,
             Port::B => NUM_PORT_B,
@@ -60,7 +80,7 @@ impl Port {
     ///
     /// Circumvents ownership and safety guarantees by the HAL.
     pub unsafe fn steal_gpio(&self) -> gpio::regs::MmioGpio<'static> {
-        gpio::regs::Gpio::new_mmio(self)
+        gpio::regs::Gpio::new_mmio(*self)
     }
 }
 

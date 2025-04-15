@@ -22,25 +22,9 @@ pub use vorago_shared_periphs::FunSel;
 /// This is the NONE destination reigster value for the IRQSEL peripheral.
 pub const IRQ_DST_NONE: u32 = 0xffffffff;
 
-#[derive(Debug, Copy, Clone, PartialEq, Eq)]
-#[cfg_attr(feature = "defmt", derive(defmt::Format))]
-pub enum PeripheralSelect {
-    PortA = 0,
-    PortB = 1,
-    Spi0 = 4,
-    Spi1 = 5,
-    Spi2 = 6,
-    Uart0 = 8,
-    Uart1 = 9,
-    I2c0 = 16,
-    I2c1 = 17,
-    Irqsel = 21,
-    Ioconfig = 22,
-    Utility = 23,
-    Gpio = 24,
-}
-
-pub type IrqCfg = InterruptConfig;
+pub use vorago_shared_periphs::{
+    disable_nvic_interrupt, enable_nvic_interrupt, InterruptConfig, PeripheralSelect,
+};
 
 #[derive(Debug, PartialEq, Eq, thiserror::Error)]
 #[cfg_attr(feature = "defmt", derive(defmt::Format))]
@@ -69,24 +53,6 @@ pub fn port_function_select(
 
     reg_block.modify(|_, w| unsafe { w.funsel().bits(funsel as u8) });
     Ok(())
-}
-
-/// Enable a specific interrupt using the NVIC peripheral.
-///
-/// # Safety
-///
-/// This function is `unsafe` because it can break mask-based critical sections.
-#[inline]
-pub unsafe fn enable_nvic_interrupt(irq: pac::Interrupt) {
-    unsafe {
-        cortex_m::peripheral::NVIC::unmask(irq);
-    }
-}
-
-/// Disable a specific interrupt using the NVIC peripheral.
-#[inline]
-pub fn disable_nvic_interrupt(irq: pac::Interrupt) {
-    cortex_m::peripheral::NVIC::mask(irq);
 }
 
 #[allow(dead_code)]

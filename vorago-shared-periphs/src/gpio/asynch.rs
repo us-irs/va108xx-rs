@@ -19,7 +19,10 @@ use portable_atomic::AtomicBool;
 use crate::{InterruptConfig, NUM_PORT_A, NUM_PORT_B};
 
 pub use super::ll::InterruptEdge;
-use super::{Input, Pin, PinIdProvider, Port, ll::PinId};
+use super::{
+    Input, Port,
+    ll::{LowLevelGpio, PinId},
+};
 
 static WAKERS_FOR_PORT_A: [AtomicWaker; NUM_PORT_A] = [const { AtomicWaker::new() }; NUM_PORT_A];
 static WAKERS_FOR_PORT_B: [AtomicWaker; NUM_PORT_B] = [const { AtomicWaker::new() }; NUM_PORT_B];
@@ -98,15 +101,14 @@ impl InputPinFuture {
         edge: InterruptEdge,
     ) -> Self {
         let (waker_group, edge_detection_group) =
-            Self::pin_group_to_waker_and_edge_detection_group(pin.port());
-        edge_detection_group[pin.offset() as usize]
+            Self::pin_group_to_waker_and_edge_detection_group(pin.id().port());
+        edge_detection_group[pin.id().offset() as usize]
             .store(false, core::sync::atomic::Ordering::Relaxed);
-        pin.configure_edge_interrupt(edge).unwrap();
+        pin.configure_edge_interrupt(edge);
         #[cfg(feature = "vor1x")]
         pin.enable_interrupt(InterruptConfig::new(irq, true, true));
         Self {
-            port: pin.port(),
-            offset: pin.offset(),
+            id: pin.id(),
             waker_group,
             edge_detection_group,
         }
@@ -115,8 +117,8 @@ impl InputPinFuture {
 
 impl Drop for InputPinFuture {
     fn drop(&mut self) {
-        // The API ensures that we actually own the pin, so stealing it here is okay.
-        unsafe { DynPin::steal(self.pin_id) }.disable_interrupt(false);
+        let mut ll = LowLevelGpio::new(self.id);
+        ll.disable_interrupt(false);
     }
 }
 
@@ -126,7 +128,7 @@ impl Future for InputPinFuture {
         self: core::pin::Pin<&mut Self>,
         cx: &mut core::task::Context<'_>,
     ) -> core::task::Poll<Self::Output> {
-        let idx = self.pin_id.num() as usize;
+        let idx = self.id.offset() as usize;
         self.waker_group[idx].register(cx.waker());
         if self.edge_detection_group[idx].swap(false, core::sync::atomic::Ordering::Relaxed) {
             return core::task::Poll::Ready(());
@@ -159,9 +161,8 @@ impl InputPinAsync {
     pub async fn wait_for_high(&mut self) {
         // Unwrap okay, checked pin in constructor.
         let fut =
-            InputPinFuture::new_with_input_pin(&mut self.pin, self.irq, InterruptEdge::LowToHigh)
-                .unwrap();
-        if self.pin.is_high().unwrap() {
+            InputPinFuture::new_with_input_pin(&mut self.pin, self.irq, InterruptEdge::LowToHigh);
+        if self.pin.is_high() {
             return;
         }
         fut.await;
@@ -173,9 +174,8 @@ impl InputPinAsync {
     pub async fn wait_for_low(&mut self) {
         // Unwrap okay, checked pin in constructor.
         let fut =
-            InputPinFuture::new_with_input_pin(&mut self.pin, self.irq, InterruptEdge::HighToLow)
-                .unwrap();
-        if self.pin.is_low().unwrap() {
+            InputPinFuture::new_with_input_pin(&mut self.pin, self.irq, InterruptEdge::HighToLow);
+        if self.pin.is_low() {
             return;
         }
         fut.await;
@@ -184,25 +184,19 @@ impl InputPinAsync {
     /// Asynchronously wait until the pin sees a falling edge.
     pub async fn wait_for_falling_edge(&mut self) {
         // Unwrap okay, checked pin in constructor.
-        InputPinFuture::new_with_input_pin(&mut self.pin, self.irq, InterruptEdge::HighToLow)
-            .unwrap()
-            .await;
+        InputPinFuture::new_with_input_pin(&mut self.pin, self.irq, InterruptEdge::HighToLow).await;
     }
 
     /// Asynchronously wait until the pin sees a rising edge.
     pub async fn wait_for_rising_edge(&mut self) {
         // Unwrap okay, checked pin in constructor.
-        InputPinFuture::new_with_input_pin(&mut self.pin, self.irq, InterruptEdge::LowToHigh)
-            .unwrap()
-            .await;
+        InputPinFuture::new_with_input_pin(&mut self.pin, self.irq, InterruptEdge::LowToHigh).await;
     }
 
     /// Asynchronously wait until the pin sees any edge (either rising or falling).
     pub async fn wait_for_any_edge(&mut self) {
         // Unwrap okay, checked pin in constructor.
-        InputPinFuture::new_with_input_pin(&mut self.pin, self.irq, InterruptEdge::BothEdges)
-            .unwrap()
-            .await;
+        InputPinFuture::new_with_input_pin(&mut self.pin, self.irq, InterruptEdge::BothEdges).await;
     }
 
     pub fn release(self) -> Input {
@@ -215,96 +209,6 @@ impl embedded_hal::digital::ErrorType for InputPinAsync {
 }
 
 impl Wait for InputPinAsync {
-    async fn wait_for_high(&mut self) -> Result<(), Self::Error> {
-        self.wait_for_high().await;
-        Ok(())
-    }
-
-    async fn wait_for_low(&mut self) -> Result<(), Self::Error> {
-        self.wait_for_low().await;
-        Ok(())
-    }
-
-    async fn wait_for_rising_edge(&mut self) -> Result<(), Self::Error> {
-        self.wait_for_rising_edge().await;
-        Ok(())
-    }
-
-    async fn wait_for_falling_edge(&mut self) -> Result<(), Self::Error> {
-        self.wait_for_falling_edge().await;
-        Ok(())
-    }
-
-    async fn wait_for_any_edge(&mut self) -> Result<(), Self::Error> {
-        self.wait_for_any_edge().await;
-        Ok(())
-    }
-}
-
-pub struct InputPinAsync<I: PinIdProvider, C: InputConfig> {
-    pin: Pin<I, pin::Input<C>>,
-    irq: pac::Interrupt,
-}
-
-impl<I: PinIdProvider, C: InputConfig> InputPinAsync<I, C> {
-    /// Create a new asynchronous input pin from a typed [Pin]. The interrupt ID to be used must be
-    /// passed as well and is used to route and enable the interrupt.
-    ///
-    /// Please note that the interrupt handler itself must be provided by the user and the
-    /// generic [on_interrupt_for_async_gpio_for_port] function must be called inside that function
-    /// for the asynchronous functionality to work.
-    pub fn new(pin: Pin<I, pin::Input<C>>, irq: pac::Interrupt) -> Self {
-        Self { pin, irq }
-    }
-
-    /// Asynchronously wait until the pin is high.
-    ///
-    /// This returns immediately if the pin is already high.
-    pub async fn wait_for_high(&mut self) {
-        let fut = InputPinFuture::new_with_pin(&mut self.pin, self.irq, InterruptEdge::LowToHigh);
-        if self.pin.is_high() {
-            return;
-        }
-        fut.await;
-    }
-
-    /// Asynchronously wait until the pin is low.
-    ///
-    /// This returns immediately if the pin is already high.
-    pub async fn wait_for_low(&mut self) {
-        let fut = InputPinFuture::new_with_pin(&mut self.pin, self.irq, InterruptEdge::HighToLow);
-        if self.pin.is_low() {
-            return;
-        }
-        fut.await;
-    }
-
-    /// Asynchronously wait until the pin sees falling edge.
-    pub async fn wait_for_falling_edge(&mut self) {
-        // Unwrap okay, checked pin in constructor.
-        InputPinFuture::new_with_pin(&mut self.pin, self.irq, InterruptEdge::HighToLow).await;
-    }
-
-    /// Asynchronously wait until the pin sees rising edge.
-    pub async fn wait_for_rising_edge(&mut self) {
-        // Unwrap okay, checked pin in constructor.
-        InputPinFuture::new_with_pin(&mut self.pin, self.irq, InterruptEdge::LowToHigh).await;
-    }
-
-    /// Asynchronously wait until the pin sees any edge (either rising or falling).
-    pub async fn wait_for_any_edge(&mut self) {
-        InputPinFuture::new_with_pin(&mut self.pin, self.irq, InterruptEdge::BothEdges).await;
-    }
-
-    pub fn release(self) -> Pin<I, pin::Input<C>> {
-        self.pin
-    }
-}
-impl<I: PinIdProvider, C: InputConfig> embedded_hal::digital::ErrorType for InputPinAsync<I, C> {
-    type Error = core::convert::Infallible;
-}
-
-impl<I: PinIdProvider, C: InputConfig> Wait for InputPinAsync<I, C> {
     async fn wait_for_high(&mut self) -> Result<(), Self::Error> {
         self.wait_for_high().await;
         Ok(())

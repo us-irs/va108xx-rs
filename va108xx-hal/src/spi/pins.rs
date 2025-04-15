@@ -57,10 +57,10 @@ macro_rules! hw_cs_multi_pin {
         $cs_id:path
     ) => {
         #[doc = concat!(
-                            "Newtype wrapper to use [Pin] [`", stringify!($pin_ty),
-                            "`] as a HW CS pin for [`", stringify!($spi_id),
-                            "`] with [`", stringify!($cs_id), "`]."
-                        )]
+                                    "Newtype wrapper to use [Pin] [`", stringify!($pin_ty),
+                                    "`] as a HW CS pin for [`", stringify!($spi_id),
+                                    "`] with [`", stringify!($cs_id), "`]."
+                                )]
         pub struct $name(Pin<$pin_id>);
 
         impl $name {

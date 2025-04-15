@@ -8,8 +8,6 @@ use once_cell::unsync::OnceCell;
 
 static SYS_CLOCK: Mutex<OnceCell<Hertz>> = Mutex::new(OnceCell::new());
 
-pub type PeripheralClocks = PeripheralSelect;
-
 #[derive(Debug, PartialEq, Eq)]
 #[cfg_attr(feature = "defmt", derive(defmt::Format))]
 pub enum FilterClkSel {
@@ -64,18 +62,4 @@ pub fn set_clk_div_register(syscfg: &mut va108xx::Sysconfig, clk_sel: FilterClkS
     }
 }
 
-#[inline]
-pub fn enable_peripheral_clock(clock: PeripheralClocks) {
-    let syscfg = unsafe { va108xx::Sysconfig::steal() };
-    syscfg
-        .peripheral_clk_enable()
-        .modify(|r, w| unsafe { w.bits(r.bits() | (1 << clock as u8)) });
-}
-
-#[inline]
-pub fn disable_peripheral_clock(clock: PeripheralClocks) {
-    let syscfg = unsafe { va108xx::Sysconfig::steal() };
-    syscfg
-        .peripheral_clk_enable()
-        .modify(|r, w| unsafe { w.bits(r.bits() & !(1 << clock as u8)) });
-}
+pub use vorago_shared_periphs::sysconfig::{disable_peripheral_clock, enable_peripheral_clock};

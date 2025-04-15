@@ -20,7 +20,7 @@ use core::cell::Cell;
 use critical_section::Mutex;
 use fugit::RateExtU32;
 use vorago_shared_periphs::{
-    gpio::{Pin, PinId},
+    gpio::{Pin, PinMarker},
     ioconfig::regs::FunSel,
     Port,
 };
@@ -216,10 +216,10 @@ macro_rules! pin_and_tim {
     ($Px:ident, $FunSel:path, $ID:expr) => {
         impl TimPin for Pin<$Px>
         where
-            $Px: PinId,
+            $Px: PinMarker,
         {
-            const PORT: Port = $Px::PORT;
-            const OFFSET: usize = $Px::OFFSET;
+            const PORT: Port = $Px::ID.port();
+            const OFFSET: usize = $Px::ID.offset();
             const FUN_SEL: FunSel = $FunSel;
             const TIM_ID: TimId = TimId($ID);
         }

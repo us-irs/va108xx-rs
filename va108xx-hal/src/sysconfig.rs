@@ -61,3 +61,5 @@ pub fn reset_peripheral_for_cycles(periph_sel: PeripheralSelect, cycles: u32) {
     cortex_m::asm::delay(cycles);
     deassert_peripheral_reset(periph_sel);
 }
+
+pub use vorago_shared_periphs::sysconfig::{disable_peripheral_clock, enable_peripheral_clock};

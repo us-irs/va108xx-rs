@@ -14,9 +14,8 @@
 //! - [Flashloader exposing a CCSDS interface via UART](https://egit.irs.uni-stuttgart.de/rust/va108xx-rs/src/branch/main/flashloader)
 use core::{convert::Infallible, ops::Deref};
 use fugit::RateExtU32;
-use vorago_shared_periphs::{gpio::Pin, FunSel};
+use vorago_shared_periphs::{gpio::Pin, FunSel, InterruptConfig};
 
-pub use crate::InterruptConfig;
 use crate::{
     clock::enable_peripheral_clock,
     enable_nvic_interrupt,
