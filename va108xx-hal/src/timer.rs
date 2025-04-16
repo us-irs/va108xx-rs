@@ -20,7 +20,8 @@ use fugit::RateExtU32;
 use vorago_shared_periphs::{
     gpio::{Pin, PinIdProvider},
     ioconfig::regs::FunSel,
-    Port,
+    sysconfig::enable_peripheral_clock,
+    PeripheralSelect, Port,
 };
 
 /// Get the peripheral block of a TIM peripheral given the index.
@@ -317,8 +318,7 @@ pub unsafe trait TimRegInterface {
     ///
     /// Only the bit related to the corresponding TIM peripheral is modified
     #[inline]
-    #[allow(dead_code)]
-    fn clear_tim_reset_bit(&self) {
+    fn assert_tim_reset(&self) {
         unsafe {
             va108xx::Peripherals::steal()
                 .sysconfig
@@ -328,14 +328,19 @@ pub unsafe trait TimRegInterface {
     }
 
     #[inline]
-    #[allow(dead_code)]
-    fn set_tim_reset_bit(&self) {
+    fn deassert_tim_reset(&self) {
         unsafe {
             va108xx::Peripherals::steal()
                 .sysconfig
                 .tim_reset()
                 .modify(|r, w| w.bits(r.bits() | self.mask_32()));
         }
+    }
+
+    fn assert_tim_reset_for_cycles(&self, cycles: u32) {
+        self.assert_tim_reset();
+        cortex_m::asm::delay(cycles);
+        self.deassert_tim_reset();
     }
 }
 
@@ -369,27 +374,35 @@ unsafe impl TimRegInterface for CountdownTimer {
 }
 
 impl CountdownTimer {
-    /// Configures a TIM peripheral as a periodic count down timer
-    pub fn new<Tim: TimMarker>(sys_clk: Hertz, _tim: Tim) -> Self {
+    /// Create a countdown timer structure for a given TIM peripheral.
+    ///
+    /// This does not enable the timer. You can use the [Self::load], [Self::start],
+    /// [Self::enable_interrupt] and [Self::enable] API to set up and configure the countdown
+    /// timer.
+    pub fn new<Tim: TimMarker + TimRegInterface>(sys_clk: Hertz, tim: Tim) -> Self {
         enable_tim_clk(Tim::ID.raw_id());
-        let cd_timer = CountdownTimer {
+        tim.assert_tim_reset_for_cycles(2);
+        CountdownTimer {
             tim: Tim::ID,
             sys_clk,
             rst_val: 0,
             curr_freq: 0.Hz(),
             last_cnt: 0,
-        };
-        cd_timer
-            .tim
-            .reg_block()
-            .ctrl()
-            .modify(|_, w| w.enable().set_bit());
-        cd_timer
+        }
     }
 
-    pub fn enable_interupt(&mut self, irq_cfg: InterruptConfig) {
+    #[inline(always)]
+    pub fn enable(&mut self) {
+        self.tim
+            .reg_block()
+            .enable()
+            .write(|w| unsafe { w.bits(1) });
+    }
+
+    pub fn enable_interrupt(&mut self, irq_cfg: InterruptConfig) {
         if irq_cfg.route {
             let irqsel = unsafe { pac::Irqsel::steal() };
+            enable_peripheral_clock(PeripheralSelect::Irqsel);
             irqsel
                 .tim0(self.raw_id() as usize)
                 .write(|w| unsafe { w.bits(irq_cfg.id as u32) });
@@ -403,35 +416,23 @@ impl CountdownTimer {
             .modify(|_, w| w.irq_enb().set_bit());
     }
 
-    #[inline(always)]
-    pub fn enable(&mut self) {
-        self.tim
-            .reg_block()
-            .enable()
-            .write(|w| unsafe { w.bits(1) });
+    /// Calls [Self::load] to configure the specified frequency and then calls [Self::enable].
+    pub fn start(&mut self, frequency: impl Into<Hertz>) {
+        self.load(frequency);
+        self.enable();
     }
 
-    /// This function only clears the interrupt enable bit.
-    ///
-    /// It does not mask the interrupt in the NVIC or un-route the IRQ.
-    #[inline(always)]
-    pub fn disable_interrupt(&mut self) {
-        self.tim
-            .reg_block()
-            .ctrl()
-            .modify(|_, w| w.irq_enb().clear_bit());
-    }
-
-    /// Disables the TIM and the dedicated TIM clock.
-    pub fn stop(self) {
-        self.tim
-            .reg_block()
-            .ctrl()
-            .write(|w| w.enable().clear_bit());
-        let syscfg = unsafe { va108xx::Sysconfig::steal() };
-        syscfg
-            .tim_clk_enable()
-            .modify(|r, w| unsafe { w.bits(r.bits() & !(1 << self.raw_id())) });
+    /// Return `Ok` if the timer has wrapped. Peripheral will automatically clear the
+    /// flag and restart the time if configured correctly
+    pub fn wait(&mut self) -> nb::Result<(), void::Void> {
+        let cnt = self.tim.reg_block().cnt_value().read().bits();
+        if (cnt > self.last_cnt) || cnt == 0 {
+            self.last_cnt = self.rst_val;
+            Ok(())
+        } else {
+            self.last_cnt = cnt;
+            Err(nb::Error::WouldBlock)
+        }
     }
 
     /// Load the count down timer with a timeout but do not start it.
@@ -556,44 +557,33 @@ impl CountdownTimer {
     pub fn curr_freq(&self) -> Hertz {
         self.curr_freq
     }
-}
 
-/// CountDown implementation for TIMx
-impl CountdownTimer {
-    #[inline]
-    pub fn start<T>(&mut self, timeout: T)
-    where
-        T: Into<Hertz>,
-    {
-        self.load(timeout);
-        self.enable();
+    /// This function only clears the interrupt enable bit.
+    ///
+    /// It does not mask the interrupt in the NVIC or un-route the IRQ.
+    #[inline(always)]
+    pub fn disable_interrupt(&mut self) {
+        self.tim
+            .reg_block()
+            .ctrl()
+            .modify(|_, w| w.irq_enb().clear_bit());
     }
 
-    /// Return `Ok` if the timer has wrapped. Peripheral will automatically clear the
-    /// flag and restart the time if configured correctly
-    pub fn wait(&mut self) -> nb::Result<(), void::Void> {
-        let cnt = self.tim.reg_block().cnt_value().read().bits();
-        if (cnt > self.last_cnt) || cnt == 0 {
-            self.last_cnt = self.rst_val;
-            Ok(())
-        } else {
-            self.last_cnt = cnt;
-            Err(nb::Error::WouldBlock)
-        }
-    }
-
-    /// Returns [false] if the timer was not active, and true otherwise.
-    pub fn cancel(&mut self) -> bool {
-        if !self.tim.reg_block().ctrl().read().enable().bit_is_set() {
-            return false;
-        }
+    /// Disables the TIM and the dedicated TIM clock.
+    pub fn stop_with_clock_disable(self) {
         self.tim
             .reg_block()
             .ctrl()
             .write(|w| w.enable().clear_bit());
-        true
+        let syscfg = unsafe { va108xx::Sysconfig::steal() };
+        syscfg
+            .tim_clk_enable()
+            .modify(|r, w| unsafe { w.bits(r.bits() & !(1 << self.raw_id())) });
     }
 }
+
+/// CountDown implementation for TIMx
+impl CountdownTimer {}
 
 //==================================================================================================
 // Delay implementations

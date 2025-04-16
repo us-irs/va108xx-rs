@@ -33,11 +33,7 @@ fn main() -> ! {
     let dp = pac::Peripherals::take().unwrap();
     let pinsa = PinsA::new(dp.porta);
     let mut delay = CountdownTimer::new(50.MHz(), dp.tim0);
-    let (sck, mosi, miso) = (
-        pinsa.pa20,
-        pinsa.pa19,
-        pinsa.pa18,
-    );
+    let (sck, mosi, miso) = (pinsa.pa20, pinsa.pa19, pinsa.pa18);
     let cs_pin = pinsa.pa16;
     let hw_cs_id = configure_pin_as_hw_cs_pin(cs_pin);
 
@@ -50,12 +46,7 @@ fn main() -> ! {
         )
         .mode(MODE_3)
         .slave_output_disable(true);
-    let mut spi = Spi::new(
-        50.MHz(),
-        dp.spib,
-        (sck, miso, mosi),
-        spi_cfg,
-    ).unwrap();
+    let mut spi = Spi::new(50.MHz(), dp.spib, (sck, miso, mosi), spi_cfg).unwrap();
     spi.cfg_hw_cs(hw_cs_id);
 
     let mut tx_rx_buf: [u8; 3] = [0; 3];

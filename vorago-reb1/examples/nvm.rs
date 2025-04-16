@@ -15,12 +15,12 @@ fn main() -> ! {
     rtt_init_print!();
     rprintln!("-- VA108XX REB1 NVM example --");
 
-    let mut dp = pac::Peripherals::take().unwrap();
+    let dp = pac::Peripherals::take().unwrap();
 
-    let mut timer = CountdownTimer::new(&mut dp.sysconfig, CLOCK_FREQ, dp.tim0);
-    let mut nvm = M95M01::new(&mut dp.sysconfig, CLOCK_FREQ, dp.spic);
+    let mut timer = CountdownTimer::new(CLOCK_FREQ, dp.tim0);
+    let mut nvm = M95M01::new(CLOCK_FREQ, dp.spic);
     let status_reg = nvm.read_status_reg().expect("reading status reg failed");
-    if status_reg.zero_segment() == 0b111 {
+    if status_reg.zero_segment().value() == 0b111 {
         panic!("status register unexpected values");
     }
 

@@ -2,17 +2,19 @@
 #![no_main]
 #![no_std]
 
-use core::cell::Cell;
 use cortex_m_rt::entry;
-use critical_section::Mutex;
-use panic_rtt_target as _;
-use rtt_target::{rprintln, rtt_init_print};
+use embedded_hal::delay::DelayNs;
+// Import panic provider.
+use panic_probe as _;
+// Import logger.
+use defmt_rtt as _;
+use portable_atomic::AtomicU32;
 use va108xx_hal::{
     clock::{get_sys_clock, set_sys_clock},
     pac::{self, interrupt},
     prelude::*,
     time::Hertz,
-    timer::{default_ms_irq_handler, CountdownTimer, Event, InterruptConfig, MS_COUNTER},
+    timer::{CountdownTimer, InterruptConfig},
 };
 
 #[allow(dead_code)]
@@ -21,14 +23,15 @@ enum LibType {
     Hal,
 }
 
-static SEC_COUNTER: Mutex<Cell<u32>> = Mutex::new(Cell::new(0));
+static MS_COUNTER: AtomicU32 = AtomicU32::new(0);
+static SEC_COUNTER: AtomicU32 = AtomicU32::new(0);
 
 #[entry]
 fn main() -> ! {
-    rtt_init_print!();
-    let mut dp = pac::Peripherals::take().unwrap();
+    let dp = pac::Peripherals::take().unwrap();
+    let mut delay = CountdownTimer::new(50.MHz(), dp.tim2);
     let mut last_ms = 0;
-    rprintln!("-- Vorago system ticks using timers --");
+    defmt::info!("-- Vorago system ticks using timers --");
     set_sys_clock(50.MHz());
     let lib_type = LibType::Hal;
     match lib_type {
@@ -65,23 +68,23 @@ fn main() -> ! {
         }
         LibType::Hal => {
             let mut ms_timer = CountdownTimer::new(get_sys_clock().unwrap(), dp.tim0);
-            ms_timer.enable_interupt(InterruptConfig::new(interrupt::OC0, true, true));
+            ms_timer.enable_interrupt(InterruptConfig::new(interrupt::OC0, true, true));
             ms_timer.start(1.kHz());
             let mut second_timer = CountdownTimer::new(get_sys_clock().unwrap(), dp.tim1);
-            second_timer.enable_interupt(InterruptConfig::new(interrupt::OC1, true, true));
+            second_timer.enable_interrupt(InterruptConfig::new(interrupt::OC1, true, true));
             second_timer.start(1.Hz());
         }
     }
     loop {
-        let current_ms = critical_section::with(|cs| MS_COUNTER.borrow(cs).get());
+        let current_ms = MS_COUNTER.load(portable_atomic::Ordering::Relaxed);
         if current_ms - last_ms >= 1000 {
             // To prevent drift.
             last_ms += 1000;
-            rprintln!("MS counter: {}", current_ms);
-            let second = critical_section::with(|cs| SEC_COUNTER.borrow(cs).get());
-            rprintln!("Second counter: {}", second);
+            defmt::info!("MS counter: {}", current_ms);
+            let second = SEC_COUNTER.load(portable_atomic::Ordering::Relaxed);
+            defmt::info!("Second counter: {}", second);
         }
-        cortex_m::asm::delay(10000);
+        delay.delay_ms(50);
     }
 }
 
@@ -95,15 +98,11 @@ fn unmask_irqs() {
 #[interrupt]
 #[allow(non_snake_case)]
 fn OC0() {
-    default_ms_irq_handler()
+    MS_COUNTER.fetch_add(1, portable_atomic::Ordering::Relaxed);
 }
 
 #[interrupt]
 #[allow(non_snake_case)]
 fn OC1() {
-    critical_section::with(|cs| {
-        let mut sec = SEC_COUNTER.borrow(cs).get();
-        sec += 1;
-        SEC_COUNTER.borrow(cs).set(sec);
-    });
+    SEC_COUNTER.fetch_add(1, portable_atomic::Ordering::Relaxed);
 }

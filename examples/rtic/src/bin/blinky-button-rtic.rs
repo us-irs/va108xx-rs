@@ -4,9 +4,11 @@
 
 #[rtic::app(device = pac)]
 mod app {
-    use panic_rtt_target as _;
     use rtic_example::SYSCLK_FREQ;
-    use rtt_target::{rprintln, rtt_init_default, set_print_channel};
+    // Import panic provider.
+    use panic_probe as _;
+    // Import global logger.
+    use defmt_rtt as _;
     use va108xx_hal::{
         clock::{set_clk_div_register, FilterClkSel},
         gpio::{FilterType, InterruptEdge},
@@ -19,19 +21,12 @@ mod app {
 
     rtic_monotonics::systick_monotonic!(Mono, 1_000);
 
-    #[derive(Debug, PartialEq)]
+    #[derive(Debug, PartialEq, defmt::Format)]
     pub enum PressMode {
         Toggle,
         Keep,
     }
 
-    #[derive(Debug, PartialEq)]
-    pub enum CfgMode {
-        Prompt,
-        Fixed,
-    }
-
-    const CFG_MODE: CfgMode = CfgMode::Fixed;
     // You can change the press mode here
     const DEFAULT_MODE: PressMode = PressMode::Toggle;
 
@@ -47,18 +42,11 @@ mod app {
 
     #[init]
     fn init(cx: init::Context) -> (Shared, Local) {
-        let channels = rtt_init_default!();
-        set_print_channel(channels.up.0);
-        rprintln!("-- Vorago Button IRQ Example --");
+        defmt::println!("-- Vorago Button IRQ Example --");
         Mono::start(cx.core.SYST, SYSCLK_FREQ.raw());
 
-        let mode = match CFG_MODE {
-            // Ask mode from user via RTT
-            CfgMode::Prompt => prompt_mode(channels.down.0),
-            // Use mode hardcoded in `DEFAULT_MODE`
-            CfgMode::Fixed => DEFAULT_MODE,
-        };
-        rprintln!("Using {:?} mode", mode);
+        let mode = DEFAULT_MODE;
+        defmt::info!("Using {:?} mode", mode);
 
         let mut dp = cx.device;
         let pinsa = PinsA::new(dp.porta);
@@ -105,23 +93,6 @@ mod app {
             leds[0].off();
         } else {
             leds[0].on();
-        }
-    }
-
-    fn prompt_mode(mut down_channel: rtt_target::DownChannel) -> PressMode {
-        rprintln!("Using prompt mode");
-        rprintln!("Please enter the mode [0: Toggle, 1: Keep]");
-        let mut read_buf: [u8; 16] = [0; 16];
-        let mut read;
-        loop {
-            read = down_channel.read(&mut read_buf);
-            for &byte in &read_buf[..read] {
-                match byte as char {
-                    '0' => return PressMode::Toggle,
-                    '1' => return PressMode::Keep,
-                    _ => continue, // Ignore other characters
-                }
-            }
         }
     }
 }

@@ -1,23 +1,21 @@
 //! SPI example application
 #![no_main]
 #![no_std]
-
-use core::cell::RefCell;
-
 use cortex_m_rt::entry;
 use embedded_hal::{
     delay::DelayNs,
     spi::{Mode, SpiBus, MODE_0},
 };
-use panic_rtt_target as _;
-use rtt_target::{rprintln, rtt_init_print};
+// Import panic provider.
+use panic_probe as _;
+// Import logger.
+use defmt_rtt as _;
 use va108xx_hal::{
-    pac::{self, interrupt},
+    pac,
     pins::{PinsA, PinsB},
     prelude::*,
     spi::{self, configure_pin_as_hw_cs_pin, Spi, SpiClkConfig, TransferConfig},
     timer::CountdownTimer,
-    InterruptConfig,
 };
 
 #[derive(PartialEq, Debug)]
@@ -43,16 +41,12 @@ const FILL_WORD: u8 = 0x0f;
 
 #[entry]
 fn main() -> ! {
-    rtt_init_print!();
-    rprintln!("-- VA108xx SPI example application--");
-    let mut dp = pac::Peripherals::take().unwrap();
+    defmt::println!("-- VA108xx SPI example application--");
+    let dp = pac::Peripherals::take().unwrap();
     let mut delay = CountdownTimer::new(50.MHz(), dp.tim0);
 
     let spi_clk_cfg = SpiClkConfig::from_clk(50.MHz(), SPI_SPEED_KHZ.kHz())
         .expect("creating SPI clock config failed");
-    //let spia_ref: RefCell<Option<SpiBase<pac::Spia, u8>>> = RefCell::new(None);
-    //let spib_ref: RefCell<Option<SpiBase<pac::Spib, u8>>> = RefCell::new(None);
-    let spi = None;
     let pinsa = PinsA::new(dp.porta);
     let pinsb = PinsB::new(dp.portb);
 
@@ -62,7 +56,7 @@ fn main() -> ! {
     }
 
     // Set up the SPI peripheral
-    let spi = match SPI_BUS_SEL {
+    let mut spi = match SPI_BUS_SEL {
         SpiBusSelect::SpiAPortA => {
             let (sck, mosi, miso) = (pinsa.pa31, pinsa.pa30, pinsa.pa29);
             let mut spia = Spi::new(50.MHz(), dp.spia, (sck, miso, mosi), spi_cfg).unwrap();
@@ -122,7 +116,7 @@ fn main() -> ! {
         let tx_buf: [u8; 3] = [0x01, 0x02, 0x03];
         spi.transfer(&mut reply_buf[0..3], &tx_buf).unwrap();
         assert_eq!(tx_buf, reply_buf[0..3]);
-        rprintln!(
+        defmt::info!(
             "Received reply: {}, {}, {}",
             reply_buf[0],
             reply_buf[1],
@@ -132,7 +126,7 @@ fn main() -> ! {
 
         let mut tx_rx_buf: [u8; 3] = [0x03, 0x02, 0x01];
         spi.transfer_in_place(&mut tx_rx_buf).unwrap();
-        rprintln!(
+        defmt::info!(
             "Received reply: {}, {}, {}",
             tx_rx_buf[0],
             tx_rx_buf[1],

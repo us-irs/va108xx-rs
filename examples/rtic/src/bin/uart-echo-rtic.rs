@@ -1,4 +1,4 @@
-//! More complex UART application
+//! More complex UART application on UART PA8 (TX) and PA9 (RX).
 //!
 //! Uses the IRQ capabilities of the VA10820 peripheral and the RTIC framework to poll the UART in
 //! a non-blocking way. All received data will be sent back to the sender.
@@ -14,13 +14,19 @@ const RX_RING_BUF_SIZE: usize = 1024;
 mod app {
     use super::*;
     use embedded_io::Write;
-    use panic_rtt_target as _;
     use ringbuf::traits::{Consumer, Observer, Producer};
     use rtic_example::SYSCLK_FREQ;
+    // Import panic provider.
+    use panic_probe as _;
+    // Import global logger.
+    use defmt_rtt as _;
     use rtic_monotonics::Monotonic;
-    use rtt_target::{rprintln, rtt_init_print};
     use va108xx_hal::{
-        pac, pins::PinsA, prelude::*, uart::{self, RxWithInterrupt, Tx}, InterruptConfig
+        pac,
+        pins::PinsA,
+        prelude::*,
+        uart::{self, RxWithInterrupt, Tx},
+        InterruptConfig,
     };
 
     #[local]
@@ -38,8 +44,7 @@ mod app {
 
     #[init]
     fn init(cx: init::Context) -> (Shared, Local) {
-        rtt_init_print!();
-        rprintln!("-- VA108xx UART Echo with IRQ example application--");
+        defmt::println!("-- VA108xx UART Echo with IRQ example application--");
 
         Mono::start(cx.core.SYST, SYSCLK_FREQ.raw());
 
@@ -54,7 +59,8 @@ mod app {
             (tx, rx),
             115200.Hz().into(),
             InterruptConfig::new(pac::Interrupt::OC3, true, true),
-        ).unwrap();
+        )
+        .unwrap();
         let (tx, rx) = irq_uart.split();
         let mut rx = rx.into_rx_with_irq();
 
@@ -99,7 +105,7 @@ mod app {
         }
         if ringbuf_full {
             // Could also drop oldest data, but that would require the consumer to be shared.
-            rprintln!("buffer full, data was dropped");
+            defmt::println!("buffer full, data was dropped");
         }
     }
 

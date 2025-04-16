@@ -10,8 +10,10 @@ use core::cell::RefCell;
 use cortex_m::interrupt::Mutex;
 use cortex_m_rt::entry;
 use embedded_hal::delay::DelayNs;
-use panic_rtt_target as _;
-use rtt_target::{rprintln, rtt_init_print};
+// Import panic provider.
+use panic_probe as _;
+// Import logger.
+use defmt_rtt as _;
 use va108xx_hal::{
     pac::{self, interrupt},
     prelude::*,
@@ -23,15 +25,14 @@ static CSD_TGT_2: Mutex<RefCell<Option<CountdownTimer>>> = Mutex::new(RefCell::n
 
 #[entry]
 fn main() -> ! {
-    rtt_init_print!();
-    rprintln!("-- VA108xx Cascade example application--");
+    defmt::println!("-- VA108xx Cascade example application--");
 
     let dp = pac::Peripherals::take().unwrap();
     let mut delay = CountdownTimer::new(50.MHz(), dp.tim0);
 
     // Will be started periodically to trigger a cascade
     let mut cascade_triggerer = CountdownTimer::new(50.MHz(), dp.tim3).auto_disable(true);
-    cascade_triggerer.enable_interupt(InterruptConfig::new(pac::Interrupt::OC1, true, false));
+    cascade_triggerer.enable_interrupt(InterruptConfig::new(pac::Interrupt::OC1, true, false));
     cascade_triggerer.enable();
 
     // First target for cascade
@@ -49,7 +50,7 @@ fn main() -> ! {
     // Normally it should already be sufficient to activate IRQ in the CTRL
     // register but a full interrupt is use here to display print output when
     // the timer expires
-    cascade_target_1.enable_interupt(InterruptConfig::new(pac::Interrupt::OC2, true, false));
+    cascade_target_1.enable_interrupt(InterruptConfig::new(pac::Interrupt::OC2, true, false));
     // The counter will only activate when the cascade signal is coming in so
     // it is okay to call start here to set the reset value
     cascade_target_1.start(1.Hz());
@@ -69,7 +70,7 @@ fn main() -> ! {
     // Normally it should already be sufficient to activate IRQ in the CTRL
     // register but a full interrupt is use here to display print output when
     // the timer expires
-    cascade_target_2.enable_interupt(InterruptConfig::new(pac::Interrupt::OC3, true, false));
+    cascade_target_2.enable_interrupt(InterruptConfig::new(pac::Interrupt::OC3, true, false));
     // The counter will only activate when the cascade signal is coming in so
     // it is okay to call start here to set the reset value
     cascade_target_2.start(1.Hz());
@@ -87,7 +88,7 @@ fn main() -> ! {
         CSD_TGT_2.borrow(cs).replace(Some(cascade_target_2));
     });
     loop {
-        rprintln!("-- Triggering cascade in 0.5 seconds --");
+        defmt::info!("-- Triggering cascade in 0.5 seconds --");
         cascade_triggerer.start(2.Hz());
         delay.delay_ms(5000);
     }
@@ -96,20 +97,20 @@ fn main() -> ! {
 #[interrupt]
 fn OC1() {
     static mut IDX: u32 = 0;
-    rprintln!("{}: Cascade triggered timed out", &IDX);
+    defmt::info!("{}: Cascade triggered timed out", &IDX);
     *IDX += 1;
 }
 
 #[interrupt]
 fn OC2() {
     static mut IDX: u32 = 0;
-    rprintln!("{}: First cascade target timed out", &IDX);
+    defmt::info!("{}: First cascade target timed out", &IDX);
     *IDX += 1;
 }
 
 #[interrupt]
 fn OC3() {
     static mut IDX: u32 = 0;
-    rprintln!("{}: Second cascade target timed out", &IDX);
+    defmt::info!("{}: Second cascade target timed out", &IDX);
     *IDX += 1;
 }

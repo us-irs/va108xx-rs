@@ -5,14 +5,17 @@
 #[rtic::app(device = pac, dispatchers = [OC31, OC30, OC29])]
 mod app {
     use cortex_m::asm;
-    use panic_rtt_target as _;
     use rtic_example::SYSCLK_FREQ;
     use rtic_monotonics::systick::prelude::*;
     use rtic_monotonics::Monotonic;
-    use rtt_target::{rprintln, rtt_init_print};
+    // Import panic provider.
+    use panic_probe as _;
+    // Import global logger.
+    use defmt_rtt as _;
     use va108xx_hal::{
         gpio::{Output, PinState},
-        pac, pins::PinsA,
+        pac,
+        pins::PinsA,
     };
 
     #[local]
@@ -29,8 +32,7 @@ mod app {
 
     #[init]
     fn init(cx: init::Context) -> (Shared, Local) {
-        rtt_init_print!();
-        rprintln!("-- Vorago VA108xx RTIC template --");
+        defmt::println!("-- Vorago VA108xx RTIC template --");
 
         Mono::start(cx.core.SYST, SYSCLK_FREQ.raw());
 
@@ -56,7 +58,7 @@ mod app {
     )]
     async fn blinky(cx: blinky::Context) {
         loop {
-            rprintln!("toggling LEDs");
+            defmt::println!("toggling LEDs");
             cx.local.led0.toggle();
             cx.local.led1.toggle();
             cx.local.led2.toggle();
