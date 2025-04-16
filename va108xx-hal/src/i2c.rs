@@ -307,7 +307,7 @@ impl<I2C> I2cBase<I2C> {
 
 impl<I2c: Instance> I2cBase<I2c> {
     pub fn new(
-        sysclk: Hertz,
+        sys_clk: Hertz,
         i2c: I2c,
         speed_mode: I2cSpeed,
         ms_cfg: Option<&MasterConfig>,
@@ -315,10 +315,7 @@ impl<I2c: Instance> I2cBase<I2c> {
     ) -> Result<Self, ClockTooSlowForFastI2cError> {
         enable_peripheral_clock(I2c::PERIPH_SEL);
 
-        let mut i2c_base = I2cBase {
-            i2c,
-            sys_clk: sysclk.into(),
-        };
+        let mut i2c_base = I2cBase { i2c, sys_clk };
         if let Some(ms_cfg) = ms_cfg {
             i2c_base.cfg_master(ms_cfg);
         }

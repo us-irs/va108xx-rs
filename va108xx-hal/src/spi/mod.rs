@@ -9,12 +9,21 @@
 //! - [Blocking SPI example](https://egit.irs.uni-stuttgart.de/rust/va108xx-rs/src/branch/main/examples/simple/examples/spi.rs)
 //! - [REB1 ADC example](https://egit.irs.uni-stuttgart.de/rust/va108xx-rs/src/branch/main/vorago-reb1/examples/max11519-adc.rs)
 //! - [REB1 EEPROM library](https://egit.irs.uni-stuttgart.de/rust/va108xx-rs/src/branch/main/vorago-reb1/src/m95m01.rs)
-use crate::{clock::enable_peripheral_clock, pac, time::Hertz, PeripheralSelect};
+use crate::{
+    clock::enable_peripheral_clock, pac, pins::PinMarker, sealed::Sealed, time::Hertz,
+    PeripheralSelect,
+};
 use core::{convert::Infallible, fmt::Debug, marker::PhantomData, ops::Deref};
 use embedded_hal::spi::{Mode, MODE_0};
 use pins::{HwCsProvider, PinMiso, PinMosi, PinSck};
+use vorago_shared_periphs::gpio::IoPeriphPin;
 
 pub mod pins;
+
+pub fn configure_pin_as_hw_cs_pin<P: PinMarker + HwCsProvider>(_pin: P) -> HwChipSelectId {
+    IoPeriphPin::new(P::ID, P::FUN_SEL, None);
+    P::CS_ID
+}
 
 //==================================================================================================
 // Defintions
@@ -41,7 +50,7 @@ pub enum HwChipSelectId {
     Id7 = 7,
 }
 
-#[derive(Debug)]
+#[derive(Debug, PartialEq, Eq)]
 #[cfg_attr(feature = "defmt", derive(defmt::Format))]
 pub enum SpiId {
     A,
@@ -80,7 +89,7 @@ pub type SpiRegBlock = pac::spia::RegisterBlock;
 
 /// Common trait implemented by all PAC peripheral access structures. The register block
 /// format is the same for all SPI blocks.
-pub trait SpiPeripheralMarker: Deref<Target = SpiRegBlock> {
+pub trait SpiMarker: Deref<Target = SpiRegBlock> + Sealed {
     const ID: SpiId;
     const PERIPH_SEL: PeripheralSelect;
 
@@ -92,7 +101,7 @@ pub trait SpiPeripheralMarker: Deref<Target = SpiRegBlock> {
     }
 }
 
-impl SpiPeripheralMarker for pac::Spia {
+impl SpiMarker for pac::Spia {
     const ID: SpiId = SpiId::A;
     const PERIPH_SEL: PeripheralSelect = PeripheralSelect::Spi0;
 
@@ -101,8 +110,9 @@ impl SpiPeripheralMarker for pac::Spia {
         Self::ptr()
     }
 }
+impl Sealed for pac::Spia {}
 
-impl SpiPeripheralMarker for pac::Spib {
+impl SpiMarker for pac::Spib {
     const ID: SpiId = SpiId::B;
     const PERIPH_SEL: PeripheralSelect = PeripheralSelect::Spi1;
 
@@ -111,8 +121,9 @@ impl SpiPeripheralMarker for pac::Spib {
         Self::ptr()
     }
 }
+impl Sealed for pac::Spib {}
 
-impl SpiPeripheralMarker for pac::Spic {
+impl SpiMarker for pac::Spic {
     const ID: SpiId = SpiId::C;
     const PERIPH_SEL: PeripheralSelect = PeripheralSelect::Spi2;
 
@@ -121,6 +132,7 @@ impl SpiPeripheralMarker for pac::Spic {
         Self::ptr()
     }
 }
+impl Sealed for pac::Spic {}
 
 //==================================================================================================
 // Config
@@ -133,17 +145,6 @@ pub trait TransferConfigProvider {
     fn clk_cfg(&mut self, clk_cfg: SpiClkConfig);
     fn hw_cs_id(&self) -> u8;
 }
-
-/*
-/// This struct contains all configuration parameter which are transfer specific
-/// and might change for transfers to different SPI slaves
-#[derive(Copy, Clone, Debug)]
-#[cfg_attr(feature = "defmt", derive(defmt::Format))]
-pub struct TransferConfigWithHwcs<HwCs> {
-    pub hw_cs: Option<HwCs>,
-    pub cfg: TransferConfig,
-}
-*/
 
 /// Type erased variant of the transfer configuration. This is required to avoid generics in
 /// the SPI constructor.
@@ -163,79 +164,25 @@ pub struct TransferConfig {
     pub hw_cs: Option<HwChipSelectId>,
 }
 
-/*
-impl TransferConfigWithHwcs<NoneT> {
-    pub fn new_no_hw_cs(
+impl TransferConfig {
+    pub fn new_with_hw_cs(
         clk_cfg: Option<SpiClkConfig>,
         mode: Option<Mode>,
         blockmode: bool,
         bmstall: bool,
         sod: bool,
+        hw_cs_id: HwChipSelectId,
     ) -> Self {
-        TransferConfigWithHwcs {
-            hw_cs: None,
-            cfg: TransferConfig {
-                clk_cfg,
-                mode,
-                sod,
-                blockmode,
-                bmstall,
-                hw_cs: HwChipSelectId::Invalid,
-            },
+        TransferConfig {
+            clk_cfg,
+            mode,
+            sod,
+            blockmode,
+            bmstall,
+            hw_cs: Some(hw_cs_id),
         }
     }
 }
-
-impl<HwCs: HwCsProvider> TransferConfigWithHwcs<HwCs> {
-    pub fn new(
-        clk_cfg: Option<SpiClkConfig>,
-        mode: Option<Mode>,
-        hw_cs: Option<HwCs>,
-        blockmode: bool,
-        bmstall: bool,
-        sod: bool,
-    ) -> Self {
-        TransferConfigWithHwcs {
-            hw_cs,
-            cfg: TransferConfig {
-                clk_cfg,
-                mode,
-                sod,
-                blockmode,
-                bmstall,
-                hw_cs: HwCs::CS_ID,
-            },
-        }
-    }
-
-    pub fn downgrade(self) -> TransferConfig {
-        self.cfg
-    }
-}
-
-impl<HwCs: HwCsProvider> TransferConfigProvider for TransferConfigWithHwcs<HwCs> {
-    /// Slave Output Disable
-    fn sod(&mut self, sod: bool) {
-        self.cfg.sod = sod;
-    }
-
-    fn blockmode(&mut self, blockmode: bool) {
-        self.cfg.blockmode = blockmode;
-    }
-
-    fn mode(&mut self, mode: Mode) {
-        self.cfg.mode = Some(mode);
-    }
-
-    fn clk_cfg(&mut self, clk_cfg: SpiClkConfig) {
-        self.cfg.clk_cfg = Some(clk_cfg);
-    }
-
-    fn hw_cs_id(&self) -> u8 {
-        HwCs::CS_ID as u8
-    }
-}
-*/
 
 /// Configuration options for the whole SPI bus. See Programmer Guide p.92 for more details
 #[derive(Debug, Copy, Clone)]
@@ -373,25 +320,6 @@ pub trait SpiLowLevel {
     fn read_fifo_unchecked(&mut self) -> u32;
 }
 
-pub struct Spi<Word = u8> {
-    id: SpiId,
-    reg_block: *mut SpiRegBlock,
-    cfg: SpiConfig,
-    sys_clk: Hertz,
-    /// Fill word for read-only SPI transactions.
-    pub fill_word: Word,
-    blockmode: bool,
-    bmstall: bool,
-    word: PhantomData<Word>,
-}
-
-/*
-pub struct Spi<, Pins, Word = u8> {
-    inner: SpiBase<SpiInstance, Word>,
-    pins: Pins,
-}
-*/
-
 #[inline(always)]
 pub fn mode_to_cpo_cph_bit(mode: embedded_hal::spi::Mode) -> (bool, bool) {
     match mode {
@@ -510,28 +438,69 @@ pub fn clk_div_for_target_clock(
     Some(rounded_div as u16)
 }
 
+#[derive(Debug, thiserror::Error)]
+#[error("peripheral or peripheral pin ID is not consistent")]
+pub struct SpiIdMissmatchError;
+
+/// SPI peripheral driver structure.
+pub struct Spi<Word = u8> {
+    id: SpiId,
+    reg_block: *mut SpiRegBlock,
+    cfg: SpiConfig,
+    sys_clk: Hertz,
+    /// Fill word for read-only SPI transactions.
+    fill_word: Word,
+    blockmode: bool,
+    bmstall: bool,
+    word: PhantomData<Word>,
+}
+
 impl<Word: WordProvider> Spi<Word>
 where
     <Word as TryFrom<u32>>::Error: core::fmt::Debug,
 {
-    /// Create a new SPI struct
-    ///
-    /// You can delete the pin type information by calling the
-    /// [`downgrade`](Self::downgrade) function
+    /// Create a new SPI struct.
     ///
     /// ## Arguments
-    /// * `syscfg` - Can be passed optionally to enable the peripheral clock
     /// * `sys_clk` - System clock
     /// * `spi` - SPI bus to use
     /// * `pins` - Pins to be used for SPI transactions. These pins are consumed
     ///   to ensure the pins can not be used for other purposes anymore
     /// * `spi_cfg` - Configuration specific to the SPI bus
-    pub fn new<SpiI: SpiPeripheralMarker, Sck: PinSck, Miso: PinMiso, Mosi: PinMosi>(
-        sys_clk: impl Into<Hertz>,
+    pub fn new_for_rom<SpiI: SpiMarker>(
+        sys_clk: Hertz,
+        spi: SpiI,
+        spi_cfg: SpiConfig,
+    ) -> Result<Self, SpiIdMissmatchError> {
+        if SpiI::ID != SpiId::C {
+            return Err(SpiIdMissmatchError);
+        }
+        Ok(Self::new_generic(sys_clk, spi, spi_cfg))
+    }
+    /// Create a new SPI struct.
+    ///
+    /// ## Arguments
+    /// * `sys_clk` - System clock
+    /// * `spi` - SPI bus to use
+    /// * `pins` - Pins to be used for SPI transactions. These pins are consumed
+    ///   to ensure the pins can not be used for other purposes anymore
+    /// * `spi_cfg` - Configuration specific to the SPI bus
+    pub fn new<SpiI: SpiMarker, Sck: PinSck, Miso: PinMiso, Mosi: PinMosi>(
+        sys_clk: Hertz,
         spi: SpiI,
         _pins: (Sck, Miso, Mosi),
         spi_cfg: SpiConfig,
-    ) -> Self {
+    ) -> Result<Self, SpiIdMissmatchError> {
+        if SpiI::ID != Sck::SPI_ID || SpiI::ID != Miso::SPI_ID || SpiI::ID != Mosi::SPI_ID {
+            return Err(SpiIdMissmatchError);
+        }
+        IoPeriphPin::new(Sck::ID, Sck::FUN_SEL, None);
+        IoPeriphPin::new(Miso::ID, Miso::FUN_SEL, None);
+        IoPeriphPin::new(Mosi::ID, Mosi::FUN_SEL, None);
+        Ok(Self::new_generic(sys_clk, spi, spi_cfg))
+    }
+
+    pub fn new_generic<SpiI: SpiMarker>(sys_clk: Hertz, spi: SpiI, spi_cfg: SpiConfig) -> Self {
         enable_peripheral_clock(SpiI::PERIPH_SEL);
         let (cpo_bit, cph_bit) = mode_to_cpo_cph_bit(spi_cfg.init_mode);
         spi.ctrl0().write(|w| {
@@ -568,7 +537,7 @@ where
             id: SpiI::ID,
             reg_block: spi.reg_block(),
             cfg: spi_cfg,
-            sys_clk: sys_clk.into(),
+            sys_clk,
             fill_word: Default::default(),
             bmstall: spi_cfg.bmstall,
             blockmode: spi_cfg.blockmode,
@@ -594,6 +563,10 @@ where
         self.reg_block()
             .clkprescale()
             .write(|w| unsafe { w.bits(cfg.prescale_val as u32) });
+    }
+
+    pub fn set_fill_word(&mut self, fill_word: Word) {
+        self.fill_word = fill_word;
     }
 
     #[inline]
@@ -633,6 +606,10 @@ where
     }
 
     /// Configure the hardware chip select given a hardware chip select ID.
+    ///
+    /// The pin also needs to be configured to be used as a HW CS pin. This can be done
+    /// by using the [configure_pin_as_hw_cs_pin] function which also returns the
+    /// corresponding [HwChipSelectId].
     #[inline]
     pub fn cfg_hw_cs(&mut self, hw_cs: HwChipSelectId) {
         self.reg_block_mut().ctrl1().modify(|_, w| {
@@ -642,13 +619,6 @@ where
             }
             w
         });
-    }
-
-    /// Configure the hardware chip select given a physical hardware CS pin.
-    #[inline]
-    pub fn cfg_hw_cs_with_pin<HwCs: HwCsProvider>(&mut self, _: &HwCs) {
-        // TODO: Error handling.
-        self.cfg_hw_cs(HwCs::CS_ID);
     }
 
     /// Disables the hardware chip select functionality. This can be used when performing

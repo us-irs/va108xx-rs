@@ -29,6 +29,7 @@ rtic-sync = {version = "1", features = ["defmt-03"]}
 
 [dependencies.va108xx-hal]
 version = "0.11"
+path = "../va108xx-hal"
 features = ["defmt"]
 
 [dependencies.vorago-reb1]

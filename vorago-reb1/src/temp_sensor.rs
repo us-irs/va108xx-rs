@@ -48,15 +48,10 @@ impl From<Error> for AdtInitError {
 }
 
 impl Adt75TempSensor {
-    pub fn new(
-        sys_cfg: &mut pac::Sysconfig,
-        sys_clk: impl Into<Hertz> + Copy,
-        i2ca: pac::I2ca,
-    ) -> Result<Self, Error> {
+    pub fn new(sys_clk: Hertz, i2ca: pac::I2ca) -> Result<Self, Error> {
         let mut sensor = Adt75TempSensor {
             // The master construction can not fail for regular I2C speed.
             sensor_if: I2cMaster::new(
-                sys_cfg,
                 sys_clk,
                 i2ca,
                 MasterConfig::default(),

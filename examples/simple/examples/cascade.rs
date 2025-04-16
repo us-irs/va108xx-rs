@@ -15,38 +15,27 @@ use rtt_target::{rprintln, rtt_init_print};
 use va108xx_hal::{
     pac::{self, interrupt},
     prelude::*,
-    timer::{
-        default_ms_irq_handler, set_up_ms_delay_provider, CascadeCtrl, CascadeSource,
-        CountdownTimer, Event, InterruptConfig,
-    },
+    timer::{CascadeCtrl, CascadeSource, CountdownTimer, InterruptConfig},
 };
 
-static CSD_TGT_1: Mutex<RefCell<Option<CountdownTimer<pac::Tim4>>>> =
-    Mutex::new(RefCell::new(None));
-static CSD_TGT_2: Mutex<RefCell<Option<CountdownTimer<pac::Tim5>>>> =
-    Mutex::new(RefCell::new(None));
+static CSD_TGT_1: Mutex<RefCell<Option<CountdownTimer>>> = Mutex::new(RefCell::new(None));
+static CSD_TGT_2: Mutex<RefCell<Option<CountdownTimer>>> = Mutex::new(RefCell::new(None));
 
 #[entry]
 fn main() -> ! {
     rtt_init_print!();
     rprintln!("-- VA108xx Cascade example application--");
 
-    let mut dp = pac::Peripherals::take().unwrap();
-    let mut delay = set_up_ms_delay_provider(&mut dp.sysconfig, 50.MHz(), dp.tim0);
+    let dp = pac::Peripherals::take().unwrap();
+    let mut delay = CountdownTimer::new(50.MHz(), dp.tim0);
 
     // Will be started periodically to trigger a cascade
-    let mut cascade_triggerer =
-        CountdownTimer::new(&mut dp.sysconfig, 50.MHz(), dp.tim3).auto_disable(true);
-    cascade_triggerer.listen(
-        Event::TimeOut,
-        InterruptConfig::new(pac::Interrupt::OC1, true, false),
-        Some(&mut dp.irqsel),
-        Some(&mut dp.sysconfig),
-    );
+    let mut cascade_triggerer = CountdownTimer::new(50.MHz(), dp.tim3).auto_disable(true);
+    cascade_triggerer.enable_interupt(InterruptConfig::new(pac::Interrupt::OC1, true, false));
+    cascade_triggerer.enable();
 
     // First target for cascade
-    let mut cascade_target_1 =
-        CountdownTimer::new(&mut dp.sysconfig, 50.MHz(), dp.tim4).auto_deactivate(true);
+    let mut cascade_target_1 = CountdownTimer::new(50.MHz(), dp.tim4).auto_deactivate(true);
     cascade_target_1
         .cascade_0_source(CascadeSource::Tim(3))
         .expect("Configuring cascade source for TIM4 failed");
@@ -60,19 +49,13 @@ fn main() -> ! {
     // Normally it should already be sufficient to activate IRQ in the CTRL
     // register but a full interrupt is use here to display print output when
     // the timer expires
-    cascade_target_1.listen(
-        Event::TimeOut,
-        InterruptConfig::new(pac::Interrupt::OC2, true, false),
-        Some(&mut dp.irqsel),
-        Some(&mut dp.sysconfig),
-    );
+    cascade_target_1.enable_interupt(InterruptConfig::new(pac::Interrupt::OC2, true, false));
     // The counter will only activate when the cascade signal is coming in so
     // it is okay to call start here to set the reset value
     cascade_target_1.start(1.Hz());
 
     // Activated by first cascade target
-    let mut cascade_target_2 =
-        CountdownTimer::new(&mut dp.sysconfig, 50.MHz(), dp.tim5).auto_deactivate(true);
+    let mut cascade_target_2 = CountdownTimer::new(50.MHz(), dp.tim5).auto_deactivate(true);
     // Set TIM4 as cascade source
     cascade_target_2
         .cascade_1_source(CascadeSource::Tim(4))
@@ -86,12 +69,7 @@ fn main() -> ! {
     // Normally it should already be sufficient to activate IRQ in the CTRL
     // register but a full interrupt is use here to display print output when
     // the timer expires
-    cascade_target_2.listen(
-        Event::TimeOut,
-        InterruptConfig::new(pac::Interrupt::OC3, true, false),
-        Some(&mut dp.irqsel),
-        Some(&mut dp.sysconfig),
-    );
+    cascade_target_2.enable_interupt(InterruptConfig::new(pac::Interrupt::OC3, true, false));
     // The counter will only activate when the cascade signal is coming in so
     // it is okay to call start here to set the reset value
     cascade_target_2.start(1.Hz());
@@ -113,11 +91,6 @@ fn main() -> ! {
         cascade_triggerer.start(2.Hz());
         delay.delay_ms(5000);
     }
-}
-
-#[interrupt]
-fn OC0() {
-    default_ms_irq_handler()
 }
 
 #[interrupt]

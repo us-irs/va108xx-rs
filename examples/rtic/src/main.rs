@@ -11,15 +11,15 @@ mod app {
     use rtic_monotonics::Monotonic;
     use rtt_target::{rprintln, rtt_init_print};
     use va108xx_hal::{
-        gpio::{OutputReadablePushPull, Pin, PinsA, PA10, PA6, PA7},
-        pac,
+        gpio::{Output, PinState},
+        pac, pins::PinsA,
     };
 
     #[local]
     struct Local {
-        led0: Pin<PA10, OutputReadablePushPull>,
-        led1: Pin<PA7, OutputReadablePushPull>,
-        led2: Pin<PA6, OutputReadablePushPull>,
+        led0: Output,
+        led1: Output,
+        led2: Output,
     }
 
     #[shared]
@@ -28,16 +28,16 @@ mod app {
     rtic_monotonics::systick_monotonic!(Mono, 1_000);
 
     #[init]
-    fn init(mut cx: init::Context) -> (Shared, Local) {
+    fn init(cx: init::Context) -> (Shared, Local) {
         rtt_init_print!();
         rprintln!("-- Vorago VA108xx RTIC template --");
 
         Mono::start(cx.core.SYST, SYSCLK_FREQ.raw());
 
-        let porta = PinsA::new(&mut cx.device.sysconfig, cx.device.porta);
-        let led0 = porta.pa10.into_readable_push_pull_output();
-        let led1 = porta.pa7.into_readable_push_pull_output();
-        let led2 = porta.pa6.into_readable_push_pull_output();
+        let porta = PinsA::new(cx.device.porta);
+        let led0 = Output::new(porta.pa10, PinState::Low);
+        let led1 = Output::new(porta.pa7, PinState::Low);
+        let led2 = Output::new(porta.pa6, PinState::Low);
         blinky::spawn().ok();
         (Shared {}, Local { led0, led1, led2 })
     }

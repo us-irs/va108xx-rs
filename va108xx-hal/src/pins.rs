@@ -1,6 +1,13 @@
-pub use vorago_shared_periphs::gpio::{Pin, PinId, PinMarker, Port};
+use vorago_shared_periphs::sysconfig::reset_peripheral_for_cycles;
 
-use crate::{sysconfig::reset_peripheral_for_cycles, PeripheralSelect};
+pub use crate::gpio::{Pin, PinId, PinIdProvider, Port};
+
+use crate::sealed::Sealed;
+use crate::PeripheralSelect;
+
+pub trait PinMarker: Sealed {
+    const ID: PinId;
+}
 
 macro_rules! pin_id {
     ($Id:ident, $Port:path, $num:literal) => {
@@ -11,14 +18,18 @@ macro_rules! pin_id {
             pub enum $Id {}
 
             impl $crate::sealed::Sealed for $Id {}
-            impl PinMarker for $Id {
-                const ID: PinId = PinId::new($Port, $num);
+            impl PinIdProvider for $Id {
+                const ID: PinId = PinId::new_unchecked($Port, $num);
+            }
+
+            impl PinMarker for Pin<$Id> {
+                const ID: PinId = $Id::ID;
             }
         }
     };
 }
 
-impl<I: PinMarker + crate::sealed::Sealed> crate::sealed::Sealed for Pin<I> {}
+impl<I: PinIdProvider + Sealed> Sealed for Pin<I> {}
 
 pin_id!(Pa0, Port::A, 0);
 pin_id!(Pa1, Port::A, 1);

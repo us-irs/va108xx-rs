@@ -12,7 +12,12 @@ cfg_if::cfg_if! {
     }
 }
 
-use va108xx_hal::{gpio::PinsA, pac, prelude::*};
+use va108xx_hal::{
+    gpio::{Output, PinState},
+    pac,
+    pins::PinsA,
+    prelude::*,
+};
 
 const SYSCLK_FREQ: Hertz = Hertz::from_raw(50_000_000);
 
@@ -35,8 +40,6 @@ async fn main(_spawner: Spawner) {
             );
         } else {
             va108xx_embassy::init_with_custom_irqs(
-                &mut dp.sysconfig,
-                &dp.irqsel,
                 SYSCLK_FREQ,
                 dp.tim23,
                 dp.tim22,
@@ -46,10 +49,10 @@ async fn main(_spawner: Spawner) {
         }
     }
 
-    let porta = PinsA::new(&mut dp.sysconfig, dp.porta);
-    let mut led0 = porta.pa10.into_readable_push_pull_output();
-    let mut led1 = porta.pa7.into_readable_push_pull_output();
-    let mut led2 = porta.pa6.into_readable_push_pull_output();
+    let porta = PinsA::new(dp.porta);
+    let mut led0 = Output::new(porta.pa10, PinState::Low);
+    let mut led1 = Output::new(porta.pa7, PinState::Low);
+    let mut led2 = Output::new(porta.pa6, PinState::Low);
     let mut ticker = Ticker::every(Duration::from_secs(1));
     loop {
         ticker.next().await;

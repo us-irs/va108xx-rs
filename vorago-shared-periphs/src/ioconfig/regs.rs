@@ -1,6 +1,6 @@
 use core::marker::PhantomData;
 
-use crate::{InvalidOffsetError, NUM_PORT_A, NUM_PORT_B};
+use crate::{NUM_PORT_A, NUM_PORT_B, gpio::PinId};
 #[cfg(feature = "vor4x")]
 use crate::{NUM_PORT_DEFAULT, NUM_PORT_G};
 
@@ -73,7 +73,7 @@ pub struct Config {
     #[bit(6, rw)]
     invert_input: bool,
     #[bits(3..=5, rw)]
-    filter_sel: FilterClkSel,
+    filter_clk_sel: FilterClkSel,
     #[bits(0..=2, rw)]
     filter_type: Option<FilterType>,
 }
@@ -134,24 +134,9 @@ impl IoConfig {
 }
 
 impl MmioIoConfig<'_> {
-    pub fn read_pin_config(
-        &self,
-        port: crate::Port,
-        offset: usize,
-    ) -> Result<Config, InvalidOffsetError> {
-        if offset >= port.max_offset() {
-            return Err(InvalidOffsetError { port, offset });
-        }
-        Ok(unsafe { self.read_pin_config_unchecked(port, offset) })
-    }
-
-    /// This function does NOT perform any bounds checking.
-    ///
-    /// # Safety
-    ///
-    /// Calling this function with an invalid offset can lead to undefined behaviour.
-    pub unsafe fn read_pin_config_unchecked(&self, port: crate::Port, offset: usize) -> Config {
-        match port {
+    pub fn read_pin_config(&self, id: PinId) -> Config {
+        let offset = id.offset();
+        match id.port() {
             crate::Port::A => unsafe { self.read_port_a_unchecked(offset) },
             crate::Port::B => unsafe { self.read_port_b_unchecked(offset) },
             #[cfg(feature = "vor4x")]
@@ -167,63 +152,14 @@ impl MmioIoConfig<'_> {
         }
     }
 
-    pub fn modify_pin_config<F: FnOnce(Config) -> Config>(
-        &mut self,
-        port: crate::Port,
-        offset: usize,
-        f: F,
-    ) -> Result<(), InvalidOffsetError> {
-        if offset >= port.max_offset() {
-            return Err(InvalidOffsetError { port, offset });
-        }
-        unsafe { self.modify_pin_config_unchecked(port, offset, f) };
-        Ok(())
+    pub fn modify_pin_config<F: FnOnce(Config) -> Config>(&mut self, id: PinId, f: F) {
+        let config = self.read_pin_config(id);
+        self.write_pin_config(id, f(config))
     }
 
-    /// This function does NOT perform any bounds checking.
-    ///
-    /// # Safety
-    ///
-    /// Calling this function with an invalid offset can lead to undefined behaviour.
-    pub unsafe fn modify_pin_config_unchecked<F: FnOnce(Config) -> Config>(
-        &mut self,
-        port: crate::Port,
-        offset: usize,
-        mut f: F,
-    ) {
-        unsafe {
-            let config = self.read_pin_config_unchecked(port, offset);
-            self.write_pin_config_unchecked(port, offset, f(config))
-        }
-    }
-
-    pub fn write_pin_config(
-        &mut self,
-        port: crate::Port,
-        offset: usize,
-        config: Config,
-    ) -> Result<(), InvalidOffsetError> {
-        if offset >= port.max_offset() {
-            return Err(InvalidOffsetError { port, offset });
-        }
-        unsafe {
-            self.write_pin_config_unchecked(port, offset, config);
-        }
-        Ok(())
-    }
-
-    /// This function does NOT perform any bounds checking.
-    ///
-    /// # Safety
-    ///
-    /// Calling this function with an invalid offset can lead to undefined behaviour.
-    pub unsafe fn write_pin_config_unchecked(
-        &mut self,
-        port: crate::Port,
-        offset: usize,
-        config: Config,
-    ) {
-        match port {
+    pub fn write_pin_config(&mut self, id: PinId, config: Config) {
+        let offset = id.offset();
+        match id.port() {
             crate::Port::A => unsafe { self.write_port_a_unchecked(offset, config) },
             crate::Port::B => unsafe { self.write_port_b_unchecked(offset, config) },
             #[cfg(feature = "vor4x")]

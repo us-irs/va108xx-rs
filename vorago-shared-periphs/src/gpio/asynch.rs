@@ -102,8 +102,7 @@ impl InputPinFuture {
     ) -> Self {
         let (waker_group, edge_detection_group) =
             Self::pin_group_to_waker_and_edge_detection_group(pin.id().port());
-        edge_detection_group[pin.id().offset() as usize]
-            .store(false, core::sync::atomic::Ordering::Relaxed);
+        edge_detection_group[pin.id().offset()].store(false, core::sync::atomic::Ordering::Relaxed);
         pin.configure_edge_interrupt(edge);
         #[cfg(feature = "vor1x")]
         pin.enable_interrupt(InterruptConfig::new(irq, true, true));
@@ -128,7 +127,7 @@ impl Future for InputPinFuture {
         self: core::pin::Pin<&mut Self>,
         cx: &mut core::task::Context<'_>,
     ) -> core::task::Poll<Self::Output> {
-        let idx = self.id.offset() as usize;
+        let idx = self.id.offset();
         self.waker_group[idx].register(cx.waker());
         if self.edge_detection_group[idx].swap(false, core::sync::atomic::Ordering::Relaxed) {
             return core::task::Poll::Ready(());

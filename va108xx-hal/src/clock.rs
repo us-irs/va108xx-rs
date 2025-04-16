@@ -2,24 +2,13 @@
 //!
 //! This also includes functionality to enable the peripheral clocks
 use crate::time::Hertz;
-use crate::PeripheralSelect;
 use cortex_m::interrupt::{self, Mutex};
 use once_cell::unsync::OnceCell;
 
-static SYS_CLOCK: Mutex<OnceCell<Hertz>> = Mutex::new(OnceCell::new());
+pub use vorago_shared_periphs::gpio::FilterClkSel;
+pub use vorago_shared_periphs::sysconfig::{disable_peripheral_clock, enable_peripheral_clock};
 
-#[derive(Debug, PartialEq, Eq)]
-#[cfg_attr(feature = "defmt", derive(defmt::Format))]
-pub enum FilterClkSel {
-    SysClk = 0,
-    Clk1 = 1,
-    Clk2 = 2,
-    Clk3 = 3,
-    Clk4 = 4,
-    Clk5 = 5,
-    Clk6 = 6,
-    Clk7 = 7,
-}
+static SYS_CLOCK: Mutex<OnceCell<Hertz>> = Mutex::new(OnceCell::new());
 
 /// The Vorago in powered by an external clock which might have different frequencies.
 /// The clock can be set here so it can be used by other software components as well.
@@ -61,5 +50,3 @@ pub fn set_clk_div_register(syscfg: &mut va108xx::Sysconfig, clk_sel: FilterClkS
         }
     }
 }
-
-pub use vorago_shared_periphs::sysconfig::{disable_peripheral_clock, enable_peripheral_clock};

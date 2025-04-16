@@ -1,5 +1,7 @@
 pub use embedded_hal::digital::PinState;
 
+use crate::ioconfig::FilterClkSel;
+use crate::ioconfig::FilterType;
 #[cfg(feature = "vor1x")]
 use crate::{PeripheralSelect, sysconfig::enable_peripheral_clock};
 
@@ -27,15 +29,28 @@ pub enum InterruptLevel {
 #[cfg_attr(feature = "defmt", derive(defmt::Format))]
 pub struct PinId {
     port: Port,
-    offset: usize,
+    offset: u8,
 }
 
 impl PinId {
+    pub const fn new_unchecked(port: Port, offset: usize) -> Self {
+        if offset >= port.max_offset() {
+            panic!("Pin ID construction: offset is out of range");
+        }
+        PinId {
+            port,
+            offset: offset as u8,
+        }
+    }
+
     pub const fn new(port: Port, offset: usize) -> Result<Self, InvalidOffsetError> {
         if offset >= port.max_offset() {
             return Err(InvalidOffsetError { offset, port });
         }
-        Ok(PinId { port, offset })
+        Ok(PinId {
+            port,
+            offset: offset as u8,
+        })
     }
 
     pub const fn port(&self) -> Port {
@@ -43,7 +58,7 @@ impl PinId {
     }
 
     pub const fn offset(&self) -> usize {
-        self.offset
+        self.offset as usize
     }
 }
 
@@ -51,6 +66,15 @@ pub struct LowLevelGpio {
     gpio: super::regs::MmioGpio<'static>,
     ioconfig: MmioIoConfig<'static>,
     id: PinId,
+}
+
+impl core::fmt::Debug for LowLevelGpio {
+    fn fmt(&self, f: &mut core::fmt::Formatter<'_>) -> core::fmt::Result {
+        f.debug_struct("LowLevelGpio")
+            .field("gpio", &self.gpio.port())
+            .field("id", &self.id)
+            .finish()
+    }
 }
 
 impl LowLevelGpio {
@@ -78,23 +102,17 @@ impl LowLevelGpio {
     }
 
     pub fn configure_as_input_floating(&mut self) {
-        unsafe {
-            self.ioconfig.modify_pin_config_unchecked(
-                self.id.port(),
-                self.id.offset(),
-                |mut config| {
-                    config.set_funsel(FunSel::Sel0);
-                    config.set_io_disable(false);
-                    config.set_invert_input(false);
-                    config.set_open_drain(false);
-                    config.set_pull_enable(false);
-                    config.set_pull_when_output_active(false);
-                    config.set_invert_output(false);
-                    config.set_input_enable_when_output(false);
-                    config
-                },
-            );
-        }
+        self.ioconfig.modify_pin_config(self.id, |mut config| {
+            config.set_funsel(FunSel::Sel0);
+            config.set_io_disable(false);
+            config.set_invert_input(false);
+            config.set_open_drain(false);
+            config.set_pull_enable(false);
+            config.set_pull_when_output_active(false);
+            config.set_invert_output(false);
+            config.set_input_enable_when_output(false);
+            config
+        });
         self.gpio.modify_dir(|mut dir| {
             dir &= !(1 << self.id.offset());
             dir
@@ -102,24 +120,18 @@ impl LowLevelGpio {
     }
 
     pub fn configure_as_input_with_pull(&mut self, pull: Pull) {
-        unsafe {
-            self.ioconfig.modify_pin_config_unchecked(
-                self.id.port(),
-                self.id.offset(),
-                |mut config| {
-                    config.set_funsel(FunSel::Sel0);
-                    config.set_io_disable(false);
-                    config.set_invert_input(false);
-                    config.set_open_drain(false);
-                    config.set_pull_enable(true);
-                    config.set_pull_dir(pull);
-                    config.set_pull_when_output_active(false);
-                    config.set_invert_output(false);
-                    config.set_input_enable_when_output(false);
-                    config
-                },
-            );
-        }
+        self.ioconfig.modify_pin_config(self.id, |mut config| {
+            config.set_funsel(FunSel::Sel0);
+            config.set_io_disable(false);
+            config.set_invert_input(false);
+            config.set_open_drain(false);
+            config.set_pull_enable(true);
+            config.set_pull_dir(pull);
+            config.set_pull_when_output_active(false);
+            config.set_invert_output(false);
+            config.set_input_enable_when_output(false);
+            config
+        });
         self.gpio.modify_dir(|mut dir| {
             dir &= !(1 << self.id.offset());
             dir
@@ -127,23 +139,17 @@ impl LowLevelGpio {
     }
 
     pub fn configure_as_output_push_pull(&mut self, init_level: PinState) {
-        unsafe {
-            self.ioconfig.modify_pin_config_unchecked(
-                self.id.port(),
-                self.id.offset(),
-                |mut config| {
-                    config.set_funsel(FunSel::Sel0);
-                    config.set_io_disable(false);
-                    config.set_invert_input(false);
-                    config.set_open_drain(false);
-                    config.set_pull_enable(false);
-                    config.set_pull_when_output_active(false);
-                    config.set_invert_output(false);
-                    config.set_input_enable_when_output(true);
-                    config
-                },
-            );
-        }
+        self.ioconfig.modify_pin_config(self.id, |mut config| {
+            config.set_funsel(FunSel::Sel0);
+            config.set_io_disable(false);
+            config.set_invert_input(false);
+            config.set_open_drain(false);
+            config.set_pull_enable(false);
+            config.set_pull_when_output_active(false);
+            config.set_invert_output(false);
+            config.set_input_enable_when_output(true);
+            config
+        });
         match init_level {
             PinState::Low => self.gpio.write_clr_out(self.mask_32()),
             PinState::High => self.gpio.write_set_out(self.mask_32()),
@@ -155,24 +161,18 @@ impl LowLevelGpio {
     }
 
     pub fn configure_as_output_open_drain(&mut self, init_level: PinState) {
-        unsafe {
-            self.ioconfig.modify_pin_config_unchecked(
-                self.id.port(),
-                self.id.offset(),
-                |mut config| {
-                    config.set_funsel(FunSel::Sel0);
-                    config.set_io_disable(false);
-                    config.set_invert_input(false);
-                    config.set_open_drain(true);
-                    config.set_pull_enable(true);
-                    config.set_pull_dir(Pull::Up);
-                    config.set_pull_when_output_active(false);
-                    config.set_invert_output(false);
-                    config.set_input_enable_when_output(true);
-                    config
-                },
-            );
-        }
+        self.ioconfig.modify_pin_config(self.id, |mut config| {
+            config.set_funsel(FunSel::Sel0);
+            config.set_io_disable(false);
+            config.set_invert_input(false);
+            config.set_open_drain(true);
+            config.set_pull_enable(true);
+            config.set_pull_dir(Pull::Up);
+            config.set_pull_when_output_active(false);
+            config.set_invert_output(false);
+            config.set_input_enable_when_output(true);
+            config
+        });
         let mask32 = self.mask_32();
         match init_level {
             PinState::Low => self.gpio.write_clr_out(mask32),
@@ -185,22 +185,16 @@ impl LowLevelGpio {
     }
 
     pub fn configure_as_peripheral_pin(&mut self, fun_sel: FunSel, pull: Option<Pull>) {
-        unsafe {
-            self.ioconfig.modify_pin_config_unchecked(
-                self.id.port(),
-                self.id.offset(),
-                |mut config| {
-                    config.set_funsel(fun_sel);
-                    config.set_io_disable(false);
-                    config.set_invert_input(false);
-                    config.set_open_drain(false);
-                    config.set_pull_enable(pull.is_some());
-                    config.set_pull_dir(pull.unwrap_or(Pull::Up));
-                    config.set_invert_output(false);
-                    config
-                },
-            );
-        }
+        self.ioconfig.modify_pin_config(self.id, |mut config| {
+            config.set_funsel(fun_sel);
+            config.set_io_disable(false);
+            config.set_invert_input(false);
+            config.set_open_drain(false);
+            config.set_pull_enable(pull.is_some());
+            config.set_pull_dir(pull.unwrap_or(Pull::Up));
+            config.set_invert_output(false);
+            config
+        });
     }
 
     #[inline]
@@ -295,6 +289,79 @@ impl LowLevelGpio {
         }
     }
 
+    /// Configure which edge or level type triggers an interrupt
+    #[inline]
+    pub fn configure_level_interrupt(&mut self, level: InterruptLevel) {
+        let mask32 = self.mask_32();
+        self.gpio.modify_irq_sen(|mut value| {
+            value |= mask32;
+            value
+        });
+        if level == InterruptLevel::Low {
+            self.gpio.modify_irq_evt(|mut value| {
+                value &= !mask32;
+                value
+            });
+        } else {
+            self.gpio.modify_irq_evt(|mut value| {
+                value |= mask32;
+                value
+            });
+        }
+    }
+
+    /// Only useful for input pins
+    #[inline]
+    pub fn configure_filter_type(&mut self, filter: FilterType, clksel: FilterClkSel) {
+        self.ioconfig.modify_pin_config(self.id, |mut config| {
+            config.set_filter_type(filter);
+            config.set_filter_clk_sel(clksel);
+            config
+        });
+    }
+
+    /// Only useful for output pins.
+    #[inline]
+    pub fn configure_pulse_mode(&mut self, enable: bool, default_state: PinState) {
+        self.gpio.modify_pulse(|mut value| {
+            if enable {
+                value |= 1 << self.id.offset;
+            } else {
+                value &= !(1 << self.id.offset);
+            }
+            value
+        });
+        self.gpio.modify_pulsebase(|mut value| {
+            if default_state == PinState::High {
+                value |= 1 << self.id.offset;
+            } else {
+                value &= !(1 << self.id.offset);
+            }
+            value
+        });
+    }
+
+    /// Only useful for output pins
+    #[inline]
+    pub fn configure_delay(&mut self, delay_1: bool, delay_2: bool) {
+        self.gpio.modify_delay1(|mut value| {
+            if delay_1 {
+                value |= 1 << self.id.offset;
+            } else {
+                value &= !(1 << self.id.offset);
+            }
+            value
+        });
+        self.gpio.modify_delay2(|mut value| {
+            if delay_2 {
+                value |= 1 << self.id.offset;
+            } else {
+                value &= !(1 << self.id.offset);
+            }
+            value
+        });
+    }
+
     #[cfg(feature = "vor1x")]
     /// Configure the IRQSEL peripheral for this particular pin with the given interrupt ID.
     pub fn configure_irqsel(&mut self, id: va108xx::Interrupt) {
@@ -304,12 +371,12 @@ impl LowLevelGpio {
             // Set the correct interrupt number in the IRQSEL register
             super::Port::A => {
                 irqsel
-                    .porta0(self.id().offset() as usize)
+                    .porta0(self.id().offset())
                     .write(|w| unsafe { w.bits(id as u32) });
             }
             super::Port::B => {
                 irqsel
-                    .portb0(self.id().offset() as usize)
+                    .portb0(self.id().offset())
                     .write(|w| unsafe { w.bits(id as u32) });
             }
         }
@@ -324,12 +391,12 @@ impl LowLevelGpio {
             // Set the correct interrupt number in the IRQSEL register
             super::Port::A => {
                 irqsel
-                    .porta0(self.id().offset() as usize)
+                    .porta0(self.id().offset())
                     .write(|w| unsafe { w.bits(u32::MAX) });
             }
             super::Port::B => {
                 irqsel
-                    .portb0(self.id().offset() as usize)
+                    .portb0(self.id().offset())
                     .write(|w| unsafe { w.bits(u32::MAX) });
             }
         }

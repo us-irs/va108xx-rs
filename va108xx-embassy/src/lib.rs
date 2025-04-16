@@ -45,7 +45,7 @@ use va108xx_hal::{
     clock::enable_peripheral_clock,
     enable_nvic_interrupt, pac,
     prelude::*,
-    timer::{enable_tim_clk, get_tim_raw, TimRegInterface, ValidTim},
+    timer::{enable_tim_clk, get_tim_raw, TimMarker, TimRegInterface},
     PeripheralSelect,
 };
 
@@ -109,48 +109,28 @@ pub fn time_driver() -> &'static TimerDriver {
 /// This should be used if the interrupt handler is provided by the library, which is the
 /// default case.
 #[cfg(feature = "irqs-in-lib")]
-pub fn init<TimekeeperTim: TimRegInterface + ValidTim, AlarmTim: TimRegInterface + ValidTim>(
-    syscfg: &mut pac::Sysconfig,
-    irqsel: &pac::Irqsel,
-    sysclk: impl Into<Hertz>,
+pub fn init<TimekeeperTim: TimRegInterface + TimMarker, AlarmTim: TimRegInterface + TimMarker>(
+    sysclk: Hertz,
     timekeeper_tim: TimekeeperTim,
     alarm_tim: AlarmTim,
 ) {
-    TIME_DRIVER.init(
-        syscfg,
-        irqsel,
-        sysclk,
-        timekeeper_tim,
-        alarm_tim,
-        TIMEKEEPER_IRQ,
-        ALARM_IRQ,
-    )
+    TIME_DRIVER.init(sysclk, timekeeper_tim, alarm_tim, TIMEKEEPER_IRQ, ALARM_IRQ)
 }
 
 /// Initialization method for embassy when using custom IRQ handlers.
 ///
 /// Requires an explicit [pac::Interrupt] argument for the timekeeper and alarm IRQs.
 pub fn init_with_custom_irqs<
-    TimekeeperTim: TimRegInterface + ValidTim,
-    AlarmTim: TimRegInterface + ValidTim,
+    TimekeeperTim: TimRegInterface + TimMarker,
+    AlarmTim: TimRegInterface + TimMarker,
 >(
-    syscfg: &mut pac::Sysconfig,
-    irqsel: &pac::Irqsel,
-    sysclk: impl Into<Hertz>,
+    sysclk: Hertz,
     timekeeper_tim: TimekeeperTim,
     alarm_tim: AlarmTim,
     timekeeper_irq: pac::Interrupt,
     alarm_irq: pac::Interrupt,
 ) {
-    TIME_DRIVER.init(
-        syscfg,
-        irqsel,
-        sysclk,
-        timekeeper_tim,
-        alarm_tim,
-        timekeeper_irq,
-        alarm_irq,
-    )
+    TIME_DRIVER.init(sysclk, timekeeper_tim, alarm_tim, timekeeper_irq, alarm_irq)
 }
 
 struct AlarmState {
@@ -180,11 +160,9 @@ pub struct TimerDriver {
 
 impl TimerDriver {
     #[allow(clippy::too_many_arguments)]
-    fn init<TimekeeperTim: TimRegInterface + ValidTim, AlarmTim: TimRegInterface + ValidTim>(
+    fn init<TimekeeperTim: TimRegInterface + TimMarker, AlarmTim: TimRegInterface + TimMarker>(
         &self,
-        syscfg: &mut pac::Sysconfig,
-        irqsel: &pac::Irqsel,
-        sysclk: impl Into<Hertz>,
+        sysclk: Hertz,
         timekeeper_tim: TimekeeperTim,
         alarm_tim: AlarmTim,
         timekeeper_irq: pac::Interrupt,
@@ -193,13 +171,12 @@ impl TimerDriver {
         if ALARM_TIM.get().is_some() || TIMEKEEPER_TIM.get().is_some() {
             return;
         }
-        ALARM_TIM.set(AlarmTim::TIM_ID).ok();
-        TIMEKEEPER_TIM.set(TimekeeperTim::TIM_ID).ok();
-        enable_peripheral_clock(syscfg, PeripheralSelect::Irqsel);
-        enable_tim_clk(syscfg, timekeeper_tim.tim_id());
+        ALARM_TIM.set(AlarmTim::ID.raw_id()).ok();
+        TIMEKEEPER_TIM.set(TimekeeperTim::ID.raw_id()).ok();
+        enable_peripheral_clock(PeripheralSelect::Irqsel);
+        enable_tim_clk(timekeeper_tim.raw_id());
         let timekeeper_reg_block = timekeeper_tim.reg_block();
         let alarm_tim_reg_block = alarm_tim.reg_block();
-        let sysclk = sysclk.into();
         // Initiate scale value here. This is required to convert timer ticks back to a timestamp.
         SCALE.set((sysclk.raw() / TICK_HZ as u32) as u64).unwrap();
         timekeeper_reg_block
@@ -209,9 +186,10 @@ impl TimerDriver {
         timekeeper_reg_block
             .cnt_value()
             .write(|w| unsafe { w.bits(u32::MAX) });
+        let irqsel = unsafe { va108xx_hal::pac::Irqsel::steal() };
         // Switch on. Timekeeping should always be done.
         irqsel
-            .tim0(timekeeper_tim.tim_id() as usize)
+            .tim0(timekeeper_tim.raw_id() as usize)
             .write(|w| unsafe { w.bits(timekeeper_irq as u32) });
         unsafe {
             enable_nvic_interrupt(timekeeper_irq);
@@ -223,7 +201,7 @@ impl TimerDriver {
             .enable()
             .write(|w| unsafe { w.bits(1) });
 
-        enable_tim_clk(syscfg, alarm_tim.tim_id());
+        enable_tim_clk(alarm_tim.raw_id());
 
         // Explicitely disable alarm timer until needed.
         alarm_tim_reg_block.ctrl().modify(|_, w| {
@@ -235,7 +213,7 @@ impl TimerDriver {
             enable_nvic_interrupt(alarm_irq);
         }
         irqsel
-            .tim0(alarm_tim.tim_id() as usize)
+            .tim0(alarm_tim.raw_id() as usize)
             .write(|w| unsafe { w.bits(alarm_irq as u32) });
     }
 

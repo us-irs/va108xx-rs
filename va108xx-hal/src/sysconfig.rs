@@ -1,5 +1,3 @@
-use crate::PeripheralSelect;
-
 #[derive(PartialEq, Eq, Debug)]
 #[cfg_attr(feature = "defmt", derive(defmt::Format))]
 pub struct InvalidCounterResetVal(pub(crate) ());
@@ -40,26 +38,6 @@ pub fn disable_ram_scrubbing() {
     syscfg.ram_scrub().write(|w| unsafe { w.bits(0) });
 }
 
-#[inline]
-pub fn assert_peripheral_reset(periph_sel: PeripheralSelect) {
-    let syscfg = unsafe { va108xx::Sysconfig::steal() };
-    syscfg
-        .peripheral_reset()
-        .modify(|r, w| unsafe { w.bits(r.bits() & !(1 << periph_sel as u8)) });
-}
-
-#[inline]
-pub fn deassert_peripheral_reset(periph_sel: PeripheralSelect) {
-    let syscfg = unsafe { va108xx::Sysconfig::steal() };
-    syscfg
-        .peripheral_reset()
-        .modify(|r, w| unsafe { w.bits(r.bits() | (1 << periph_sel as u8)) });
-}
-
-pub fn reset_peripheral_for_cycles(periph_sel: PeripheralSelect, cycles: u32) {
-    assert_peripheral_reset(periph_sel);
-    cortex_m::asm::delay(cycles);
-    deassert_peripheral_reset(periph_sel);
-}
-
-pub use vorago_shared_periphs::sysconfig::{disable_peripheral_clock, enable_peripheral_clock};
+pub use vorago_shared_periphs::sysconfig::{
+    assert_peripheral_reset, disable_peripheral_clock, enable_peripheral_clock,
+};

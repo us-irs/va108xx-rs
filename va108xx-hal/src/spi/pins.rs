@@ -1,32 +1,33 @@
+use vorago_shared_periphs::gpio::{PinId, PinIdProvider};
 use vorago_shared_periphs::FunSel;
 
 use crate::{
     pins::{
         Pa10, Pa11, Pa12, Pa13, Pa14, Pa15, Pa16, Pa17, Pa18, Pa19, Pa20, Pa21, Pa22, Pa23, Pa24,
         Pa25, Pa26, Pa27, Pa28, Pa29, Pa30, Pa31, Pb0, Pb1, Pb10, Pb11, Pb12, Pb13, Pb14, Pb15,
-        Pb16, Pb17, Pb18, Pb19, Pb2, Pb22, Pb23, Pb3, Pb4, Pb5, Pb6, Pb7, Pb8, Pb9, Pin,
+        Pb16, Pb17, Pb18, Pb19, Pb2, Pb22, Pb23, Pb3, Pb4, Pb5, Pb6, Pb7, Pb8, Pb9, Pin, PinMarker,
     },
     sealed::Sealed,
 };
 
 use super::{HwChipSelectId, SpiId};
 
-pub trait PinSck: Sealed {
+pub trait PinSck: PinMarker {
     const SPI_ID: SpiId;
     const FUN_SEL: FunSel;
 }
 
-pub trait PinMosi: Sealed {
+pub trait PinMosi: PinMarker {
     const SPI_ID: SpiId;
     const FUN_SEL: FunSel;
 }
 
-pub trait PinMiso: Sealed {
+pub trait PinMiso: PinMarker {
     const SPI_ID: SpiId;
     const FUN_SEL: FunSel;
 }
 
-pub trait HwCsProvider: Sealed {
+pub trait HwCsProvider: PinMarker {
     const SPI_ID: SpiId;
     const FUN_SEL: FunSel;
     const CS_ID: HwChipSelectId;
@@ -48,7 +49,7 @@ macro_rules! hw_cs_multi_pin {
         // name of the newtype wrapper struct
         $name:ident,
         // Pb0
-        $pin_id:path,
+        $pin_id:ident,
         // SpiId::B
         $spi_id:path,
         // FunSel::Sel1
@@ -70,6 +71,10 @@ macro_rules! hw_cs_multi_pin {
         }
 
         impl Sealed for $name {}
+
+        impl PinMarker for $name {
+            const ID: PinId = <$pin_id as PinIdProvider>::ID;
+        }
 
         impl HwCsProvider for $name {
             const SPI_ID: SpiId = $spi_id;
@@ -185,7 +190,7 @@ impl PinMosi for Pin<Pa19> {
     const SPI_ID: SpiId = SpiId::B;
     const FUN_SEL: FunSel = FunSel::Sel2;
 }
-impl PinMosi for Pin<Pa18> {
+impl PinMiso for Pin<Pa18> {
     const SPI_ID: SpiId = SpiId::B;
     const FUN_SEL: FunSel = FunSel::Sel2;
 }
@@ -202,7 +207,7 @@ impl PinMosi for Pin<Pb18> {
     const SPI_ID: SpiId = SpiId::B;
     const FUN_SEL: FunSel = FunSel::Sel1;
 }
-impl PinMosi for Pin<Pb17> {
+impl PinMiso for Pin<Pb17> {
     const SPI_ID: SpiId = SpiId::B;
     const FUN_SEL: FunSel = FunSel::Sel1;
 }
@@ -215,7 +220,7 @@ impl PinMosi for Pin<Pb4> {
     const SPI_ID: SpiId = SpiId::B;
     const FUN_SEL: FunSel = FunSel::Sel1;
 }
-impl PinMosi for Pin<Pb3> {
+impl PinMiso for Pin<Pb3> {
     const SPI_ID: SpiId = SpiId::B;
     const FUN_SEL: FunSel = FunSel::Sel1;
 }
@@ -330,6 +335,7 @@ hw_cs_multi_pin!(
 
 // SPIC
 
+/*
 //  Dummy pin defintion for the ROM SCK.
 pub struct RomSck;
 //  Dummy pin defintion for the ROM MOSI.
@@ -358,6 +364,7 @@ impl PinMiso for RomMiso {
     const FUN_SEL: FunSel = FunSel::Sel0;
 }
 impl Sealed for RomCs {}
+*/
 
 hw_cs_pins!(
     SpiId::C,
@@ -408,9 +415,11 @@ hw_cs_multi_pin!(
     HwChipSelectId::Id4
 );
 
+/*
 impl HwCsProvider for RomCs {
     const CS_ID: HwChipSelectId = HwChipSelectId::Id0;
     const SPI_ID: SpiId = SpiId::C;
     /// Function select does not make sense here, just select default value.
     const FUN_SEL: FunSel = FunSel::Sel0;
 }
+*/

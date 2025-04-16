@@ -16,16 +16,12 @@ use crate::{
     sealed::Sealed,
     time::Hertz,
 };
-use core::cell::Cell;
-use critical_section::Mutex;
 use fugit::RateExtU32;
 use vorago_shared_periphs::{
-    gpio::{Pin, PinMarker},
+    gpio::{Pin, PinIdProvider},
     ioconfig::regs::FunSel,
     Port,
 };
-
-pub static MS_COUNTER: Mutex<Cell<u32>> = Mutex::new(Cell::new(0));
 
 /// Get the peripheral block of a TIM peripheral given the index.
 ///
@@ -170,15 +166,21 @@ pub trait TimPin: Sealed {
     const TIM_ID: TimId;
 }
 
-pub trait TimPeripheralMarker: Sealed {
+pub trait TimMarker: Sealed {
     // TIM ID ranging from 0 to 23 for 24 TIM peripherals
     const ID: TimId;
 }
 
 macro_rules! tim_marker {
     ($TIMX:path, $ID:expr) => {
-        impl TimPeripheralMarker for $TIMX {
+        impl TimMarker for $TIMX {
             const ID: TimId = TimId($ID);
+        }
+
+        unsafe impl TimRegInterface for $TIMX {
+            fn raw_id(&self) -> u8 {
+                Self::ID.0
+            }
         }
 
         impl Sealed for $TIMX {}
@@ -210,13 +212,13 @@ tim_marker!(pac::Tim21, 21);
 tim_marker!(pac::Tim22, 22);
 tim_marker!(pac::Tim23, 23);
 
-pub trait ValidTimAndPin<Pin: TimPin, Tim: TimPeripheralMarker>: Sealed {}
+pub trait ValidTimAndPin<Pin: TimPin, Tim: TimMarker>: Sealed {}
 
 macro_rules! pin_and_tim {
     ($Px:ident, $FunSel:path, $ID:expr) => {
         impl TimPin for Pin<$Px>
         where
-            $Px: PinMarker,
+            $Px: PinIdProvider,
         {
             const PORT: Port = $Px::ID.port();
             const OFFSET: usize = $Px::ID.offset();
@@ -368,7 +370,7 @@ unsafe impl TimRegInterface for CountdownTimer {
 
 impl CountdownTimer {
     /// Configures a TIM peripheral as a periodic count down timer
-    pub fn new<Tim: TimPeripheralMarker>(sys_clk: Hertz, _tim: Tim) -> Self {
+    pub fn new<Tim: TimMarker>(sys_clk: Hertz, _tim: Tim) -> Self {
         enable_tim_clk(Tim::ID.raw_id());
         let cd_timer = CountdownTimer {
             tim: Tim::ID,
@@ -593,6 +595,10 @@ impl CountdownTimer {
     }
 }
 
+//==================================================================================================
+// Delay implementations
+//==================================================================================================
+//
 impl embedded_hal::delay::DelayNs for CountdownTimer {
     fn delay_ns(&mut self, ns: u32) {
         let ticks = (u64::from(ns)) * (u64::from(self.sys_clk.raw())) / 1_000_000_000;
@@ -646,59 +652,6 @@ impl embedded_hal::delay::DelayNs for CountdownTimer {
         self.disable();
     }
 }
-
-pub fn set_up_ms_delay_provider(sys_clk: Hertz, tim: impl TimPeripheralMarker) -> CountdownTimer {
-    let mut provider = CountdownTimer::new(sys_clk, tim);
-    provider.start(1000.Hz());
-    provider
-}
-
-/// This function can be called in a specified interrupt handler to increment
-/// the MS counter
-pub fn default_ms_irq_handler() {
-    critical_section::with(|cs| {
-        let mut ms = MS_COUNTER.borrow(cs).get();
-        ms += 1;
-        MS_COUNTER.borrow(cs).set(ms);
-    });
-}
-
-/// Get the current MS tick count
-pub fn get_ms_ticks() -> u32 {
-    critical_section::with(|cs| MS_COUNTER.borrow(cs).get())
-}
-
-//==================================================================================================
-// Delay implementations
-//==================================================================================================
-
-/*
-pub struct DelayMs(CountdownTimer<pac::Tim0>);
-
-impl DelayMs {
-    pub fn new(timer: CountdownTimer<pac::Tim0>) -> Option<Self> {
-        if timer.curr_freq() != Hertz::from_raw(1000) || !timer.listening() {
-            return None;
-        }
-        Some(Self(timer))
-    }
-}
-
-/// This assumes that the user has already set up a MS tick timer in TIM0 as a system tick
-/// with [`set_up_ms_delay_provider`]
-impl embedded_hal::delay::DelayNs for DelayMs {
-    fn delay_ns(&mut self, ns: u32) {
-        let ns_as_ms = ns / 1_000_000;
-        if self.0.curr_freq() != Hertz::from_raw(1000) || !self.0.listening() {
-            return;
-        }
-        let start_time = get_ms_ticks();
-        while get_ms_ticks() - start_time < ns_as_ms {
-            cortex_m::asm::nop();
-        }
-    }
-}
-*/
 
 #[inline(always)]
 pub fn enable_tim_clk(idx: u8) {

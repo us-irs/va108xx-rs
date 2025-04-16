@@ -17,10 +17,11 @@ use embassy_executor::Spawner;
 use embassy_time::{Duration, Instant, Ticker};
 use embedded_io_async::Write;
 use va108xx_hal::{
-    gpio::PinsA,
+    gpio::{Output, PinState},
     pac::{self, interrupt},
+    pins::PinsA,
     prelude::*,
-    uart::{self, on_interrupt_tx, Bank, TxAsync},
+    uart::{self, on_interrupt_tx, TxAsync, UartId},
     InterruptConfig,
 };
 
@@ -49,22 +50,23 @@ async fn main(_spawner: Spawner) {
         dp.tim22,
     );
 
-    let porta = PinsA::new(&mut dp.sysconfig, dp.porta);
-    let mut led0 = porta.pa10.into_readable_push_pull_output();
-    let mut led1 = porta.pa7.into_readable_push_pull_output();
-    let mut led2 = porta.pa6.into_readable_push_pull_output();
+    let porta = PinsA::new(dp.porta);
 
-    let tx = porta.pa9.into_funsel_2();
-    let rx = porta.pa8.into_funsel_2();
+    let mut led0 = Output::new(porta.pa10, PinState::Low);
+    let mut led1 = Output::new(porta.pa7, PinState::Low);
+    let mut led2 = Output::new(porta.pa6, PinState::Low);
+
+    let tx = porta.pa9;
+    let rx = porta.pa8;
 
     let uarta = uart::Uart::new_with_interrupt(
-        &mut dp.sysconfig,
         50.MHz(),
         dp.uarta,
         (tx, rx),
-        115200.Hz(),
+        115200.Hz().into(),
         InterruptConfig::new(pac::Interrupt::OC2, true, true),
-    );
+    )
+    .unwrap();
     let (tx, _rx) = uarta.split();
     let mut async_tx = TxAsync::new(tx);
     let mut ticker = Ticker::every(Duration::from_secs(1));
@@ -89,5 +91,5 @@ async fn main(_spawner: Spawner) {
 #[interrupt]
 #[allow(non_snake_case)]
 fn OC2() {
-    on_interrupt_tx(Bank::A);
+    on_interrupt_tx(UartId::A);
 }

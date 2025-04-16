@@ -20,17 +20,13 @@ mod app {
     use rtic_monotonics::Monotonic;
     use rtt_target::{rprintln, rtt_init_print};
     use va108xx_hal::{
-        gpio::PinsA,
-        pac,
-        prelude::*,
-        uart::{self, RxWithInterrupt, Tx},
-        InterruptConfig,
+        pac, pins::PinsA, prelude::*, uart::{self, RxWithInterrupt, Tx}, InterruptConfig
     };
 
     #[local]
     struct Local {
-        rx: RxWithInterrupt<pac::Uarta>,
-        tx: Tx<pac::Uarta>,
+        rx: RxWithInterrupt,
+        tx: Tx,
     }
 
     #[shared]
@@ -47,19 +43,18 @@ mod app {
 
         Mono::start(cx.core.SYST, SYSCLK_FREQ.raw());
 
-        let mut dp = cx.device;
-        let gpioa = PinsA::new(&mut dp.sysconfig, dp.porta);
-        let tx = gpioa.pa9.into_funsel_2();
-        let rx = gpioa.pa8.into_funsel_2();
+        let dp = cx.device;
+        let gpioa = PinsA::new(dp.porta);
+        let tx = gpioa.pa9;
+        let rx = gpioa.pa8;
 
         let irq_uart = uart::Uart::new_with_interrupt(
-            &mut dp.sysconfig,
             SYSCLK_FREQ,
             dp.uarta,
             (tx, rx),
-            115200.Hz(),
+            115200.Hz().into(),
             InterruptConfig::new(pac::Interrupt::OC3, true, true),
-        );
+        ).unwrap();
         let (tx, rx) = irq_uart.split();
         let mut rx = rx.into_rx_with_irq();
 

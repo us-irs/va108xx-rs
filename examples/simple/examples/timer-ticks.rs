@@ -12,9 +12,7 @@ use va108xx_hal::{
     pac::{self, interrupt},
     prelude::*,
     time::Hertz,
-    timer::{
-        default_ms_irq_handler, set_up_ms_tick, CountdownTimer, Event, InterruptConfig, MS_COUNTER,
-    },
+    timer::{default_ms_irq_handler, CountdownTimer, Event, InterruptConfig, MS_COUNTER},
 };
 
 #[allow(dead_code)]
@@ -66,21 +64,11 @@ fn main() -> ! {
             }
         }
         LibType::Hal => {
-            set_up_ms_tick(
-                InterruptConfig::new(interrupt::OC0, true, true),
-                &mut dp.sysconfig,
-                Some(&mut dp.irqsel),
-                50.MHz(),
-                dp.tim0,
-            );
-            let mut second_timer =
-                CountdownTimer::new(&mut dp.sysconfig, get_sys_clock().unwrap(), dp.tim1);
-            second_timer.listen(
-                Event::TimeOut,
-                InterruptConfig::new(interrupt::OC1, true, true),
-                Some(&mut dp.irqsel),
-                Some(&mut dp.sysconfig),
-            );
+            let mut ms_timer = CountdownTimer::new(get_sys_clock().unwrap(), dp.tim0);
+            ms_timer.enable_interupt(InterruptConfig::new(interrupt::OC0, true, true));
+            ms_timer.start(1.kHz());
+            let mut second_timer = CountdownTimer::new(get_sys_clock().unwrap(), dp.tim1);
+            second_timer.enable_interupt(InterruptConfig::new(interrupt::OC1, true, true));
             second_timer.start(1.Hz());
         }
     }

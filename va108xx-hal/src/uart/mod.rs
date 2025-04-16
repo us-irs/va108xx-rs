@@ -14,7 +14,10 @@
 //! - [Flashloader exposing a CCSDS interface via UART](https://egit.irs.uni-stuttgart.de/rust/va108xx-rs/src/branch/main/flashloader)
 use core::{convert::Infallible, ops::Deref};
 use fugit::RateExtU32;
-use vorago_shared_periphs::{gpio::Pin, FunSel, InterruptConfig};
+use vorago_shared_periphs::{
+    gpio::{IoPeriphPin, Pin},
+    FunSel, InterruptConfig,
+};
 
 use crate::{
     clock::enable_peripheral_clock,
@@ -22,7 +25,7 @@ use crate::{
     pac::{self, uarta as uart_base},
     pins::{
         Pa16, Pa17, Pa18, Pa19, Pa2, Pa26, Pa27, Pa3, Pa30, Pa31, Pa8, Pa9, Pb18, Pb19, Pb20, Pb21,
-        Pb22, Pb23, Pb6, Pb7, Pb8, Pb9,
+        Pb22, Pb23, Pb6, Pb7, Pb8, Pb9, PinMarker,
     },
     time::Hertz,
     PeripheralSelect,
@@ -55,11 +58,11 @@ impl UartId {
 // Type-Level support
 //==================================================================================================
 
-pub trait TxPin {
+pub trait TxPin: PinMarker {
     const UART_ID: UartId;
     const FUN_SEL: FunSel;
 }
-pub trait RxPin {
+pub trait RxPin: PinMarker {
     const UART_ID: UartId;
     const FUN_SEL: FunSel;
 }
@@ -557,6 +560,8 @@ impl Uart {
         if UartI::ID != TxPinI::UART_ID || UartI::ID != RxPinI::UART_ID {
             return Err(UartIdMissmatchError);
         }
+        IoPeriphPin::new(TxPinI::ID, TxPinI::FUN_SEL, None);
+        IoPeriphPin::new(RxPinI::ID, TxPinI::FUN_SEL, None);
         crate::clock::enable_peripheral_clock(UartI::PERIPH_SEL);
 
         let reg_block = unsafe { UartI::reg_block() };

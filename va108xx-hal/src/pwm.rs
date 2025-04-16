@@ -8,10 +8,11 @@
 use core::convert::Infallible;
 use core::marker::PhantomData;
 
+use vorago_shared_periphs::PeripheralSelect;
+
 use crate::clock::enable_peripheral_clock;
-use crate::pac;
 use crate::time::Hertz;
-use crate::timer::{TimId, TimPeripheralMarker, TimPin, TimRegInterface};
+use crate::timer::{TimId, TimMarker, TimPin, TimRegInterface};
 
 const DUTY_MAX: u16 = u16::MAX;
 
@@ -56,9 +57,8 @@ pub struct PwmPin<Mode = PwmA> {
 
 impl<Mode> PwmPin<Mode> {
     /// Create a new strongly typed PWM pin
-    pub fn new<Pin: TimPin, Tim: TimPeripheralMarker + TimRegInterface>(
-        sys_cfg: &mut pac::Sysconfig,
-        sys_clk: impl Into<Hertz> + Copy,
+    pub fn new<Pin: TimPin, Tim: TimMarker + TimRegInterface>(
+        sys_clk: Hertz,
         pin_and_tim: (Pin, Tim),
         initial_period: impl Into<Hertz> + Copy,
     ) -> Result<Self, TimMissmatchError> {
@@ -74,12 +74,13 @@ impl<Mode> PwmPin<Mode> {
             current_lower_limit: 0,
             current_period: initial_period.into(),
             current_rst_val: 0,
-            sys_clk: sys_clk.into(),
+            sys_clk,
             mode: PhantomData,
         };
-        enable_peripheral_clock(crate::clock::PeripheralClocks::Gpio);
-        enable_peripheral_clock(crate::clock::PeripheralClocks::Ioconfig);
-        sys_cfg
+        enable_peripheral_clock(PeripheralSelect::Gpio);
+        enable_peripheral_clock(PeripheralSelect::Ioconfig);
+        let syscfg = unsafe { va108xx::Sysconfig::steal() };
+        syscfg
             .tim_clk_enable()
             .modify(|r, w| unsafe { w.bits(r.bits() | pin_and_tim.1.mask_32()) });
         pin.enable_pwm_a();

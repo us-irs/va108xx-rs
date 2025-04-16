@@ -411,10 +411,10 @@ impl<const N: usize> embedded_io_async::Read for RxAsyncOverwriting<N> {
         critical_section::with(|cs| {
             let queue = inner.shared_consumer.borrow(cs);
             if queue.borrow().as_ref().unwrap().len() == 0 {
-                RX_HAS_DATA[id as usize].store(false, Ordering::Relaxed);
+                RX_HAS_DATA[id].store(false, Ordering::Relaxed);
             }
         });
-        let _guard = ActiveReadGuard(id as usize);
+        let _guard = ActiveReadGuard(id);
         let mut handle_data_in_queue = |inner: &mut RxAsyncOverwritingInner<N>| {
             critical_section::with(|cs| {
                 let mut consumer_ref = inner.shared_consumer.borrow(cs).borrow_mut();

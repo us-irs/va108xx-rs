@@ -9,10 +9,10 @@ mod app {
     use rtt_target::{rprintln, rtt_init_default, set_print_channel};
     use va108xx_hal::{
         clock::{set_clk_div_register, FilterClkSel},
-        gpio::{FilterType, InterruptEdge, PinsA},
+        gpio::{FilterType, InterruptEdge},
         pac,
-        prelude::*,
-        timer::{default_ms_irq_handler, set_up_ms_tick, InterruptConfig},
+        pins::PinsA,
+        timer::InterruptConfig,
     };
     use vorago_reb1::button::Button;
     use vorago_reb1::leds::Leds;
@@ -61,39 +61,28 @@ mod app {
         rprintln!("Using {:?} mode", mode);
 
         let mut dp = cx.device;
-        let pinsa = PinsA::new(&mut dp.sysconfig, dp.porta);
+        let pinsa = PinsA::new(dp.porta);
         let edge_irq = match mode {
             PressMode::Toggle => InterruptEdge::HighToLow,
             PressMode::Keep => InterruptEdge::BothEdges,
         };
 
         // Configure an edge interrupt on the button and route it to interrupt vector 15
-        let mut button = Button::new(pinsa.pa11.into_floating_input());
+        let mut button = Button::new(pinsa.pa11);
 
         if mode == PressMode::Toggle {
             // This filter debounces the switch for edge based interrupts
-            button.configure_filter_type(FilterType::FilterFourClockCycles, FilterClkSel::Clk1);
+            button.configure_filter_type(FilterType::FilterFourCycles, FilterClkSel::Clk1);
             set_clk_div_register(&mut dp.sysconfig, FilterClkSel::Clk1, 50_000);
         }
         button.configure_and_enable_edge_interrupt(
             edge_irq,
             InterruptConfig::new(pac::interrupt::OC15, true, true),
         );
-        let mut leds = Leds::new(
-            pinsa.pa10.into_push_pull_output(),
-            pinsa.pa7.into_push_pull_output(),
-            pinsa.pa6.into_push_pull_output(),
-        );
+        let mut leds = Leds::new(pinsa.pa10, pinsa.pa7, pinsa.pa6);
         for led in leds.iter_mut() {
             led.off();
         }
-        set_up_ms_tick(
-            InterruptConfig::new(pac::Interrupt::OC0, true, true),
-            &mut dp.sysconfig,
-            Some(&mut dp.irqsel),
-            50.MHz(),
-            dp.tim0,
-        );
         (Shared {}, Local { leds, button, mode })
     }
 
@@ -117,11 +106,6 @@ mod app {
         } else {
             leds[0].on();
         }
-    }
-
-    #[task(binds = OC0)]
-    fn ms_tick(_cx: ms_tick::Context) {
-        default_ms_irq_handler();
     }
 
     fn prompt_mode(mut down_channel: rtt_target::DownChannel) -> PressMode {

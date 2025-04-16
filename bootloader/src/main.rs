@@ -104,11 +104,11 @@ fn main() -> ! {
         rtt_init_print!();
         rprintln!("-- VA108xx bootloader --");
     }
-    let mut dp = pac::Peripherals::take().unwrap();
+    let dp = pac::Peripherals::take().unwrap();
     let cp = cortex_m::Peripherals::take().unwrap();
-    let mut timer = CountdownTimer::new(&mut dp.sysconfig, CLOCK_FREQ, dp.tim0);
+    let mut timer = CountdownTimer::new(CLOCK_FREQ, dp.tim0);
 
-    let mut nvm = M95M01::new(&mut dp.sysconfig, CLOCK_FREQ, dp.spic);
+    let mut nvm = M95M01::new(CLOCK_FREQ, dp.spic);
 
     if FLASH_SELF {
         let mut first_four_bytes: [u8; 4] = [0; 4];
@@ -186,7 +186,7 @@ fn check_own_crc(
     sysconfig: &pac::Sysconfig,
     cp: &cortex_m::Peripherals,
     nvm: &mut NvmWrapper,
-    timer: &mut CountdownTimer<pac::Tim0>,
+    timer: &mut CountdownTimer,
 ) {
     let crc_exp = unsafe { (BOOTLOADER_CRC_ADDR as *const u16).read_unaligned().to_be() };
     // I'd prefer to use [core::slice::from_raw_parts], but that is problematic
@@ -276,7 +276,7 @@ fn boot_app(
     syscfg: &pac::Sysconfig,
     cp: &cortex_m::Peripherals,
     app_sel: AppSel,
-    timer: &mut CountdownTimer<pac::Tim0>,
+    timer: &mut CountdownTimer,
 ) -> ! {
     if DEBUG_PRINTOUTS && RTT_PRINTOUT {
         rprintln!("booting app {:?}", app_sel);
