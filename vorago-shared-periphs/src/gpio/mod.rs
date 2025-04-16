@@ -1,3 +1,4 @@
+//! GPIO support module.
 use core::convert::Infallible;
 
 pub use crate::ioconfig::{FilterClkSel, FilterType, regs::FunSel};
@@ -8,10 +9,15 @@ pub mod asynch;
 pub mod ll;
 pub mod regs;
 
+/// Trait implemented by data structures assocaited with pin identifiacation.
 pub trait PinIdProvider {
     const ID: ll::PinId;
 }
 
+/// Primary Pin structure for the physical pins exposed by Vorago MCUs.
+///
+/// This pin structure is only used for resource management and does not do anything on its
+/// own.
 pub struct Pin<I: PinIdProvider> {
     phantom: core::marker::PhantomData<I>,
 }
@@ -23,8 +29,19 @@ impl<I: PinIdProvider> Pin<I> {
             phantom: core::marker::PhantomData,
         }
     }
+
+    /// Create a new pin instance.
+    ///
+    /// # Safety
+    ///
+    /// This circumvents ownership rules of the HAL and allows creating multiple instances
+    /// of the same pins.
+    pub const unsafe fn steal() -> Self {
+        Self::new()
+    }
 }
 
+/// Push-Pull output pin.
 #[derive(Debug)]
 pub struct Output(ll::LowLevelGpio);
 
@@ -104,6 +121,9 @@ impl embedded_hal::digital::StatefulOutputPin for Output {
     }
 }
 
+/// Input pin.
+///
+/// Can be created as a floating input pin or as an input pin with pull-up or pull-down.
 #[derive(Debug)]
 pub struct Input(ll::LowLevelGpio);
 
@@ -194,6 +214,16 @@ impl PinMode {
     }
 }
 
+/// Flex pin abstraction which can be dynamically re-configured.
+///
+/// The following functions can be configured at run-time:
+///
+///  - Input Floating
+///  - Input with Pull-Up
+///  - Output Push-Pull
+///  - Output Open-Drain.
+///
+/// Flex pins are always floating input pins after construction.
 #[derive(Debug)]
 pub struct Flex {
     ll: ll::LowLevelGpio,
@@ -304,6 +334,9 @@ impl embedded_hal::digital::StatefulOutputPin for Flex {
     }
 }
 
+/// IO peripheral pin structure.
+///
+/// Can be used to configure pins as IO peripheral pins.
 pub struct IoPeriphPin {
     ll: ll::LowLevelGpio,
     fun_sel: FunSel,

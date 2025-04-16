@@ -10,6 +10,9 @@ pub use crate::Port;
 pub use crate::ioconfig::regs::Pull;
 use crate::ioconfig::regs::{FunSel, IoConfig, MmioIoConfig};
 
+use super::Pin;
+use super::PinIdProvider;
+
 #[derive(Debug, PartialEq, Eq)]
 #[cfg_attr(feature = "defmt", derive(defmt::Format))]
 pub enum InterruptEdge {
@@ -25,14 +28,17 @@ pub enum InterruptLevel {
     High = 1,
 }
 
+/// Pin identifier for all physical pins exposed by Vorago MCUs.
 #[derive(Debug, PartialEq, Eq, Clone, Copy)]
 #[cfg_attr(feature = "defmt", derive(defmt::Format))]
 pub struct PinId {
     port: Port,
+    /// Offset within the port.
     offset: u8,
 }
 
 impl PinId {
+    /// Unchecked constructor which panics on invalid offsets.
     pub const fn new_unchecked(port: Port, offset: usize) -> Self {
         if offset >= port.max_offset() {
             panic!("Pin ID construction: offset is out of range");
@@ -62,6 +68,7 @@ impl PinId {
     }
 }
 
+/// Low-level driver structure for GPIO pins.
 pub struct LowLevelGpio {
     gpio: super::regs::MmioGpio<'static>,
     ioconfig: MmioIoConfig<'static>,
@@ -78,6 +85,14 @@ impl core::fmt::Debug for LowLevelGpio {
 }
 
 impl LowLevelGpio {
+    /// Create a new low-level GPIO pin instance from a given [Pin].
+    ///
+    /// Can be used for performing resource management of the [Pin]s.
+    pub fn new_with_pin<I: PinIdProvider>(_pin: Pin<I>) -> Self {
+        Self::new(I::ID)
+    }
+
+    /// Create a new low-level GPIO pin instance using only the [PinId].
     pub fn new(id: PinId) -> Self {
         LowLevelGpio {
             gpio: super::regs::Gpio::new_mmio(id.port),

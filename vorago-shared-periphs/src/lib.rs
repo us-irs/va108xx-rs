@@ -45,6 +45,7 @@ cfg_if::cfg_if! {
     }
 }
 
+/// GPIO port enumeration.
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
 #[cfg_attr(feature = "defmt", derive(defmt::Format))]
 pub enum Port {
