@@ -6,10 +6,6 @@
 //! which must be provided for async support to work. However, it provides the
 //! [on_interrupt_for_async_gpio_for_port] generic interrupt handler. This should be called in all
 //! IRQ functions which handle any GPIO interrupts with the corresponding [Port] argument.
-//!
-//! # Example
-//!
-//! - [Async GPIO example](https://egit.irs.uni-stuttgart.de/rust/va108xx-rs/src/branch/main/examples/embassy/src/bin/async-gpio.rs)
 use core::future::Future;
 
 use embassy_sync::waitqueue::AtomicWaker;

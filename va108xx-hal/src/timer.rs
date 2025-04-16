@@ -18,10 +18,10 @@ use crate::{
 };
 use fugit::RateExtU32;
 use vorago_shared_periphs::{
-    gpio::{Pin, PinIdProvider},
+    gpio::{Pin, PinId, PinIdProvider},
     ioconfig::regs::FunSel,
     sysconfig::enable_peripheral_clock,
-    PeripheralSelect, Port,
+    PeripheralSelect,
 };
 
 /// Get the peripheral block of a TIM peripheral given the index.
@@ -161,8 +161,7 @@ impl CascadeSource {
 //==================================================================================================
 
 pub trait TimPin: Sealed {
-    const PORT: Port;
-    const OFFSET: usize;
+    const PIN_ID: PinId;
     const FUN_SEL: FunSel;
     const TIM_ID: TimId;
 }
@@ -221,8 +220,7 @@ macro_rules! pin_and_tim {
         where
             $Px: PinIdProvider,
         {
-            const PORT: Port = $Px::ID.port();
-            const OFFSET: usize = $Px::ID.offset();
+            const PIN_ID: PinId = $Px::ID;
             const FUN_SEL: FunSel = $FunSel;
             const TIM_ID: TimId = TimId($ID);
         }

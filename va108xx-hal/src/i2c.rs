@@ -17,6 +17,13 @@ const MIN_CLK_400K: Hertz = Hertz::from_raw(8_000_000);
 
 #[derive(Debug, PartialEq, Eq, Copy, Clone)]
 #[cfg_attr(feature = "defmt", derive(defmt::Format))]
+pub enum I2cId {
+    A = 0,
+    B = 1,
+}
+
+#[derive(Debug, PartialEq, Eq, Copy, Clone)]
+#[cfg_attr(feature = "defmt", derive(defmt::Format))]
 pub enum FifoEmptyMode {
     Stall = 0,
     EndTransaction = 1,
@@ -111,16 +118,18 @@ pub type I2cRegBlock = pac::i2ca::RegisterBlock;
 
 /// Common trait implemented by all PAC peripheral access structures. The register block
 /// format is the same for all SPI blocks.
-pub trait Instance: Deref<Target = I2cRegBlock> {
-    const IDX: u8;
+pub trait I2cMarker: Deref<Target = I2cRegBlock> {
+    const ID: I2cId;
     const PERIPH_SEL: PeripheralSelect;
+    const PTR: *const I2cRegBlock;
 
     fn ptr() -> *const I2cRegBlock;
 }
 
-impl Instance for pac::I2ca {
-    const IDX: u8 = 0;
+impl I2cMarker for pac::I2ca {
+    const ID: I2cId = I2cId::A;
     const PERIPH_SEL: PeripheralSelect = PeripheralSelect::I2c0;
+    const PTR: *const I2cRegBlock = Self::PTR;
 
     #[inline(always)]
     fn ptr() -> *const I2cRegBlock {
@@ -128,9 +137,10 @@ impl Instance for pac::I2ca {
     }
 }
 
-impl Instance for pac::I2cb {
-    const IDX: u8 = 1;
+impl I2cMarker for pac::I2cb {
+    const ID: I2cId = I2cId::B;
     const PERIPH_SEL: PeripheralSelect = PeripheralSelect::I2c1;
+    const PTR: *const I2cRegBlock = Self::PTR;
 
     #[inline(always)]
     fn ptr() -> *const I2cRegBlock {
@@ -290,32 +300,27 @@ impl Sealed for SlaveConfig {}
 // I2C Base
 //==================================================================================================
 
-pub struct I2cBase<I2C> {
-    i2c: I2C,
+pub struct I2cCommon {
+    id: I2cId,
+    reg_block: *const I2cRegBlock,
     sys_clk: Hertz,
 }
 
-impl<I2C> I2cBase<I2C> {
-    #[inline]
-    fn unwrap_addr(addr: I2cAddress) -> (u16, u32) {
-        match addr {
-            I2cAddress::Regular(addr) => (addr as u16, 0 << 15),
-            I2cAddress::TenBit(addr) => (addr, 1 << 15),
-        }
-    }
-}
-
-impl<I2c: Instance> I2cBase<I2c> {
-    pub fn new(
+impl I2cCommon {
+    pub fn new<I2c: I2cMarker>(
         sys_clk: Hertz,
-        i2c: I2c,
+        _i2c: I2c,
         speed_mode: I2cSpeed,
         ms_cfg: Option<&MasterConfig>,
         sl_cfg: Option<&SlaveConfig>,
     ) -> Result<Self, ClockTooSlowForFastI2cError> {
         enable_peripheral_clock(I2c::PERIPH_SEL);
 
-        let mut i2c_base = I2cBase { i2c, sys_clk };
+        let mut i2c_base = I2cCommon {
+            id: I2c::ID,
+            reg_block: I2c::PTR,
+            sys_clk,
+        };
         if let Some(ms_cfg) = ms_cfg {
             i2c_base.cfg_master(ms_cfg);
         }
@@ -327,6 +332,32 @@ impl<I2c: Instance> I2cBase<I2c> {
         Ok(i2c_base)
     }
 
+    pub fn id(&self) -> I2cId {
+        self.id
+    }
+
+    // Returns the address and the address mode bit.
+    #[inline]
+    fn unwrap_addr(addr: I2cAddress) -> (u16, u32) {
+        match addr {
+            I2cAddress::Regular(addr) => (addr as u16, 0 << 15),
+            I2cAddress::TenBit(addr) => (addr, 1 << 15),
+        }
+    }
+
+    /// Retrieve the raw register block.
+    ///
+    /// # Safety
+    ///
+    /// Circumvents safety guarantees by the HAL.
+    pub const unsafe fn regs(&self) -> &'static I2cRegBlock {
+        self.regs_priv()
+    }
+
+    const fn regs_priv(&self) -> &'static I2cRegBlock {
+        unsafe { &*self.reg_block }
+    }
+
     fn cfg_master(&mut self, ms_cfg: &MasterConfig) {
         let (txfemd, rxfemd) = match (ms_cfg.tx_fe_mode, ms_cfg.rx_fe_mode) {
             (FifoEmptyMode::Stall, FifoEmptyMode::Stall) => (false, false),
@@ -334,18 +365,17 @@ impl<I2c: Instance> I2cBase<I2c> {
             (FifoEmptyMode::EndTransaction, FifoEmptyMode::Stall) => (true, false),
             (FifoEmptyMode::EndTransaction, FifoEmptyMode::EndTransaction) => (true, true),
         };
-        self.i2c.ctrl().modify(|_, w| {
+        let regs = self.regs_priv();
+        regs.ctrl().modify(|_, w| {
             w.txfemd().bit(txfemd);
             w.rxffmd().bit(rxfemd);
             w.dlgfilter().bit(ms_cfg.dlg_filt);
             w.algfilter().bit(ms_cfg.alg_filt)
         });
         if let Some(ref tm_cfg) = ms_cfg.tm_cfg {
-            self.i2c
-                .tmconfig()
-                .write(|w| unsafe { w.bits(tm_cfg.reg()) });
+            regs.tmconfig().write(|w| unsafe { w.bits(tm_cfg.reg()) });
         }
-        self.i2c.fifo_clr().write(|w| {
+        regs.fifo_clr().write(|w| {
             w.rxfifo().set_bit();
             w.txfifo().set_bit()
         });
@@ -358,47 +388,43 @@ impl<I2c: Instance> I2cBase<I2c> {
             (FifoEmptyMode::EndTransaction, FifoEmptyMode::Stall) => (true, false),
             (FifoEmptyMode::EndTransaction, FifoEmptyMode::EndTransaction) => (true, true),
         };
-        self.i2c.s0_ctrl().modify(|_, w| {
+        let regs = self.regs_priv();
+        regs.s0_ctrl().modify(|_, w| {
             w.txfemd().bit(txfemd);
             w.rxffmd().bit(rxfemd)
         });
-        self.i2c.s0_fifo_clr().write(|w| {
+        regs.s0_fifo_clr().write(|w| {
             w.rxfifo().set_bit();
             w.txfifo().set_bit()
         });
         let max_words = sl_cfg.max_words;
         if let Some(max_words) = max_words {
-            self.i2c
-                .s0_maxwords()
+            regs.s0_maxwords()
                 .write(|w| unsafe { w.bits((1 << 31) | max_words as u32) });
         }
         let (addr, addr_mode_mask) = Self::unwrap_addr(sl_cfg.addr);
         // The first bit is the read/write value. Normally, both read and write are matched
         // using the RWMASK bit of the address mask register
-        self.i2c
-            .s0_address()
+        regs.s0_address()
             .write(|w| unsafe { w.bits((addr << 1) as u32 | addr_mode_mask) });
         if let Some(addr_mask) = sl_cfg.addr_mask {
-            self.i2c
-                .s0_addressmask()
+            regs.s0_addressmask()
                 .write(|w| unsafe { w.bits((addr_mask << 1) as u32) });
         }
         if let Some(addr_b) = sl_cfg.addr_b {
             let (addr, addr_mode_mask) = Self::unwrap_addr(addr_b);
-            self.i2c
-                .s0_addressb()
+            regs.s0_addressb()
                 .write(|w| unsafe { w.bits((addr << 1) as u32 | addr_mode_mask) });
         }
         if let Some(addr_b_mask) = sl_cfg.addr_b_mask {
-            self.i2c
-                .s0_addressmaskb()
+            regs.s0_addressmaskb()
                 .write(|w| unsafe { w.bits((addr_b_mask << 1) as u32) });
         }
     }
 
     #[inline]
     pub fn filters(&mut self, digital_filt: bool, analog_filt: bool) {
-        self.i2c.ctrl().modify(|_, w| {
+        self.regs_priv().ctrl().modify(|_, w| {
             w.dlgfilter().bit(digital_filt);
             w.algfilter().bit(analog_filt)
         });
@@ -406,7 +432,7 @@ impl<I2c: Instance> I2cBase<I2c> {
 
     #[inline]
     pub fn fifo_empty_mode(&mut self, rx: FifoEmptyMode, tx: FifoEmptyMode) {
-        self.i2c.ctrl().modify(|_, w| {
+        self.regs_priv().ctrl().modify(|_, w| {
             w.txfemd().bit(tx as u8 != 0);
             w.rxffmd().bit(rx as u8 != 0)
         });
@@ -429,7 +455,7 @@ impl<I2c: Instance> I2cBase<I2c> {
         speed_mode: I2cSpeed,
     ) -> Result<(), ClockTooSlowForFastI2cError> {
         let clk_div = self.calc_clk_div(speed_mode)?;
-        self.i2c
+        self.regs_priv()
             .clkscale()
             .write(|w| unsafe { w.bits(((speed_mode as u32) << 31) | clk_div as u32) });
         Ok(())
@@ -437,14 +463,14 @@ impl<I2c: Instance> I2cBase<I2c> {
 
     pub fn load_address(&mut self, addr: u16) {
         // Load address
-        self.i2c
+        self.regs_priv()
             .address()
             .write(|w| unsafe { w.bits((addr << 1) as u32) });
     }
 
     #[inline]
     fn stop_cmd(&mut self) {
-        self.i2c
+        self.regs_priv()
             .cmd()
             .write(|w| unsafe { w.bits(I2cCmd::Stop as u32) });
     }
@@ -454,20 +480,20 @@ impl<I2c: Instance> I2cBase<I2c> {
 // I2C Master
 //==================================================================================================
 
-pub struct I2cMaster<I2c, Addr = SevenBitAddress> {
-    i2c_base: I2cBase<I2c>,
+pub struct I2cMaster<Addr = SevenBitAddress> {
+    inner: I2cCommon,
     addr: PhantomData<Addr>,
 }
 
-impl<I2c: Instance, Addr> I2cMaster<I2c, Addr> {
-    pub fn new(
+impl<Addr> I2cMaster<Addr> {
+    pub fn new<I2c: I2cMarker>(
         sysclk: Hertz,
         i2c: I2c,
         cfg: MasterConfig,
         speed_mode: I2cSpeed,
     ) -> Result<Self, ClockTooSlowForFastI2cError> {
         Ok(I2cMaster {
-            i2c_base: I2cBase::new(sysclk, i2c, speed_mode, Some(&cfg), None)?,
+            inner: I2cCommon::new(sysclk, i2c, speed_mode, Some(&cfg), None)?,
             addr: PhantomData,
         }
         .enable_master())
@@ -475,32 +501,41 @@ impl<I2c: Instance, Addr> I2cMaster<I2c, Addr> {
 
     #[inline]
     pub fn cancel_transfer(&self) {
-        self.i2c_base
-            .i2c
+        self.inner
+            .regs_priv()
             .cmd()
             .write(|w| unsafe { w.bits(I2cCmd::Cancel as u32) });
     }
 
     #[inline]
     pub fn clear_tx_fifo(&self) {
-        self.i2c_base.i2c.fifo_clr().write(|w| w.txfifo().set_bit());
+        self.inner
+            .regs_priv()
+            .fifo_clr()
+            .write(|w| w.txfifo().set_bit());
     }
 
     #[inline]
     pub fn clear_rx_fifo(&self) {
-        self.i2c_base.i2c.fifo_clr().write(|w| w.rxfifo().set_bit());
+        self.inner
+            .regs_priv()
+            .fifo_clr()
+            .write(|w| w.rxfifo().set_bit());
     }
 
     #[inline]
     pub fn enable_master(self) -> Self {
-        self.i2c_base.i2c.ctrl().modify(|_, w| w.enable().set_bit());
+        self.inner
+            .regs_priv()
+            .ctrl()
+            .modify(|_, w| w.enable().set_bit());
         self
     }
 
     #[inline]
     pub fn disable_master(self) -> Self {
-        self.i2c_base
-            .i2c
+        self.inner
+            .regs_priv()
             .ctrl()
             .modify(|_, w| w.enable().clear_bit());
         self
@@ -508,21 +543,21 @@ impl<I2c: Instance, Addr> I2cMaster<I2c, Addr> {
 
     #[inline(always)]
     fn load_fifo(&self, word: u8) {
-        self.i2c_base
-            .i2c
+        self.inner
+            .regs_priv()
             .data()
             .write(|w| unsafe { w.bits(word as u32) });
     }
 
     #[inline(always)]
     fn read_fifo(&self) -> u8 {
-        self.i2c_base.i2c.data().read().bits() as u8
+        self.inner.regs_priv().data().read().bits() as u8
     }
 
     fn error_handler_write(&mut self, init_cmd: &I2cCmd) {
         self.clear_tx_fifo();
         if *init_cmd == I2cCmd::Start {
-            self.i2c_base.stop_cmd()
+            self.inner.stop_cmd()
         }
     }
 
@@ -534,13 +569,13 @@ impl<I2c: Instance, Addr> I2cMaster<I2c, Addr> {
     ) -> Result<(), Error> {
         let mut iter = bytes.into_iter();
         // Load address
-        let (addr, addr_mode_bit) = I2cBase::<I2c>::unwrap_addr(addr);
-        self.i2c_base.i2c.address().write(|w| unsafe {
+        let (addr, addr_mode_bit) = I2cCommon::unwrap_addr(addr);
+        self.inner.regs_priv().address().write(|w| unsafe {
             w.bits(I2cDirection::Send as u32 | (addr << 1) as u32 | addr_mode_bit)
         });
 
-        self.i2c_base
-            .i2c
+        self.inner
+            .regs_priv()
             .cmd()
             .write(|w| unsafe { w.bits(init_cmd as u32) });
         let mut load_if_next_available = || {
@@ -549,7 +584,7 @@ impl<I2c: Instance, Addr> I2cMaster<I2c, Addr> {
             }
         };
         loop {
-            let status_reader = self.i2c_base.i2c.status().read();
+            let status_reader = self.inner.regs_priv().status().read();
             if status_reader.arblost().bit_is_set() {
                 self.error_handler_write(&init_cmd);
                 return Err(Error::ArbitrationLost);
@@ -584,8 +619,8 @@ impl<I2c: Instance, Addr> I2cMaster<I2c, Addr> {
             return Err(Error::DataTooLarge);
         }
         // Load number of words
-        self.i2c_base
-            .i2c
+        self.inner
+            .regs_priv()
             .words()
             .write(|w| unsafe { w.bits(len as u32) });
         let mut bytes = output.iter();
@@ -614,8 +649,8 @@ impl<I2c: Instance, Addr> I2cMaster<I2c, Addr> {
         self.clear_rx_fifo();
 
         // Load number of words
-        self.i2c_base
-            .i2c
+        self.inner
+            .regs_priv()
             .words()
             .write(|w| unsafe { w.bits(len as u32) });
         let (addr, addr_mode_bit) = match addr {
@@ -623,15 +658,15 @@ impl<I2c: Instance, Addr> I2cMaster<I2c, Addr> {
             I2cAddress::TenBit(addr) => (addr, 1 << 15),
         };
         // Load address
-        self.i2c_base.i2c.address().write(|w| unsafe {
+        self.inner.regs_priv().address().write(|w| unsafe {
             w.bits(I2cDirection::Read as u32 | (addr << 1) as u32 | addr_mode_bit)
         });
 
         let mut buf_iter = buffer.iter_mut();
         let mut read_bytes = 0;
         // Start receive transfer
-        self.i2c_base
-            .i2c
+        self.inner
+            .regs_priv()
             .cmd()
             .write(|w| unsafe { w.bits(I2cCmd::StartWithStop as u32) });
         let mut read_if_next_available = || {
@@ -640,7 +675,7 @@ impl<I2c: Instance, Addr> I2cMaster<I2c, Addr> {
             }
         };
         loop {
-            let status_reader = self.i2c_base.i2c.status().read();
+            let status_reader = self.inner.regs_priv().status().read();
             if status_reader.arblost().bit_is_set() {
                 self.clear_rx_fifo();
                 return Err(Error::ArbitrationLost);
@@ -664,11 +699,11 @@ impl<I2c: Instance, Addr> I2cMaster<I2c, Addr> {
 // Embedded HAL I2C implementations
 //======================================================================================
 
-impl<I2c> embedded_hal::i2c::ErrorType for I2cMaster<I2c, SevenBitAddress> {
+impl embedded_hal::i2c::ErrorType for I2cMaster<SevenBitAddress> {
     type Error = Error;
 }
 
-impl<I2c: Instance> embedded_hal::i2c::I2c for I2cMaster<I2c, SevenBitAddress> {
+impl embedded_hal::i2c::I2c for I2cMaster<SevenBitAddress> {
     fn transaction(
         &mut self,
         address: SevenBitAddress,
@@ -688,11 +723,11 @@ impl<I2c: Instance> embedded_hal::i2c::I2c for I2cMaster<I2c, SevenBitAddress> {
     }
 }
 
-impl<I2c> embedded_hal::i2c::ErrorType for I2cMaster<I2c, TenBitAddress> {
+impl embedded_hal::i2c::ErrorType for I2cMaster<TenBitAddress> {
     type Error = Error;
 }
 
-impl<I2c: Instance> embedded_hal::i2c::I2c<TenBitAddress> for I2cMaster<I2c, TenBitAddress> {
+impl embedded_hal::i2c::I2c<TenBitAddress> for I2cMaster<TenBitAddress> {
     fn transaction(
         &mut self,
         address: TenBitAddress,
@@ -714,20 +749,20 @@ impl<I2c: Instance> embedded_hal::i2c::I2c<TenBitAddress> for I2cMaster<I2c, Ten
 // I2C Slave
 //==================================================================================================
 
-pub struct I2cSlave<I2c, Addr = SevenBitAddress> {
-    i2c_base: I2cBase<I2c>,
+pub struct I2cSlave<Addr = SevenBitAddress> {
+    inner: I2cCommon,
     addr: PhantomData<Addr>,
 }
 
-impl<I2c: Instance, Addr> I2cSlave<I2c, Addr> {
-    fn new_generic(
+impl<Addr> I2cSlave<Addr> {
+    fn new_generic<I2c: I2cMarker>(
         sys_clk: Hertz,
         i2c: I2c,
         cfg: SlaveConfig,
         speed_mode: I2cSpeed,
     ) -> Result<Self, ClockTooSlowForFastI2cError> {
         Ok(I2cSlave {
-            i2c_base: I2cBase::new(sys_clk, i2c, speed_mode, None, Some(&cfg))?,
+            inner: I2cCommon::new(sys_clk, i2c, speed_mode, None, Some(&cfg))?,
             addr: PhantomData,
         }
         .enable_slave())
@@ -735,8 +770,8 @@ impl<I2c: Instance, Addr> I2cSlave<I2c, Addr> {
 
     #[inline]
     pub fn enable_slave(self) -> Self {
-        self.i2c_base
-            .i2c
+        self.inner
+            .regs_priv()
             .s0_ctrl()
             .modify(|_, w| w.enable().set_bit());
         self
@@ -744,8 +779,8 @@ impl<I2c: Instance, Addr> I2cSlave<I2c, Addr> {
 
     #[inline]
     pub fn disable_slave(self) -> Self {
-        self.i2c_base
-            .i2c
+        self.inner
+            .regs_priv()
             .s0_ctrl()
             .modify(|_, w| w.enable().clear_bit());
         self
@@ -753,29 +788,29 @@ impl<I2c: Instance, Addr> I2cSlave<I2c, Addr> {
 
     #[inline(always)]
     fn load_fifo(&self, word: u8) {
-        self.i2c_base
-            .i2c
+        self.inner
+            .regs_priv()
             .s0_data()
             .write(|w| unsafe { w.bits(word as u32) });
     }
 
     #[inline(always)]
     fn read_fifo(&self) -> u8 {
-        self.i2c_base.i2c.s0_data().read().bits() as u8
+        self.inner.regs_priv().s0_data().read().bits() as u8
     }
 
     #[inline]
     fn clear_tx_fifo(&self) {
-        self.i2c_base
-            .i2c
+        self.inner
+            .regs_priv()
             .s0_fifo_clr()
             .write(|w| w.txfifo().set_bit());
     }
 
     #[inline]
     fn clear_rx_fifo(&self) {
-        self.i2c_base
-            .i2c
+        self.inner
+            .regs_priv()
             .s0_fifo_clr()
             .write(|w| w.rxfifo().set_bit());
     }
@@ -783,7 +818,7 @@ impl<I2c: Instance, Addr> I2cSlave<I2c, Addr> {
     /// Get the last address that was matched by the slave control and the corresponding
     /// master direction
     pub fn last_address(&self) -> (I2cDirection, u32) {
-        let bits = self.i2c_base.i2c.s0_lastaddress().read().bits();
+        let bits = self.inner.regs_priv().s0_lastaddress().read().bits();
         match bits & 0x01 {
             0 => (I2cDirection::Send, bits >> 1),
             1 => (I2cDirection::Read, bits >> 1),
@@ -810,7 +845,7 @@ impl<I2c: Instance, Addr> I2cSlave<I2c, Addr> {
             self.load_fifo(*bytes.next().unwrap());
         }
 
-        let status_reader = self.i2c_base.i2c.s0_status().read();
+        let status_reader = self.inner.regs_priv().s0_status().read();
         let mut load_if_next_available = || {
             if let Some(next_byte) = bytes.next() {
                 self.load_fifo(*next_byte);
@@ -850,7 +885,7 @@ impl<I2c: Instance, Addr> I2cSlave<I2c, Addr> {
             }
         };
         loop {
-            let status_reader = self.i2c_base.i2c.s0_status().read();
+            let status_reader = self.inner.regs_priv().s0_status().read();
             if status_reader.idle().bit_is_set() {
                 if read_bytes != len {
                     return Err(Error::InsufficientDataReceived);
@@ -864,9 +899,9 @@ impl<I2c: Instance, Addr> I2cSlave<I2c, Addr> {
     }
 }
 
-impl<I2c: Instance> I2cSlave<I2c, SevenBitAddress> {
+impl I2cSlave<SevenBitAddress> {
     /// Create a new I2C slave for seven bit addresses
-    pub fn new(
+    pub fn new<I2c: I2cMarker>(
         sys_clk: Hertz,
         i2c: I2c,
         cfg: SlaveConfig,
@@ -879,8 +914,8 @@ impl<I2c: Instance> I2cSlave<I2c, SevenBitAddress> {
     }
 }
 
-impl<I2c: Instance> I2cSlave<I2c, TenBitAddress> {
-    pub fn new_ten_bit_addr(
+impl I2cSlave<TenBitAddress> {
+    pub fn new_ten_bit_addr<I2c: I2cMarker>(
         sys_clk: Hertz,
         i2c: I2c,
         cfg: SlaveConfig,

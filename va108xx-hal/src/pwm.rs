@@ -8,6 +8,7 @@
 use core::convert::Infallible;
 use core::marker::PhantomData;
 
+use vorago_shared_periphs::gpio::IoPeriphPin;
 use vorago_shared_periphs::PeripheralSelect;
 
 use crate::clock::enable_peripheral_clock;
@@ -60,7 +61,7 @@ impl<Mode> PwmPin<Mode> {
     pub fn new<Pin: TimPin, Tim: TimMarker + TimRegInterface>(
         sys_clk: Hertz,
         pin_and_tim: (Pin, Tim),
-        initial_period: impl Into<Hertz> + Copy,
+        initial_frequency: Hertz,
     ) -> Result<Self, TimMissmatchError> {
         if Pin::TIM_ID != Tim::ID {
             return Err(TimMissmatchError {
@@ -68,11 +69,12 @@ impl<Mode> PwmPin<Mode> {
                 tim_id: Tim::ID,
             });
         }
+        IoPeriphPin::new(Pin::PIN_ID, Pin::FUN_SEL, None);
         let mut pin = PwmPin {
             tim_id: Tim::ID,
             current_duty: 0,
             current_lower_limit: 0,
-            current_period: initial_period.into(),
+            current_period: initial_frequency,
             current_rst_val: 0,
             sys_clk,
             mode: PhantomData,
@@ -84,7 +86,7 @@ impl<Mode> PwmPin<Mode> {
             .tim_clk_enable()
             .modify(|r, w| unsafe { w.bits(r.bits() | pin_and_tim.1.mask_32()) });
         pin.enable_pwm_a();
-        pin.set_period(initial_period);
+        pin.set_period(initial_frequency);
         Ok(pin)
     }
 

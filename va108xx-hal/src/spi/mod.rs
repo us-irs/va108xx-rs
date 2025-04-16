@@ -92,6 +92,7 @@ pub type SpiRegBlock = pac::spia::RegisterBlock;
 pub trait SpiMarker: Deref<Target = SpiRegBlock> + Sealed {
     const ID: SpiId;
     const PERIPH_SEL: PeripheralSelect;
+    const PTR: *const SpiRegBlock;
 
     fn ptr() -> *const SpiRegBlock;
 
@@ -104,6 +105,7 @@ pub trait SpiMarker: Deref<Target = SpiRegBlock> + Sealed {
 impl SpiMarker for pac::Spia {
     const ID: SpiId = SpiId::A;
     const PERIPH_SEL: PeripheralSelect = PeripheralSelect::Spi0;
+    const PTR: *const SpiRegBlock = Self::PTR;
 
     #[inline(always)]
     fn ptr() -> *const SpiRegBlock {
@@ -115,6 +117,7 @@ impl Sealed for pac::Spia {}
 impl SpiMarker for pac::Spib {
     const ID: SpiId = SpiId::B;
     const PERIPH_SEL: PeripheralSelect = PeripheralSelect::Spi1;
+    const PTR: *const SpiRegBlock = Self::PTR;
 
     #[inline(always)]
     fn ptr() -> *const SpiRegBlock {
@@ -126,6 +129,7 @@ impl Sealed for pac::Spib {}
 impl SpiMarker for pac::Spic {
     const ID: SpiId = SpiId::C;
     const PERIPH_SEL: PeripheralSelect = PeripheralSelect::Spi2;
+    const PTR: *const SpiRegBlock = Self::PTR;
 
     #[inline(always)]
     fn ptr() -> *const SpiRegBlock {
@@ -445,7 +449,7 @@ pub struct SpiIdMissmatchError;
 /// SPI peripheral driver structure.
 pub struct Spi<Word = u8> {
     id: SpiId,
-    reg_block: *mut SpiRegBlock,
+    reg_block: *const SpiRegBlock,
     cfg: SpiConfig,
     sys_clk: Hertz,
     /// Fill word for read-only SPI transactions.
@@ -535,7 +539,7 @@ where
         spi.ctrl1().modify(|_, w| w.enable().set_bit());
         Spi {
             id: SpiI::ID,
-            reg_block: spi.reg_block(),
+            reg_block: SpiI::PTR,
             cfg: spi_cfg,
             sys_clk,
             fill_word: Default::default(),
@@ -543,11 +547,6 @@ where
             blockmode: spi_cfg.blockmode,
             word: PhantomData,
         }
-    }
-
-    #[inline(always)]
-    pub fn reg_block_mut(&mut self) -> &'static mut SpiRegBlock {
-        unsafe { &mut *(self.reg_block) }
     }
 
     #[inline(always)]
@@ -612,7 +611,7 @@ where
     /// corresponding [HwChipSelectId].
     #[inline]
     pub fn cfg_hw_cs(&mut self, hw_cs: HwChipSelectId) {
-        self.reg_block_mut().ctrl1().modify(|_, w| {
+        self.reg_block().ctrl1().modify(|_, w| {
             w.sod().clear_bit();
             unsafe {
                 w.ss().bits(hw_cs as u8);
@@ -659,8 +658,8 @@ where
     }
 
     fn flush_internal(&mut self) {
-        let reg_block_mut = self.reg_block_mut();
-        let mut status_reg = reg_block_mut.status().read();
+        let reg_block = self.reg_block();
+        let mut status_reg = reg_block.status().read();
         while status_reg.tfe().bit_is_clear()
             || status_reg.rne().bit_is_set()
             || status_reg.busy().bit_is_set()
@@ -668,7 +667,7 @@ where
             if status_reg.rne().bit_is_set() {
                 self.read_fifo_unchecked();
             }
-            status_reg = reg_block_mut.status().read();
+            status_reg = reg_block.status().read();
         }
     }
 
@@ -683,9 +682,9 @@ where
     // The FIFO can hold a guaranteed amount of data, so we can pump it on transfer
     // initialization. Returns the amount of written bytes.
     fn initial_send_fifo_pumping_with_words(&mut self, words: &[Word]) -> usize {
-        let reg_block_mut = self.reg_block_mut();
+        let reg_block = self.reg_block();
         if self.blockmode {
-            reg_block_mut.ctrl1().modify(|_, w| w.mtxpause().set_bit());
+            reg_block.ctrl1().modify(|_, w| w.mtxpause().set_bit());
         }
         // Fill the first half of the write FIFO
         let mut current_write_idx = 0;
@@ -699,7 +698,7 @@ where
             current_write_idx += 1;
         }
         if self.blockmode {
-            reg_block_mut
+            reg_block
                 .ctrl1()
                 .modify(|_, w| w.mtxpause().clear_bit());
         }
@@ -709,9 +708,9 @@ where
     // The FIFO can hold a guaranteed amount of data, so we can pump it on transfer
     // initialization.
     fn initial_send_fifo_pumping_with_fill_words(&mut self, send_len: usize) -> usize {
-        let reg_block_mut = self.reg_block_mut();
+        let reg_block = self.reg_block();
         if self.blockmode {
-            reg_block_mut.ctrl1().modify(|_, w| w.mtxpause().set_bit());
+            reg_block.ctrl1().modify(|_, w| w.mtxpause().set_bit());
         }
         // Fill the first half of the write FIFO
         let mut current_write_idx = 0;
@@ -725,7 +724,7 @@ where
             current_write_idx += 1;
         }
         if self.blockmode {
-            reg_block_mut
+            reg_block
                 .ctrl1()
                 .modify(|_, w| w.mtxpause().clear_bit());
         }
@@ -739,7 +738,7 @@ where
 {
     #[inline(always)]
     fn write_fifo(&mut self, data: u32) -> nb::Result<(), Infallible> {
-        if self.reg_block_mut().status().read().tnf().bit_is_clear() {
+        if self.reg_block().status().read().tnf().bit_is_clear() {
             return Err(nb::Error::WouldBlock);
         }
         self.write_fifo_unchecked(data);
@@ -748,14 +747,14 @@ where
 
     #[inline(always)]
     fn write_fifo_unchecked(&mut self, data: u32) {
-        self.reg_block_mut()
+        self.reg_block()
             .data()
             .write(|w| unsafe { w.bits(data) });
     }
 
     #[inline(always)]
     fn read_fifo(&mut self) -> nb::Result<u32, Infallible> {
-        if self.reg_block_mut().status().read().rne().bit_is_clear() {
+        if self.reg_block().status().read().rne().bit_is_clear() {
             return Err(nb::Error::WouldBlock);
         }
         Ok(self.read_fifo_unchecked())
@@ -763,7 +762,7 @@ where
 
     #[inline(always)]
     fn read_fifo_unchecked(&mut self) -> u32 {
-        self.reg_block_mut().data().read().bits()
+        self.reg_block().data().read().bits()
     }
 }
 

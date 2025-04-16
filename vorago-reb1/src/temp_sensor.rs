@@ -15,7 +15,7 @@ use va108xx_hal::{
 const ADT75_I2C_ADDR: u8 = 0b1001000;
 
 pub struct Adt75TempSensor {
-    sensor_if: I2cMaster<pac::I2ca, SevenBitAddress>,
+    sensor_if: I2cMaster<SevenBitAddress>,
     cmd_buf: [u8; 1],
     current_reg: RegAddresses,
 }

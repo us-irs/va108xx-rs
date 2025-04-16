@@ -65,34 +65,6 @@
         {
             "type": "cortex-debug",
             "request": "launch",
-            "name": "Debug RTT",
-            "servertype": "jlink",
-            "cwd": "${workspaceRoot}",
-            "device": "Cortex-M0",
-            "svdFile": "./va108xx/svd/va108xx.svd.patched",
-            "preLaunchTask": "rust: cargo build rtt",
-            "serverArgs": [
-                "-jtagconf",
-                "-1,-1"
-            ],
-            "executable": "${workspaceFolder}/target/thumbv6m-none-eabi/debug/examples/rtt-log",
-            "interface": "jtag",
-            "runToEntryPoint": "main",
-            "rttConfig": {
-                "enabled": true,
-                "address": "auto",
-                "decoders": [
-                    {
-                        "port": 0,
-                        "timestamp": true,
-                        "type": "console"
-                    }
-                ]
-            }
-        },
-        {
-            "type": "cortex-debug",
-            "request": "launch",
             "name": "Debug Blinky Button IRQ",
             "servertype": "jlink",
             "cwd": "${workspaceRoot}",
