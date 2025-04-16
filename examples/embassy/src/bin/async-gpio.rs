@@ -221,7 +221,7 @@ async fn output_task(
             }
             GpioCmdType::RisingEdge => {
                 defmt::info!("{}: Rising edge", ctx);
-                if !out.is_set_high() {
+                if !out.is_set_low() {
                     out.set_low();
                 }
                 out.set_high();

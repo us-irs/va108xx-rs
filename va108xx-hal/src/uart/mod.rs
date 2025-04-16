@@ -1,6 +1,6 @@
 //! # API for the UART peripheral
 //!
-//! The core of this API are the [Uart], [UartBase], [Rx] and [Tx] structures.
+//! The core of this API are the [Uart], [Rx] and [Tx] structures.
 //! The RX structure also has a dedicated [RxWithInterrupt] variant which allows reading the receiver
 //! using interrupts.
 //!
@@ -510,7 +510,7 @@ pub struct UartIdMissmatchError;
 // UART implementation
 //==================================================================================================
 
-/// Type erased variant of a UART. Can be created with the [`Uart::downgrade`] function.
+/// UART driver structure.
 pub struct Uart {
     tx: Tx,
     rx: Rx,
@@ -793,7 +793,7 @@ pub fn disable_rx_interrupts(uart: &uart_base::RegisterBlock) {
 
 /// Serial receiver.
 ///
-/// Can be created by using the [Uart::split] or [UartBase::split] API.
+/// Can be created by using the [Uart::split] API.
 pub struct Rx(UartId);
 
 impl Rx {
@@ -963,7 +963,7 @@ pub fn disable_tx_interrupts(uart: &uart_base::RegisterBlock) {
 
 /// Serial transmitter
 ///
-/// Can be created by using the [Uart::split] or [UartBase::split] API.
+/// Can be created by using the [Uart::split] API.
 pub struct Tx(UartId);
 
 impl Tx {

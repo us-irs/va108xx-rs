@@ -1,7 +1,7 @@
 //! API for the SPI peripheral.
 //!
-//! The main abstraction provided by this module are the [Spi] and the [SpiBase] structure.
-//! These provide the [embedded_hal::spi] traits, but also offer a low level interface
+//! The main abstraction provided by this module is the [Spi] an structure.
+//! It provides the [embedded_hal::spi] traits, but also offer a low level interface
 //! via the [SpiLowLevel] trait.
 //!
 //! ## Examples

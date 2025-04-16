@@ -1,6 +1,6 @@
 //! # Async GPIO functionality for the Vorago GPIO peripherals.
 //!
-//! This module provides the [InputPinAsync] and [InputDynPinAsync] which both implement
+//! This module provides the [InputPinAsync] which implements
 //! the [embedded_hal_async::digital::Wait] trait. These types allow for asynchronous waiting
 //! on GPIO pins. Please note that this module does not specify/declare the interrupt handlers
 //! which must be provided for async support to work. However, it provides the
@@ -75,7 +75,7 @@ fn on_interrupt_for_port(
 
 /// Input pin future which implements the [Future] trait.
 ///
-/// Generally, you want to use the [InputPinAsync] or [InputDynPinAsync] types instead of this
+/// Generally, you want to use the [InputPinAsync] types instead of this
 /// which also implements the [embedded_hal_async::digital::Wait] trait. However, access to this
 /// struture is granted  to allow writing custom async structures.
 pub struct InputPinFuture {
@@ -143,7 +143,7 @@ pub struct InputPinAsync {
 }
 
 impl InputPinAsync {
-    /// Create a new asynchronous input pin from a [DynPin]. The interrupt ID to be used must be
+    /// Create a new asynchronous input pin from an [Input] pin. The interrupt ID to be used must be
     /// passed as well and is used to route and enable the interrupt.
     ///
     /// Please note that the interrupt handler itself must be provided by the user and the

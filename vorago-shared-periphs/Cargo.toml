@@ -1,6 +1,7 @@
 [package]
 name = "vorago-shared-periphs"
 version = "0.1.0"
+description = "Peripheral drivers shared between Vorago families"
 edition = "2024"
 
 [dependencies]
