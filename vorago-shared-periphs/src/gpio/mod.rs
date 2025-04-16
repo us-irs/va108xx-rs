@@ -24,7 +24,8 @@ pub struct Pin<I: PinIdProvider> {
 
 impl<I: PinIdProvider> Pin<I> {
     #[allow(clippy::new_without_default)]
-    pub const fn new() -> Self {
+    #[doc(hidden)]
+    pub const fn __new() -> Self {
         Self {
             phantom: core::marker::PhantomData,
         }
@@ -35,9 +36,9 @@ impl<I: PinIdProvider> Pin<I> {
     /// # Safety
     ///
     /// This circumvents ownership rules of the HAL and allows creating multiple instances
-    /// of the same pins.
+    /// of the same pin.
     pub const unsafe fn steal() -> Self {
-        Self::new()
+        Self::__new()
     }
 }
 
