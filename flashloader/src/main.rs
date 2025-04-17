@@ -451,7 +451,7 @@ mod app {
                 cx.local.encoded_buf[send_size + 1] = 0;
                 cx.local
                     .uart_tx
-                    .write(&cx.local.encoded_buf[0..send_size + 2])
+                    .write_all(&cx.local.encoded_buf[0..send_size + 2])
                     .unwrap();
                 occupied_len -= 1;
                 Mono::delay(2.millis()).await;

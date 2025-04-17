@@ -1149,8 +1149,7 @@ impl RxWithInterrupt {
         let mut result = IrqResultMaxSizeOrTimeout::default();
 
         let irq_status = self.0.regs.read_irq_status();
-        let irq_enabled = self.0.regs.read_irq_enabled();
-        let rx_enabled = irq_enabled.rx();
+        let rx_enabled = self.0.regs.read_enable().rx();
 
         // Half-Full interrupt. We have a guaranteed amount of data we can read.
         if irq_status.rx() {
@@ -1187,8 +1186,8 @@ impl RxWithInterrupt {
                 // While there is data in the FIFO, write it into the reception buffer
                 match self.0.read() {
                     Ok(byte) => {
-                        buf[result.bytes_read] = byte;
-                        result.bytes_read += 1;
+                        buf[context.rx_idx] = byte;
+                        context.rx_idx += 1;
                     }
                     Err(_) => break,
                 }
