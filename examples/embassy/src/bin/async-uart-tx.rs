@@ -21,7 +21,7 @@ use va108xx_hal::{
     pac::{self, interrupt},
     pins::PinsA,
     prelude::*,
-    uart::{self, on_interrupt_tx, TxAsync, UartId},
+    uart::{self, on_interrupt_tx, Bank, TxAsync},
     InterruptConfig,
 };
 
@@ -91,5 +91,5 @@ async fn main(_spawner: Spawner) {
 #[interrupt]
 #[allow(non_snake_case)]
 fn OC2() {
-    on_interrupt_tx(UartId::A);
+    on_interrupt_tx(Bank::Uart0);
 }

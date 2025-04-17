@@ -698,9 +698,7 @@ where
             current_write_idx += 1;
         }
         if self.blockmode {
-            reg_block
-                .ctrl1()
-                .modify(|_, w| w.mtxpause().clear_bit());
+            reg_block.ctrl1().modify(|_, w| w.mtxpause().clear_bit());
         }
         current_write_idx
     }
@@ -724,9 +722,7 @@ where
             current_write_idx += 1;
         }
         if self.blockmode {
-            reg_block
-                .ctrl1()
-                .modify(|_, w| w.mtxpause().clear_bit());
+            reg_block.ctrl1().modify(|_, w| w.mtxpause().clear_bit());
         }
         current_write_idx
     }
@@ -747,9 +743,7 @@ where
 
     #[inline(always)]
     fn write_fifo_unchecked(&mut self, data: u32) {
-        self.reg_block()
-            .data()
-            .write(|w| unsafe { w.bits(data) });
+        self.reg_block().data().write(|w| unsafe { w.bits(data) });
     }
 
     #[inline(always)]

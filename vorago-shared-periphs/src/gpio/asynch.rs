@@ -37,7 +37,7 @@ static EDGE_DETECTION_PORT_B: [AtomicBool; NUM_PORT_B] =
 pub fn on_interrupt_for_async_gpio_for_port(port: Port) {
     let gpio = unsafe { port.steal_gpio() };
 
-    let irq_enb = gpio.read_irq_enb();
+    let irq_enb = gpio.read_irq_enable();
     let edge_status = gpio.read_edge_status();
     let (wakers, edge_detection) = match port {
         Port::A => (WAKERS_FOR_PORT_A.as_ref(), EDGE_DETECTION_PORT_A.as_ref()),

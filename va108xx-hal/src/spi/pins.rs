@@ -27,7 +27,8 @@ pub trait PinMiso: PinMarker {
     const FUN_SEL: FunSel;
 }
 
-pub trait HwCsProvider: PinMarker {
+pub trait HwCsProvider {
+    const PIN_ID: PinId;
     const SPI_ID: SpiId;
     const FUN_SEL: FunSel;
     const CS_ID: HwChipSelectId;
@@ -37,6 +38,7 @@ macro_rules! hw_cs_pins {
     ($SpiId:path, $(($Px:ident, $FunSel:path, $HwCsIdent:path),)+) => {
         $(
             impl HwCsProvider for Pin<$Px> {
+                const PIN_ID: PinId = $Px::ID;
                 const SPI_ID: SpiId = $SpiId;
                 const FUN_SEL: FunSel = $FunSel;
                 const CS_ID: HwChipSelectId = $HwCsIdent;
@@ -72,11 +74,8 @@ macro_rules! hw_cs_multi_pin {
 
         impl Sealed for $name {}
 
-        impl PinMarker for $name {
-            const ID: PinId = <$pin_id as PinIdProvider>::ID;
-        }
-
         impl HwCsProvider for $name {
+            const PIN_ID: PinId = <$pin_id as PinIdProvider>::ID;
             const SPI_ID: SpiId = $spi_id;
             const FUN_SEL: FunSel = $fun_sel;
             const CS_ID: HwChipSelectId = $cs_id;

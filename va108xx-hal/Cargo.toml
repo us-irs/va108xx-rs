@@ -43,7 +43,7 @@ portable-atomic = "1"
 [features]
 default = ["rt"]
 rt = ["va108xx/rt"]
-defmt = ["dep:defmt", "fugit/defmt", "embedded-hal/defmt-03"]
+defmt = ["dep:defmt", "fugit/defmt", "embedded-hal/defmt-03", "vorago-shared-periphs/defmt"]
 
 [package.metadata.docs.rs]
 all-features = true

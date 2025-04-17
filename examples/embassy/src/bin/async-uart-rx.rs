@@ -31,7 +31,7 @@ use va108xx_hal::{
     uart::{
         self, on_interrupt_rx_overwriting,
         rx_asynch::{on_interrupt_rx, RxAsync},
-        RxAsyncOverwriting, Tx, UartId,
+        Bank, RxAsyncOverwriting, Tx,
     },
     InterruptConfig,
 };
@@ -145,7 +145,7 @@ async fn uart_b_task(mut async_rx: RxAsyncOverwriting<256>, mut tx: Tx) {
 fn OC2() {
     let mut prod =
         critical_section::with(|cs| PRODUCER_UART_A.borrow(cs).borrow_mut().take().unwrap());
-    let errors = on_interrupt_rx(UartId::A, &mut prod);
+    let errors = on_interrupt_rx(Bank::Uart0, &mut prod);
     critical_section::with(|cs| *PRODUCER_UART_A.borrow(cs).borrow_mut() = Some(prod));
     // In a production app, we could use a channel to send the errors to the main task.
     if let Err(errors) = errors {
@@ -158,7 +158,7 @@ fn OC2() {
 fn OC3() {
     let mut prod =
         critical_section::with(|cs| PRODUCER_UART_B.borrow(cs).borrow_mut().take().unwrap());
-    let errors = on_interrupt_rx_overwriting(UartId::B, &mut prod, &CONSUMER_UART_B);
+    let errors = on_interrupt_rx_overwriting(Bank::Uart1, &mut prod, &CONSUMER_UART_B);
     critical_section::with(|cs| *PRODUCER_UART_B.borrow(cs).borrow_mut() = Some(prod));
     // In a production app, we could use a channel to send the errors to the main task.
     if let Err(errors) = errors {

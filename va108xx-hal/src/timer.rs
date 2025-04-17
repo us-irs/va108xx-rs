@@ -20,6 +20,7 @@ use fugit::RateExtU32;
 use vorago_shared_periphs::{
     gpio::{Pin, PinId, PinIdProvider},
     ioconfig::regs::FunSel,
+    pins::PinMarker,
     sysconfig::enable_peripheral_clock,
     PeripheralSelect,
 };
@@ -160,7 +161,7 @@ impl CascadeSource {
 // Valid TIM and PIN combinations
 //==================================================================================================
 
-pub trait TimPin: Sealed {
+pub trait TimPin: PinMarker {
     const PIN_ID: PinId;
     const FUN_SEL: FunSel;
     const TIM_ID: TimId;

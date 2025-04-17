@@ -255,7 +255,7 @@ impl LowLevelGpio {
         if irq_cfg.enable_in_nvic {
             unsafe { crate::enable_nvic_interrupt(irq_cfg.id) };
         }
-        self.gpio.modify_irq_enb(|mut value| {
+        self.gpio.modify_irq_enable(|mut value| {
             value |= 1 << self.id.offset;
             value
         });
@@ -267,7 +267,7 @@ impl LowLevelGpio {
             self.reset_irqsel();
         }
         // We only manipulate our own bit.
-        self.gpio.modify_irq_enb(|mut value| {
+        self.gpio.modify_irq_enable(|mut value| {
             value &= !(1 << self.id.offset);
             value
         });

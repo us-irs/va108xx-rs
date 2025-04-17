@@ -1,7 +1,12 @@
 #![no_std]
 pub mod gpio;
 pub mod ioconfig;
+pub mod pins;
 pub mod sysconfig;
+pub mod time;
+pub mod uart;
+
+pub use sysconfig::{disable_peripheral_clock, enable_peripheral_clock};
 
 #[cfg(not(feature = "_family-selected"))]
 compile_error!("no Vorago CPU family was select. Choices: vor1x or vor4x");
