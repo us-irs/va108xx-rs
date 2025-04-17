@@ -70,7 +70,7 @@ pub fn on_interrupt_tx(bank: Bank) {
         return;
     }
     while context.progress < slice.len() {
-        if uart.read_tx_status().ready() {
+        if !uart.read_tx_status().ready() {
             break;
         }
         // Safety: TX structure is owned by the future which does not write into the the data
