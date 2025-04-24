@@ -76,7 +76,7 @@ probe-rs run --chip VA108xx_RAM --protocol jtag target/thumbv6m-none-eabi/debug/
 to flash and run the blinky program on the RAM. There is also a `VA108xx` chip target
 available for persistent flashing.
 
-Runner configuration avilable in the `.cargo/def-config.toml` file to use `probe-rs` for
+Runner configuration is available in the `.cargo/def-config.toml` file to use `probe-rs` for
 convenience. `probe-rs` is also able to process and display `defmt` strings directly.
 
 ### Using VS Code
@@ -150,11 +150,10 @@ address for the RTT block placement is 0x10000000. It is recommended to use a se
 0x1000 around that base address when using the RTT viewer.
 
 The RTT viewer will not be able to process `defmt` printouts. However, you can view the defmt
-logs by [installing defmt-print](https://crates.io/crates/defmt-print) first and then piping
-the output on telnet port 19021 into `defmt-print`, for example by running
+logs by [installing defmt-print](https://crates.io/crates/defmt-print) first and then running
 
 ```sh
-telnet localhost 19021 | defmt-print -e <pathToElfFile>
+defmt-print -e <pathToElfFile> tcp
 ```
 
 The path of the ELF file which is being debugged needs to be specified for this to work.

@@ -12,26 +12,10 @@ categories = ["aerospace", "embedded", "no-std", "hardware-support"]
 
 [dependencies]
 cortex-m = { version = "0.7", features = ["critical-section-single-core"]}
-cortex-m-rt = "0.7"
-nb = "1"
-paste = "1"
-embedded-hal = "1"
-embedded-hal-async = "1"
-embedded-hal-nb = "1"
-embedded-io = "0.6"
-embedded-io-async = "0.6"
+vorago-shared-periphs = { git = "https://egit.irs.uni-stuttgart.de/rust/vorago-shared-periphs.git", features = ["vor1x"] }
 fugit = "0.3"
-typenum = "1"
-critical-section = "1"
-delegate = ">=0.12, <=0.13"
-heapless = "0.8"
-static_cell = "2"
 thiserror = { version = "2", default-features = false }
-void = { version = "1", default-features = false }
-once_cell = { version = "1", default-features = false }
 va108xx = { version = "0.5", default-features = false, features = ["critical-section", "defmt"] }
-embassy-sync = "0.6"
-
 defmt = { version = "0.3", optional = true }
 
 [target.'cfg(all(target_arch = "arm", target_os = "none"))'.dependencies]
@@ -42,8 +26,11 @@ portable-atomic = "1"
 [features]
 default = ["rt"]
 rt = ["va108xx/rt"]
-defmt = ["dep:defmt", "fugit/defmt", "embedded-hal/defmt-03"]
+defmt = ["dep:defmt", "vorago-shared-periphs/defmt"]
 
 [package.metadata.docs.rs]
 all-features = true
 rustdoc-args = ["--generate-link-to-definition"]
+
+[package.metadata.cargo-machete]
+ignored = ["cortex-m"]

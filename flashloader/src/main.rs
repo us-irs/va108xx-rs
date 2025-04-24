@@ -68,7 +68,7 @@ mod app {
     use spacepackets::ecss::{
         tc::PusTcReader, tm::PusTmCreator, EcssEnumU8, PusPacket, WritablePusPacket,
     };
-    use va108xx_hal::gpio::PinsA;
+    use va108xx_hal::pins::PinsA;
     use va108xx_hal::uart::IrqContextTimeoutOrMaxSize;
     use va108xx_hal::{pac, uart, InterruptConfig};
     use vorago_reb1::m95m01::M95M01;
@@ -83,8 +83,8 @@ mod app {
 
     #[local]
     struct Local {
-        uart_rx: uart::RxWithInterrupt<pac::Uarta>,
-        uart_tx: uart::Tx<pac::Uarta>,
+        uart_rx: uart::RxWithInterrupt,
+        uart_tx: uart::Tx,
         rx_context: IrqContextTimeoutOrMaxSize,
         verif_reporter: VerificationReportCreator,
         nvm: M95M01,
@@ -108,18 +108,19 @@ mod app {
         let mut dp = cx.device;
         let nvm = M95M01::new(&mut dp.sysconfig, SYSCLK_FREQ, dp.spic);
 
-        let gpioa = PinsA::new(&mut dp.sysconfig, dp.porta);
-        let tx = gpioa.pa9.into_funsel_2();
-        let rx = gpioa.pa8.into_funsel_2();
+        let gpioa = PinsA::new(dp.porta);
+        let tx = gpioa.pa9;
+        let rx = gpioa.pa8;
 
         let irq_uart = uart::Uart::new_with_interrupt(
-            &mut dp.sysconfig,
-            SYSCLK_FREQ,
             dp.uarta,
-            (tx, rx),
-            UART_BAUDRATE.Hz(),
+            tx,
+            rx,
+            SYSCLK_FREQ,
+            UART_BAUDRATE.Hz().into(),
             InterruptConfig::new(pac::Interrupt::OC0, true, true),
-        );
+        )
+        .unwrap();
         let (tx, rx) = irq_uart.split();
         // Unwrap is okay, we explicitely set the interrupt ID.
         let mut rx = rx.into_rx_with_irq();
@@ -451,7 +452,7 @@ mod app {
                 cx.local.encoded_buf[send_size + 1] = 0;
                 cx.local
                     .uart_tx
-                    .write(&cx.local.encoded_buf[0..send_size + 2])
+                    .write_all(&cx.local.encoded_buf[0..send_size + 2])
                     .unwrap();
                 occupied_len -= 1;
                 Mono::delay(2.millis()).await;

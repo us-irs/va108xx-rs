@@ -12,7 +12,12 @@ cfg_if::cfg_if! {
     }
 }
 
-use va108xx_hal::{gpio::PinsA, pac, prelude::*};
+use va108xx_hal::{
+    gpio::{Output, PinState},
+    pac,
+    pins::PinsA,
+    prelude::*,
+};
 
 const SYSCLK_FREQ: Hertz = Hertz::from_raw(50_000_000);
 
@@ -21,35 +26,31 @@ const SYSCLK_FREQ: Hertz = Hertz::from_raw(50_000_000);
 async fn main(_spawner: Spawner) {
     defmt::println!("-- VA108xx Embassy Demo --");
 
-    let mut dp = pac::Peripherals::take().unwrap();
+    let dp = pac::Peripherals::take().unwrap();
 
     // Safety: Only called once here.
     cfg_if::cfg_if! {
         if #[cfg(not(feature = "custom-irqs"))] {
             va108xx_embassy::init(
-                &mut dp.sysconfig,
-                &dp.irqsel,
-                SYSCLK_FREQ,
                 dp.tim23,
                 dp.tim22,
+                SYSCLK_FREQ,
             );
         } else {
             va108xx_embassy::init_with_custom_irqs(
-                &mut dp.sysconfig,
-                &dp.irqsel,
-                SYSCLK_FREQ,
                 dp.tim23,
                 dp.tim22,
+                SYSCLK_FREQ,
                 pac::Interrupt::OC23,
                 pac::Interrupt::OC24,
             );
         }
     }
 
-    let porta = PinsA::new(&mut dp.sysconfig, dp.porta);
-    let mut led0 = porta.pa10.into_readable_push_pull_output();
-    let mut led1 = porta.pa7.into_readable_push_pull_output();
-    let mut led2 = porta.pa6.into_readable_push_pull_output();
+    let porta = PinsA::new(dp.porta);
+    let mut led0 = Output::new(porta.pa10, PinState::Low);
+    let mut led1 = Output::new(porta.pa7, PinState::Low);
+    let mut led2 = Output::new(porta.pa6, PinState::Low);
     let mut ticker = Ticker::every(Duration::from_secs(1));
     loop {
         ticker.next().await;

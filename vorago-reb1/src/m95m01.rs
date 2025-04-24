@@ -7,20 +7,25 @@
 //! # Example
 //!
 //! - [REB1 EEPROM example](https://egit.irs.uni-stuttgart.de/rust/va108xx-rs/src/branch/main/vorago-reb1/examples/nvm.rs)
+use arbitrary_int::{u2, u3};
 use core::convert::Infallible;
 use embedded_hal::spi::SpiBus;
 
 pub const PAGE_SIZE: usize = 256;
 
-bitfield::bitfield! {
-    pub struct StatusReg(u8);
-    impl Debug;
-    u8;
-    pub status_register_write_protect, _: 7;
-    pub zero_segment, _: 6, 4;
-    pub block_protection_bits, set_block_protection_bits: 3, 2;
-    pub write_enable_latch, _: 1;
-    pub write_in_progress, _: 0;
+#[bitbybit::bitfield(u8)]
+#[derive(Debug)]
+pub struct StatusReg {
+    #[bit(7, r)]
+    status_register_write_protect: bool,
+    #[bits(4..=6, r)]
+    zero_segment: u3,
+    #[bits(2..=3, rw)]
+    block_protection_bits: u2,
+    #[bit(1, r)]
+    write_enable_latch: bool,
+    #[bit(0, r)]
+    write_in_progress: bool,
 }
 
 // Registers.
@@ -42,11 +47,10 @@ pub mod regs {
 use regs::*;
 use va108xx_hal::{
     pac,
-    prelude::*,
-    spi::{RomMiso, RomMosi, RomSck, Spi, SpiClkConfig, SpiConfig, BMSTART_BMSTOP_MASK},
+    spi::{Spi, SpiClkConfig, SpiConfig, SpiLowLevel, BMSTART_BMSTOP_MASK},
 };
 
-pub type RomSpi = Spi<pac::Spic, (RomSck, RomMiso, RomMosi), u8>;
+pub type RomSpi = Spi<u8>;
 
 /// Driver for the ST device M95M01 EEPROM memory.
 ///
@@ -59,14 +63,8 @@ pub struct M95M01 {
 pub struct PageBoundaryExceededError;
 
 impl M95M01 {
-    pub fn new(syscfg: &mut pac::Sysconfig, sys_clk: impl Into<Hertz>, spi: pac::Spic) -> Self {
-        let spi = RomSpi::new(
-            syscfg,
-            sys_clk,
-            spi,
-            (RomSck, RomMiso, RomMosi),
-            SpiConfig::default().clk_cfg(SpiClkConfig::new(2, 4)),
-        );
+    pub fn new(spi: pac::Spic, clk_config: SpiClkConfig) -> Self {
+        let spi = RomSpi::new_for_rom(spi, SpiConfig::default().clk_cfg(clk_config)).unwrap();
         let mut spi_dev = Self { spi };
         spi_dev.clear_block_protection().unwrap();
         spi_dev
@@ -74,7 +72,7 @@ impl M95M01 {
 
     pub fn release(mut self) -> pac::Spic {
         self.set_block_protection().unwrap();
-        self.spi.release().0
+        unsafe { pac::Spic::steal() }
     }
 
     // Wait until the write-in-progress state is cleared. This exposes a [nb] API, so this function
@@ -90,7 +88,7 @@ impl M95M01 {
     pub fn read_status_reg(&mut self) -> Result<StatusReg, Infallible> {
         let mut write_read: [u8; 2] = [regs::RDSR, 0x00];
         self.spi.transfer_in_place(&mut write_read)?;
-        Ok(StatusReg(write_read[1]))
+        Ok(StatusReg::new_with_raw_value(write_read[1]))
     }
 
     pub fn write_enable(&mut self) -> Result<(), Infallible> {
@@ -104,10 +102,10 @@ impl M95M01 {
     }
 
     pub fn set_block_protection(&mut self) -> Result<(), Infallible> {
-        let mut reg = StatusReg(0);
-        reg.set_block_protection_bits(0b11);
+        let mut reg = StatusReg::new_with_raw_value(0);
+        reg.set_block_protection_bits(u2::new(0b11));
         self.write_enable()?;
-        self.spi.write(&[WRSR, reg.0])
+        self.spi.write(&[WRSR, reg.raw_value()])
     }
 
     fn common_init_write_and_read(&mut self, address: usize, reg: u8) -> Result<(), Infallible> {

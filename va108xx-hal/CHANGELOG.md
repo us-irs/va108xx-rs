@@ -8,6 +8,20 @@ and this project adheres to [Semantic Versioning](http://semver.org/).
 
 ## [unreleased]
 
+## Changed
+
+- Move most library components to new [`vorago-shared-periphs`](https://egit.irs.uni-stuttgart.de/rust/vorago-shared-periphs)
+  which is mostly re-exported in this crate.
+- Overhaul and simplification of several HAL APIs. The system configuration and IRQ router
+  peripheral instance generally does not need to be passed to HAL API anymore.
+- All HAL drivers are now type erased. The constructors will still expect and consume the PAC
+  singleton component for resource management purposes, but are not cached anymore.
+- Refactoring of GPIO library to be more inline with embassy GPIO API.
+
+## Added
+
+- I2C clock timeout feature support.
+
 ## [v0.11.1] 2025-03-10
 
 ## Fixed

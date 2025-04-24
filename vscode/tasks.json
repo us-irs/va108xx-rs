@@ -32,20 +32,6 @@
       }
     },
     {
-      "label": "rust: cargo build rtt",
-      "type": "shell",
-      "command": "~/.cargo/bin/cargo", // note: full path to the cargo
-      "args": [
-        "build",
-        "--example",
-        "rtt-log"
-      ],
-      "group": {
-        "kind": "build",
-        "isDefault": true
-      }
-    },
-    {
       "label": "rust: cargo build systick",
       "type": "shell",
       "command": "~/.cargo/bin/cargo", // note: full path to the cargo

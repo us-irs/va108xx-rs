@@ -15,7 +15,7 @@ use va108xx_hal::{
 const ADT75_I2C_ADDR: u8 = 0b1001000;
 
 pub struct Adt75TempSensor {
-    sensor_if: I2cMaster<pac::I2ca, SevenBitAddress>,
+    sensor_if: I2cMaster<SevenBitAddress>,
     cmd_buf: [u8; 1],
     current_reg: RegAddresses,
 }
@@ -48,17 +48,12 @@ impl From<Error> for AdtInitError {
 }
 
 impl Adt75TempSensor {
-    pub fn new(
-        sys_cfg: &mut pac::Sysconfig,
-        sys_clk: impl Into<Hertz> + Copy,
-        i2ca: pac::I2ca,
-    ) -> Result<Self, Error> {
+    pub fn new(sys_clk: Hertz, i2ca: pac::I2ca) -> Result<Self, Error> {
         let mut sensor = Adt75TempSensor {
             // The master construction can not fail for regular I2C speed.
             sensor_if: I2cMaster::new(
-                sys_cfg,
-                sys_clk,
                 i2ca,
+                sys_clk,
                 MasterConfig::default(),
                 I2cSpeed::Regular100khz,
             )

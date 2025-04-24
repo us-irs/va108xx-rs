@@ -3,7 +3,7 @@
 #![no_std]
 
 use cortex_m_rt::entry;
-use panic_rtt_target as _;
+use panic_probe as _;
 use va108xx_hal as _;
 
 #[entry]

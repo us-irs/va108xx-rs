@@ -9,7 +9,7 @@ use max116xx_10bit::{
     Error, ExternallyClocked, InternallyClockedInternallyTimedSerialInterface, Max116xx10Bit,
     Max116xx10BitEocExt, VoltageRefMode, WithWakeupDelay, WithoutWakeupDelay,
 };
-use va108xx_hal::gpio::{Floating, Input, Pin, PA14};
+use va108xx_hal::gpio::Input;
 
 pub type Max11619ExternallyClockedNoWakeup<Spi> =
     Max116xx10Bit<Spi, ExternallyClocked, WithoutWakeupDelay>;
@@ -17,7 +17,6 @@ pub type Max11619ExternallyClockedWithWakeup<Spi> =
     Max116xx10Bit<Spi, ExternallyClocked, WithWakeupDelay>;
 pub type Max11619InternallyClocked<Spi, Eoc> =
     Max116xx10BitEocExt<Spi, Eoc, InternallyClockedInternallyTimedSerialInterface>;
-pub type EocPin = Pin<PA14, Input<Floating>>;
 
 pub const AN0_CHANNEL: u8 = 0;
 pub const AN1_CHANNEL: u8 = 1;
@@ -44,9 +43,9 @@ pub fn max11619_externally_clocked_with_wakeup<Spi: SpiDevice>(
 
 pub fn max11619_internally_clocked<Spi: SpiDevice>(
     spi: Spi,
-    eoc: EocPin,
+    eoc: Input,
     v_ref: VoltageRefMode,
-) -> Result<Max11619InternallyClocked<Spi, EocPin>, Error<Spi::Error, Infallible>> {
+) -> Result<Max11619InternallyClocked<Spi, Input>, Error<Spi::Error, Infallible>> {
     let mut adc = Max116xx10Bit::max11619(spi)?
         .into_int_clkd_int_timed_through_ser_if_without_wakeup(v_ref, eoc)?;
     adc.reset(false)?;
