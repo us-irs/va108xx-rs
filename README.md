@@ -34,6 +34,9 @@ It also contains the following helper crates:
   [`RTIC`](https://rtic.rs/2/book/en/) and [`embassy`](https://github.com/embassy-rs/embassy)
   native Rust RTOSes.
 
+The majority of the HAL implementation and Embassy-rs support is part of the external
+[`vorago-shared-periphs`](https://egit.irs.uni-stuttgart.de/rust/vorago-shared-periphs) crate.
+
 ## Using the `.cargo/config.toml` file
 
 Use the following command to have a starting `config.toml` file
