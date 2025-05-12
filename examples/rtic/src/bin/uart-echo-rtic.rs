@@ -1,4 +1,4 @@
-//! More complex UART application
+//! More complex UART application on UART PA8 (TX) and PA9 (RX).
 //!
 //! Uses the IRQ capabilities of the VA10820 peripheral and the RTIC framework to poll the UART in
 //! a non-blocking way. All received data will be sent back to the sender.
@@ -14,14 +14,16 @@ const RX_RING_BUF_SIZE: usize = 1024;
 mod app {
     use super::*;
     use embedded_io::Write;
-    use panic_rtt_target as _;
     use ringbuf::traits::{Consumer, Observer, Producer};
     use rtic_example::SYSCLK_FREQ;
+    // Import panic provider.
+    use panic_probe as _;
+    // Import global logger.
+    use defmt_rtt as _;
     use rtic_monotonics::Monotonic;
-    use rtt_target::{rprintln, rtt_init_print};
     use va108xx_hal::{
-        gpio::PinsA,
         pac,
+        pins::PinsA,
         prelude::*,
         uart::{self, RxWithInterrupt, Tx},
         InterruptConfig,
@@ -29,8 +31,8 @@ mod app {
 
     #[local]
     struct Local {
-        rx: RxWithInterrupt<pac::Uarta>,
-        tx: Tx<pac::Uarta>,
+        rx: RxWithInterrupt,
+        tx: Tx,
     }
 
     #[shared]
@@ -42,24 +44,24 @@ mod app {
 
     #[init]
     fn init(cx: init::Context) -> (Shared, Local) {
-        rtt_init_print!();
-        rprintln!("-- VA108xx UART Echo with IRQ example application--");
+        defmt::println!("-- VA108xx UART Echo with IRQ example application--");
 
         Mono::start(cx.core.SYST, SYSCLK_FREQ.raw());
 
-        let mut dp = cx.device;
-        let gpioa = PinsA::new(&mut dp.sysconfig, dp.porta);
-        let tx = gpioa.pa9.into_funsel_2();
-        let rx = gpioa.pa8.into_funsel_2();
+        let dp = cx.device;
+        let gpioa = PinsA::new(dp.porta);
+        let tx = gpioa.pa9;
+        let rx = gpioa.pa8;
 
         let irq_uart = uart::Uart::new_with_interrupt(
-            &mut dp.sysconfig,
-            SYSCLK_FREQ,
             dp.uarta,
-            (tx, rx),
-            115200.Hz(),
+            tx,
+            rx,
+            SYSCLK_FREQ,
+            115200.Hz().into(),
             InterruptConfig::new(pac::Interrupt::OC3, true, true),
-        );
+        )
+        .unwrap();
         let (tx, rx) = irq_uart.split();
         let mut rx = rx.into_rx_with_irq();
 
@@ -104,7 +106,7 @@ mod app {
         }
         if ringbuf_full {
             // Could also drop oldest data, but that would require the consumer to be shared.
-            rprintln!("buffer full, data was dropped");
+            defmt::println!("buffer full, data was dropped");
         }
     }
 

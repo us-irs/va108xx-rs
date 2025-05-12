@@ -9,13 +9,14 @@ use embedded_hal::delay::DelayNs;
 use embedded_hal::spi::{SpiBus, MODE_3};
 use panic_rtt_target as _;
 use rtt_target::{rprintln, rtt_init_print};
-use va108xx_hal::spi::SpiClkConfig;
+use va108xx_hal::gpio::{Output, PinState};
+use va108xx_hal::pins::PinsA;
+use va108xx_hal::spi::{configure_pin_as_hw_cs_pin, SpiClkConfig};
+use va108xx_hal::timer::CountdownTimer;
 use va108xx_hal::{
-    gpio::PinsA,
     pac,
     prelude::*,
     spi::{Spi, SpiConfig},
-    timer::set_up_ms_delay_provider,
 };
 
 const READ_MASK: u8 = 1 << 7;
@@ -29,19 +30,15 @@ const PWR_MEASUREMENT_MODE_MASK: u8 = 1 << 3;
 fn main() -> ! {
     rtt_init_print!();
     rprintln!("-- Vorago Accelerometer Example --");
-    let mut dp = pac::Peripherals::take().unwrap();
-    let mut delay = set_up_ms_delay_provider(&mut dp.sysconfig, 50.MHz(), dp.tim0);
-    let pinsa = PinsA::new(&mut dp.sysconfig, dp.porta);
-    let (sck, mosi, miso) = (
-        pinsa.pa20.into_funsel_2(),
-        pinsa.pa19.into_funsel_2(),
-        pinsa.pa18.into_funsel_2(),
-    );
-    let cs_pin = pinsa.pa16.into_funsel_2();
+    let dp = pac::Peripherals::take().unwrap();
+    let pinsa = PinsA::new(dp.porta);
+    let mut delay = CountdownTimer::new(dp.tim0, 50.MHz());
+    let (sck, mosi, miso) = (pinsa.pa20, pinsa.pa19, pinsa.pa18);
+    let cs_pin = pinsa.pa16;
+    let hw_cs_id = configure_pin_as_hw_cs_pin(cs_pin);
 
     // Need to set the ADC chip select low
-    let mut adc_cs = pinsa.pa17.into_push_pull_output();
-    adc_cs.set_high();
+    Output::new(pinsa.pa17, PinState::Low);
 
     let spi_cfg = SpiConfig::default()
         .clk_cfg(
@@ -49,14 +46,8 @@ fn main() -> ! {
         )
         .mode(MODE_3)
         .slave_output_disable(true);
-    let mut spi = Spi::new(
-        &mut dp.sysconfig,
-        50.MHz(),
-        dp.spib,
-        (sck, miso, mosi),
-        spi_cfg,
-    );
-    spi.cfg_hw_cs_with_pin(&cs_pin);
+    let mut spi = Spi::new(dp.spib, (sck, miso, mosi), spi_cfg).unwrap();
+    spi.cfg_hw_cs(hw_cs_id);
 
     let mut tx_rx_buf: [u8; 3] = [0; 3];
     tx_rx_buf[0] = READ_MASK | DEVID_REG;

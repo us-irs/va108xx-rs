@@ -10,10 +10,10 @@ use panic_rtt_target as _;
 use rtt_target::{rprintln, rtt_init_print};
 use va108xx_hal::{
     clock::{set_clk_div_register, FilterClkSel},
-    gpio::{FilterType, InterruptEdge, PinsA},
+    gpio::{FilterType, InterruptEdge},
     pac::{self, interrupt},
-    prelude::*,
-    timer::{default_ms_irq_handler, set_up_ms_tick, InterruptConfig},
+    pins::PinsA,
+    timer::InterruptConfig,
 };
 use vorago_reb1::button::Button;
 use vorago_reb1::leds::Leds;
@@ -35,18 +35,18 @@ fn main() -> ! {
     rtt_init_print!();
     rprintln!("-- Vorago Button IRQ Example --");
     let mut dp = pac::Peripherals::take().unwrap();
-    let pinsa = PinsA::new(&mut dp.sysconfig, dp.porta);
+    let pinsa = PinsA::new(dp.porta);
     let edge_irq = match PRESS_MODE {
         PressMode::Toggle => InterruptEdge::HighToLow,
         PressMode::Keep => InterruptEdge::BothEdges,
     };
 
     // Configure an edge interrupt on the button and route it to interrupt vector 15
-    let mut button = Button::new(pinsa.pa11.into_floating_input());
+    let mut button = Button::new(pinsa.pa11);
 
     if PRESS_MODE == PressMode::Toggle {
         // This filter debounces the switch for edge based interrupts
-        button.configure_filter_type(FilterType::FilterFourClockCycles, FilterClkSel::Clk1);
+        button.configure_filter_type(FilterType::FilterFourCycles, FilterClkSel::Clk1);
         set_clk_div_register(&mut dp.sysconfig, FilterClkSel::Clk1, 50_000);
     }
     button.configure_and_enable_edge_interrupt(
@@ -54,18 +54,7 @@ fn main() -> ! {
         InterruptConfig::new(pac::interrupt::OC15, true, true),
     );
 
-    set_up_ms_tick(
-        InterruptConfig::new(pac::Interrupt::OC0, true, true),
-        &mut dp.sysconfig,
-        Some(&mut dp.irqsel),
-        50.MHz(),
-        dp.tim0,
-    );
-    let mut leds = Leds::new(
-        pinsa.pa10.into_push_pull_output(),
-        pinsa.pa7.into_push_pull_output(),
-        pinsa.pa6.into_push_pull_output(),
-    );
+    let mut leds = Leds::new(pinsa.pa10, pinsa.pa7, pinsa.pa6);
     for led in leds.iter_mut() {
         led.off();
     }
@@ -77,11 +66,6 @@ fn main() -> ! {
     loop {
         cortex_m::asm::nop();
     }
-}
-
-#[interrupt]
-fn OC0() {
-    default_ms_irq_handler();
 }
 
 #[interrupt]

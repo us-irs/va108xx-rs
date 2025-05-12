@@ -4,19 +4,18 @@
 //! and then set the `CHECK_PB22_TO_PB23` to true to also test async operations on Port B.
 #![no_std]
 #![no_main]
+// This imports the logger and the panic handler.
+use embassy_example as _;
 
 use embassy_executor::Spawner;
 use embassy_sync::channel::{Receiver, Sender};
 use embassy_sync::{blocking_mutex::raw::ThreadModeRawMutex, channel::Channel};
 use embassy_time::{Duration, Instant, Timer};
 use embedded_hal_async::digital::Wait;
-use panic_rtt_target as _;
-use rtt_target::{rprintln, rtt_init_print};
-use va108xx_hal::gpio::{
-    on_interrupt_for_async_gpio_for_port, InputDynPinAsync, InputPinAsync, PinsB, Port,
-};
+use va108xx_hal::gpio::asynch::{on_interrupt_for_async_gpio_for_port, InputPinAsync};
+use va108xx_hal::gpio::{Input, Output, PinState, Port};
+use va108xx_hal::pins::{PinsA, PinsB};
 use va108xx_hal::{
-    gpio::{DynPin, PinsA},
     pac::{self, interrupt},
     prelude::*,
 };
@@ -58,59 +57,50 @@ static CHANNEL_PB22_TO_PB23: Channel<ThreadModeRawMutex, GpioCmd, 3> = Channel::
 
 #[embassy_executor::main]
 async fn main(spawner: Spawner) {
-    rtt_init_print!();
-    rprintln!("-- VA108xx Async GPIO Demo --");
+    defmt::println!("-- VA108xx Async GPIO Demo --");
 
-    let mut dp = pac::Peripherals::take().unwrap();
+    let dp = pac::Peripherals::take().unwrap();
 
     // Safety: Only called once here.
-    va108xx_embassy::init(
-        &mut dp.sysconfig,
-        &dp.irqsel,
-        SYSCLK_FREQ,
-        dp.tim23,
-        dp.tim22,
-    );
+    va108xx_embassy::init(dp.tim23, dp.tim22, SYSCLK_FREQ);
 
-    let porta = PinsA::new(&mut dp.sysconfig, dp.porta);
-    let portb = PinsB::new(&mut dp.sysconfig, dp.portb);
-    let mut led0 = porta.pa10.into_readable_push_pull_output();
-    let out_pa0 = porta.pa0.into_readable_push_pull_output();
-    let in_pa1 = porta.pa1.into_floating_input();
-    let out_pb22 = portb.pb22.into_readable_push_pull_output();
-    let in_pb23 = portb.pb23.into_floating_input();
+    let porta = PinsA::new(dp.porta);
+    let portb = PinsB::new(dp.portb);
+    let mut led0 = Output::new(porta.pa10, PinState::Low);
+    let out_pa0 = Output::new(porta.pa0, PinState::Low);
+    let in_pa1 = Input::new_floating(porta.pa1);
+    let out_pb22 = Output::new(portb.pb22, PinState::Low);
+    let in_pb23 = Input::new_floating(portb.pb23);
 
     let in_pa1_async = InputPinAsync::new(in_pa1, pac::Interrupt::OC10);
-    let out_pa0_dyn = out_pa0.downgrade();
-    let in_pb23_async = InputDynPinAsync::new(in_pb23.downgrade(), PB22_TO_PB23_IRQ).unwrap();
-    let out_pb22_dyn = out_pb22.downgrade();
+    let in_pb23_async = InputPinAsync::new(in_pb23, PB22_TO_PB23_IRQ);
 
     spawner
         .spawn(output_task(
             "PA0 to PA1",
-            out_pa0_dyn,
+            out_pa0,
             CHANNEL_PA0_PA1.receiver(),
         ))
         .unwrap();
     spawner
         .spawn(output_task(
             "PB22 to PB23",
-            out_pb22_dyn,
+            out_pb22,
             CHANNEL_PB22_TO_PB23.receiver(),
         ))
         .unwrap();
 
     if CHECK_PA0_TO_PA1 {
         check_pin_to_pin_async_ops("PA0 to PA1", CHANNEL_PA0_PA1.sender(), in_pa1_async).await;
-        rprintln!("Example PA0 to PA1 done");
+        defmt::info!("Example PA0 to PA1 done");
     }
     if CHECK_PB22_TO_PB23 {
         check_pin_to_pin_async_ops("PB22 to PB23", CHANNEL_PB22_TO_PB23.sender(), in_pb23_async)
             .await;
-        rprintln!("Example PB22 to PB23 done");
+        defmt::info!("Example PB22 to PB23 done");
     }
 
-    rprintln!("Example done, toggling LED0");
+    defmt::info!("Example done, toggling LED0");
     loop {
         led0.toggle();
         Timer::after(Duration::from_millis(500)).await;
@@ -122,46 +112,46 @@ async fn check_pin_to_pin_async_ops(
     sender: Sender<'static, ThreadModeRawMutex, GpioCmd, 3>,
     mut async_input: impl Wait,
 ) {
-    rprintln!(
+    defmt::info!(
         "{}: sending SetHigh command ({} ms)",
         ctx,
         Instant::now().as_millis()
     );
     sender.send(GpioCmd::new(GpioCmdType::SetHigh, 20)).await;
     async_input.wait_for_high().await.unwrap();
-    rprintln!(
+    defmt::info!(
         "{}: Input pin is high now ({} ms)",
         ctx,
         Instant::now().as_millis()
     );
 
-    rprintln!(
+    defmt::info!(
         "{}: sending SetLow command ({} ms)",
         ctx,
         Instant::now().as_millis()
     );
     sender.send(GpioCmd::new(GpioCmdType::SetLow, 20)).await;
     async_input.wait_for_low().await.unwrap();
-    rprintln!(
+    defmt::info!(
         "{}: Input pin is low now ({} ms)",
         ctx,
         Instant::now().as_millis()
     );
 
-    rprintln!(
+    defmt::info!(
         "{}: sending RisingEdge command ({} ms)",
         ctx,
         Instant::now().as_millis()
     );
     sender.send(GpioCmd::new(GpioCmdType::RisingEdge, 20)).await;
     async_input.wait_for_rising_edge().await.unwrap();
-    rprintln!(
+    defmt::info!(
         "{}: input pin had rising edge ({} ms)",
         ctx,
         Instant::now().as_millis()
     );
 
-    rprintln!(
+    defmt::info!(
         "{}: sending Falling command ({} ms)",
         ctx,
         Instant::now().as_millis()
@@ -170,13 +160,13 @@ async fn check_pin_to_pin_async_ops(
         .send(GpioCmd::new(GpioCmdType::FallingEdge, 20))
         .await;
     async_input.wait_for_falling_edge().await.unwrap();
-    rprintln!(
+    defmt::info!(
         "{}: input pin had a falling edge ({} ms)",
         ctx,
         Instant::now().as_millis()
     );
 
-    rprintln!(
+    defmt::info!(
         "{}: sending Falling command ({} ms)",
         ctx,
         Instant::now().as_millis()
@@ -185,20 +175,20 @@ async fn check_pin_to_pin_async_ops(
         .send(GpioCmd::new(GpioCmdType::FallingEdge, 20))
         .await;
     async_input.wait_for_any_edge().await.unwrap();
-    rprintln!(
+    defmt::info!(
         "{}: input pin had a falling (any) edge ({} ms)",
         ctx,
         Instant::now().as_millis()
     );
 
-    rprintln!(
+    defmt::info!(
         "{}: sending Falling command ({} ms)",
         ctx,
         Instant::now().as_millis()
     );
     sender.send(GpioCmd::new(GpioCmdType::RisingEdge, 20)).await;
     async_input.wait_for_any_edge().await.unwrap();
-    rprintln!(
+    defmt::info!(
         "{}: input pin had a rising (any) edge ({} ms)",
         ctx,
         Instant::now().as_millis()
@@ -208,7 +198,7 @@ async fn check_pin_to_pin_async_ops(
 #[embassy_executor::task(pool_size = 2)]
 async fn output_task(
     ctx: &'static str,
-    mut out: DynPin,
+    mut out: Output,
     receiver: Receiver<'static, ThreadModeRawMutex, GpioCmd, 3>,
 ) {
     loop {
@@ -216,26 +206,26 @@ async fn output_task(
         Timer::after(Duration::from_millis(next_cmd.after_delay.into())).await;
         match next_cmd.cmd_type {
             GpioCmdType::SetHigh => {
-                rprintln!("{}: Set output high", ctx);
-                out.set_high().unwrap();
+                defmt::info!("{}: Set output high", ctx);
+                out.set_high();
             }
             GpioCmdType::SetLow => {
-                rprintln!("{}: Set output low", ctx);
-                out.set_low().unwrap();
+                defmt::info!("{}: Set output low", ctx);
+                out.set_low();
             }
             GpioCmdType::RisingEdge => {
-                rprintln!("{}: Rising edge", ctx);
-                if !out.is_low().unwrap() {
-                    out.set_low().unwrap();
+                defmt::info!("{}: Rising edge", ctx);
+                if !out.is_set_low() {
+                    out.set_low();
                 }
-                out.set_high().unwrap();
+                out.set_high();
             }
             GpioCmdType::FallingEdge => {
-                rprintln!("{}: Falling edge", ctx);
-                if !out.is_high().unwrap() {
-                    out.set_high().unwrap();
+                defmt::info!("{}: Falling edge", ctx);
+                if !out.is_set_high() {
+                    out.set_high();
                 }
-                out.set_low().unwrap();
+                out.set_low();
             }
         }
     }

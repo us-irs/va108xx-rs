@@ -13,7 +13,6 @@ members = [
   "flashloader",
 ]
 exclude = [
-  "defmt-testapp",
   "flashloader/slot-a-blinky",
   "flashloader/slot-b-blinky",
 ]

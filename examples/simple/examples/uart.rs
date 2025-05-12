@@ -13,27 +13,23 @@
 use cortex_m_rt::entry;
 use embedded_hal_nb::{nb, serial::Read};
 use embedded_io::Write as _;
-use panic_rtt_target as _;
-use rtt_target::{rprintln, rtt_init_print};
-use va108xx_hal::{gpio::PinsA, pac, prelude::*, uart};
+// Import panic provider.
+use panic_probe as _;
+// Import logger.
+use defmt_rtt as _;
+use va108xx_hal::{pac, pins::PinsA, prelude::*, uart};
 
 #[entry]
 fn main() -> ! {
-    rtt_init_print!();
-    rprintln!("-- VA108xx UART example application--");
+    defmt::println!("-- VA108xx UART example application--");
 
-    let mut dp = pac::Peripherals::take().unwrap();
+    let dp = pac::Peripherals::take().unwrap();
 
-    let gpioa = PinsA::new(&mut dp.sysconfig, dp.porta);
-    let tx = gpioa.pa9.into_funsel_2();
-    let rx = gpioa.pa8.into_funsel_2();
-    let uart = uart::Uart::new_without_interrupt(
-        &mut dp.sysconfig,
-        50.MHz(),
-        dp.uarta,
-        (tx, rx),
-        115200.Hz(),
-    );
+    let gpioa = PinsA::new(dp.porta);
+    let tx = gpioa.pa9;
+    let rx = gpioa.pa8;
+    let uart =
+        uart::Uart::new_without_interrupt(dp.uarta, tx, rx, 50.MHz(), 115200.Hz().into()).unwrap();
 
     let (mut tx, mut rx) = uart.split();
     writeln!(tx, "Hello World\r").unwrap();

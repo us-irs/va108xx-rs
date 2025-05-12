@@ -34,6 +34,9 @@ It also contains the following helper crates:
   [`RTIC`](https://rtic.rs/2/book/en/) and [`embassy`](https://github.com/embassy-rs/embassy)
   native Rust RTOSes.
 
+The majority of the HAL implementation and the Embassy-rs support are contained in the external
+[`vorago-shared-periphs`](https://egit.irs.uni-stuttgart.de/rust/vorago-shared-periphs) crate.
+
 ## Using the `.cargo/config.toml` file
 
 Use the following command to have a starting `config.toml` file
@@ -76,8 +79,8 @@ probe-rs run --chip VA108xx_RAM --protocol jtag target/thumbv6m-none-eabi/debug/
 to flash and run the blinky program on the RAM. There is also a `VA108xx` chip target
 available for persistent flashing.
 
-Runner configuration avilable in the `.cargo/def-config.toml` file to use `probe-rs` for
-convenience.
+Runner configuration is available in the `.cargo/def-config.toml` file to use `probe-rs` for
+convenience. `probe-rs` is also able to process and display `defmt` strings directly.
 
 ### Using VS Code
 
@@ -123,13 +126,13 @@ is also run when running the `jlink-gdb.sh` script)
 
 ```sh
 JLinkGDBServer -select USB -device Cortex-M0 -endian little -if JTAG-speed auto \
-  -LocalhostOnly
+  -LocalhostOnly -jtagconf -1,-1
 ```
 
 After this, you can flash and debug the application with the following command
 
 ```sh
-gdb-mutliarch -q -x jlink/jlink.gdb target/thumbv6m-none-eabihf/debug/examples/blinky
+gdb-mutliarch -q -x jlink/jlink.gdb target/thumbv6m-none-eabihf/debug/examples/blinky -tui
 ```
 
 Please note that you can automate all steps except starting the GDB server by using a cargo
@@ -148,6 +151,15 @@ example.
 The Segger RTT viewer can be used to display log messages received from the target. The base
 address for the RTT block placement is 0x10000000. It is recommended to use a search range of
 0x1000 around that base address when using the RTT viewer.
+
+The RTT viewer will not be able to process `defmt` printouts. However, you can view the defmt
+logs by [installing defmt-print](https://crates.io/crates/defmt-print) first and then running
+
+```sh
+defmt-print -e <pathToElfFile> tcp
+```
+
+The path of the ELF file which is being debugged needs to be specified for this to work.
 
 ## Learning (Embedded) Rust
 

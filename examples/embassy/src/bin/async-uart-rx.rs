@@ -13,19 +13,20 @@
 //!    RTT logs to see received data.
 #![no_std]
 #![no_main]
-use core::cell::RefCell;
+// This imports the logger and the panic handler.
+use embassy_example as _;
 
+use core::cell::RefCell;
 use critical_section::Mutex;
 use embassy_executor::Spawner;
 use embassy_time::Instant;
 use embedded_io::Write;
 use embedded_io_async::Read;
 use heapless::spsc::{Consumer, Producer, Queue};
-use panic_rtt_target as _;
-use rtt_target::{rprintln, rtt_init_print};
 use va108xx_hal::{
-    gpio::PinsA,
+    gpio::{Output, PinState},
     pac::{self, interrupt},
+    pins::PinsA,
     prelude::*,
     uart::{
         self, on_interrupt_rx_overwriting,
@@ -49,48 +50,43 @@ static CONSUMER_UART_B: Mutex<RefCell<Option<Consumer<u8, 256>>>> = Mutex::new(R
 // main is itself an async function.
 #[embassy_executor::main]
 async fn main(spawner: Spawner) {
-    rtt_init_print!();
-    rprintln!("-- VA108xx Async UART RX Demo --");
+    defmt::println!("-- VA108xx Async UART RX Demo --");
 
-    let mut dp = pac::Peripherals::take().unwrap();
+    let dp = pac::Peripherals::take().unwrap();
 
     // Safety: Only called once here.
-    va108xx_embassy::init(
-        &mut dp.sysconfig,
-        &dp.irqsel,
-        SYSCLK_FREQ,
-        dp.tim23,
-        dp.tim22,
-    );
+    va108xx_embassy::init(dp.tim23, dp.tim22, SYSCLK_FREQ);
 
-    let porta = PinsA::new(&mut dp.sysconfig, dp.porta);
-    let mut led0 = porta.pa10.into_readable_push_pull_output();
-    let mut led1 = porta.pa7.into_readable_push_pull_output();
-    let mut led2 = porta.pa6.into_readable_push_pull_output();
+    let porta = PinsA::new(dp.porta);
+    let mut led0 = Output::new(porta.pa10, PinState::Low);
+    let mut led1 = Output::new(porta.pa7, PinState::Low);
+    let mut led2 = Output::new(porta.pa6, PinState::Low);
 
-    let tx_uart_a = porta.pa9.into_funsel_2();
-    let rx_uart_a = porta.pa8.into_funsel_2();
+    let tx_uart_a = porta.pa9;
+    let rx_uart_a = porta.pa8;
 
     let uarta = uart::Uart::new_with_interrupt(
-        &mut dp.sysconfig,
-        50.MHz(),
         dp.uarta,
-        (tx_uart_a, rx_uart_a),
-        115200.Hz(),
+        tx_uart_a,
+        rx_uart_a,
+        50.MHz(),
+        115200.Hz().into(),
         InterruptConfig::new(pac::Interrupt::OC2, true, true),
-    );
+    )
+    .unwrap();
 
-    let tx_uart_b = porta.pa3.into_funsel_2();
-    let rx_uart_b = porta.pa2.into_funsel_2();
+    let tx_uart_b = porta.pa3;
+    let rx_uart_b = porta.pa2;
 
     let uartb = uart::Uart::new_with_interrupt(
-        &mut dp.sysconfig,
-        50.MHz(),
         dp.uartb,
-        (tx_uart_b, rx_uart_b),
-        115200.Hz(),
+        tx_uart_b,
+        rx_uart_b,
+        50.MHz(),
+        115200.Hz().into(),
         InterruptConfig::new(pac::Interrupt::OC3, true, true),
-    );
+    )
+    .unwrap();
     let (mut tx_uart_a, rx_uart_a) = uarta.split();
     let (tx_uart_b, rx_uart_b) = uartb.split();
     let (prod_uart_a, cons_uart_a) = QUEUE_UART_A.take().split();
@@ -108,13 +104,13 @@ async fn main(spawner: Spawner) {
         .unwrap();
     let mut buf = [0u8; 256];
     loop {
-        rprintln!("Current time UART A: {}", Instant::now().as_secs());
+        defmt::info!("Current time UART A: {}", Instant::now().as_secs());
         led0.toggle();
         led1.toggle();
         led2.toggle();
         let read_bytes = async_rx_uart_a.read(&mut buf).await.unwrap();
         let read_str = core::str::from_utf8(&buf[..read_bytes]).unwrap();
-        rprintln!(
+        defmt::info!(
             "Read {} bytes asynchronously on UART A: {:?}",
             read_bytes,
             read_str
@@ -124,14 +120,14 @@ async fn main(spawner: Spawner) {
 }
 
 #[embassy_executor::task]
-async fn uart_b_task(mut async_rx: RxAsyncOverwriting<pac::Uartb, 256>, mut tx: Tx<pac::Uartb>) {
+async fn uart_b_task(mut async_rx: RxAsyncOverwriting<256>, mut tx: Tx) {
     let mut buf = [0u8; 256];
     loop {
-        rprintln!("Current time UART B: {}", Instant::now().as_secs());
+        defmt::info!("Current time UART B: {}", Instant::now().as_secs());
         // Infallible asynchronous operation.
         let read_bytes = async_rx.read(&mut buf).await.unwrap();
         let read_str = core::str::from_utf8(&buf[..read_bytes]).unwrap();
-        rprintln!(
+        defmt::info!(
             "Read {} bytes asynchronously on UART B: {:?}",
             read_bytes,
             read_str
@@ -145,11 +141,11 @@ async fn uart_b_task(mut async_rx: RxAsyncOverwriting<pac::Uartb, 256>, mut tx: 
 fn OC2() {
     let mut prod =
         critical_section::with(|cs| PRODUCER_UART_A.borrow(cs).borrow_mut().take().unwrap());
-    let errors = on_interrupt_rx(Bank::A, &mut prod);
+    let errors = on_interrupt_rx(Bank::Uart0, &mut prod);
     critical_section::with(|cs| *PRODUCER_UART_A.borrow(cs).borrow_mut() = Some(prod));
     // In a production app, we could use a channel to send the errors to the main task.
     if let Err(errors) = errors {
-        rprintln!("UART A errors: {:?}", errors);
+        defmt::info!("UART A errors: {:?}", errors);
     }
 }
 
@@ -158,10 +154,10 @@ fn OC2() {
 fn OC3() {
     let mut prod =
         critical_section::with(|cs| PRODUCER_UART_B.borrow(cs).borrow_mut().take().unwrap());
-    let errors = on_interrupt_rx_overwriting(Bank::B, &mut prod, &CONSUMER_UART_B);
+    let errors = on_interrupt_rx_overwriting(Bank::Uart1, &mut prod, &CONSUMER_UART_B);
     critical_section::with(|cs| *PRODUCER_UART_B.borrow(cs).borrow_mut() = Some(prod));
     // In a production app, we could use a channel to send the errors to the main task.
     if let Err(errors) = errors {
-        rprintln!("UART B errors: {:?}", errors);
+        defmt::info!("UART B errors: {:?}", errors);
     }
 }

@@ -8,69 +8,21 @@ pub use va108xx as pac;
 pub mod clock;
 pub mod gpio;
 pub mod i2c;
+pub mod pins;
 pub mod prelude;
 pub mod pwm;
 pub mod spi;
 pub mod sysconfig;
 pub mod time;
 pub mod timer;
-pub mod typelevel;
 pub mod uart;
 
-#[derive(Debug, Eq, Copy, Clone, PartialEq)]
-#[cfg_attr(feature = "defmt", derive(defmt::Format))]
-pub enum FunSel {
-    Sel0 = 0b00,
-    Sel1 = 0b01,
-    Sel2 = 0b10,
-    Sel3 = 0b11,
-}
+pub use vorago_shared_periphs::{
+    disable_nvic_interrupt, enable_nvic_interrupt, FunSel, InterruptConfig, PeripheralSelect,
+};
 
-#[derive(Debug, Copy, Clone, PartialEq, Eq)]
-#[cfg_attr(feature = "defmt", derive(defmt::Format))]
-pub enum PeripheralSelect {
-    PortA = 0,
-    PortB = 1,
-    Spi0 = 4,
-    Spi1 = 5,
-    Spi2 = 6,
-    Uart0 = 8,
-    Uart1 = 9,
-    I2c0 = 16,
-    I2c1 = 17,
-    Irqsel = 21,
-    Ioconfig = 22,
-    Utility = 23,
-    Gpio = 24,
-}
-
-/// Generic interrupt config which can be used to specify whether the HAL driver will
-/// use the IRQSEL register to route an interrupt, and whether the IRQ will be unmasked in the
-/// Cortex-M0 NVIC. Both are generally necessary for IRQs to work, but the user might want to
-/// perform those steps themselves.
-#[derive(Debug, PartialEq, Eq, Clone, Copy)]
-#[cfg_attr(feature = "defmt", derive(defmt::Format))]
-pub struct InterruptConfig {
-    /// Interrupt target vector. Should always be set, might be required for disabling IRQs
-    pub id: pac::Interrupt,
-    /// Specfiy whether IRQ should be routed to an IRQ vector using the IRQSEL peripheral.
-    pub route: bool,
-    /// Specify whether the IRQ is unmasked in the Cortex-M NVIC. If an interrupt is used for
-    /// multiple purposes, the user can enable the interrupts themselves.
-    pub enable_in_nvic: bool,
-}
-
-impl InterruptConfig {
-    pub fn new(id: pac::Interrupt, route: bool, enable_in_nvic: bool) -> Self {
-        InterruptConfig {
-            id,
-            route,
-            enable_in_nvic,
-        }
-    }
-}
-
-pub type IrqCfg = InterruptConfig;
+/// This is the NONE destination reigster value for the IRQSEL peripheral.
+pub const IRQ_DST_NONE: u32 = 0xffffffff;
 
 #[derive(Debug, PartialEq, Eq, thiserror::Error)]
 #[cfg_attr(feature = "defmt", derive(defmt::Format))]
@@ -101,20 +53,7 @@ pub fn port_function_select(
     Ok(())
 }
 
-/// Enable a specific interrupt using the NVIC peripheral.
-///
-/// # Safety
-///
-/// This function is `unsafe` because it can break mask-based critical sections.
-#[inline]
-pub unsafe fn enable_nvic_interrupt(irq: pac::Interrupt) {
-    unsafe {
-        cortex_m::peripheral::NVIC::unmask(irq);
-    }
-}
-
-/// Disable a specific interrupt using the NVIC peripheral.
-#[inline]
-pub fn disable_nvic_interrupt(irq: pac::Interrupt) {
-    cortex_m::peripheral::NVIC::mask(irq);
+#[allow(dead_code)]
+pub(crate) mod sealed {
+    pub trait Sealed {}
 }

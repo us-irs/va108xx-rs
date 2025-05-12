@@ -5,7 +5,7 @@ use cortex_m_rt::entry;
 use embedded_hal::delay::DelayNs;
 use panic_rtt_target as _;
 use rtt_target::{rprintln, rtt_init_print};
-use va108xx_hal::{pac, time::Hertz, timer::CountdownTimer};
+use va108xx_hal::{pac, spi::SpiClkConfig, time::Hertz, timer::CountdownTimer};
 use vorago_reb1::m95m01::{M95M01, PAGE_SIZE};
 
 const CLOCK_FREQ: Hertz = Hertz::from_raw(50_000_000);
@@ -15,12 +15,13 @@ fn main() -> ! {
     rtt_init_print!();
     rprintln!("-- VA108XX REB1 NVM example --");
 
-    let mut dp = pac::Peripherals::take().unwrap();
+    let dp = pac::Peripherals::take().unwrap();
 
-    let mut timer = CountdownTimer::new(&mut dp.sysconfig, CLOCK_FREQ, dp.tim0);
-    let mut nvm = M95M01::new(&mut dp.sysconfig, CLOCK_FREQ, dp.spic);
+    let mut delay = CountdownTimer::new(dp.tim0, CLOCK_FREQ);
+    let clk_config = SpiClkConfig::new(2, 4);
+    let mut nvm = M95M01::new(dp.spic, clk_config);
     let status_reg = nvm.read_status_reg().expect("reading status reg failed");
-    if status_reg.zero_segment() == 0b111 {
+    if status_reg.zero_segment().value() == 0b111 {
         panic!("status register unexpected values");
     }
 
@@ -51,6 +52,6 @@ fn main() -> ! {
 
     nvm.write(0, &orig_content).unwrap();
     loop {
-        timer.delay_ms(500);
+        delay.delay_ms(500);
     }
 }

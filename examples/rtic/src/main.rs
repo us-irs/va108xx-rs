@@ -5,21 +5,24 @@
 #[rtic::app(device = pac, dispatchers = [OC31, OC30, OC29])]
 mod app {
     use cortex_m::asm;
-    use panic_rtt_target as _;
     use rtic_example::SYSCLK_FREQ;
     use rtic_monotonics::systick::prelude::*;
     use rtic_monotonics::Monotonic;
-    use rtt_target::{rprintln, rtt_init_print};
+    // Import panic provider.
+    use panic_probe as _;
+    // Import global logger.
+    use defmt_rtt as _;
     use va108xx_hal::{
-        gpio::{OutputReadablePushPull, Pin, PinsA, PA10, PA6, PA7},
+        gpio::{Output, PinState},
         pac,
+        pins::PinsA,
     };
 
     #[local]
     struct Local {
-        led0: Pin<PA10, OutputReadablePushPull>,
-        led1: Pin<PA7, OutputReadablePushPull>,
-        led2: Pin<PA6, OutputReadablePushPull>,
+        led0: Output,
+        led1: Output,
+        led2: Output,
     }
 
     #[shared]
@@ -28,16 +31,15 @@ mod app {
     rtic_monotonics::systick_monotonic!(Mono, 1_000);
 
     #[init]
-    fn init(mut cx: init::Context) -> (Shared, Local) {
-        rtt_init_print!();
-        rprintln!("-- Vorago VA108xx RTIC template --");
+    fn init(cx: init::Context) -> (Shared, Local) {
+        defmt::println!("-- Vorago VA108xx RTIC template --");
 
         Mono::start(cx.core.SYST, SYSCLK_FREQ.raw());
 
-        let porta = PinsA::new(&mut cx.device.sysconfig, cx.device.porta);
-        let led0 = porta.pa10.into_readable_push_pull_output();
-        let led1 = porta.pa7.into_readable_push_pull_output();
-        let led2 = porta.pa6.into_readable_push_pull_output();
+        let porta = PinsA::new(cx.device.porta);
+        let led0 = Output::new(porta.pa10, PinState::Low);
+        let led1 = Output::new(porta.pa7, PinState::Low);
+        let led2 = Output::new(porta.pa6, PinState::Low);
         blinky::spawn().ok();
         (Shared {}, Local { led0, led1, led2 })
     }
@@ -56,7 +58,7 @@ mod app {
     )]
     async fn blinky(cx: blinky::Context) {
         loop {
-            rprintln!("toggling LEDs");
+            defmt::println!("toggling LEDs");
             cx.local.led0.toggle();
             cx.local.led1.toggle();
             cx.local.led2.toggle();

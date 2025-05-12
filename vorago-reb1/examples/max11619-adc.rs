@@ -14,20 +14,19 @@ use max116xx_10bit::VoltageRefMode;
 use max116xx_10bit::{AveragingConversions, AveragingResults};
 use panic_rtt_target as _;
 use rtt_target::{rprintln, rtt_init_print};
-use va108xx_hal::gpio::Port;
-use va108xx_hal::spi::{OptionalHwCs, SpiClkConfig};
+use va108xx_hal::gpio::{Input, Output, PinState, Port};
+use va108xx_hal::pins::PinsA;
+use va108xx_hal::spi::{configure_pin_as_hw_cs_pin, SpiClkConfig};
 use va108xx_hal::timer::CountdownTimer;
 use va108xx_hal::{
-    gpio::PinsA,
-    pac::{self, interrupt},
+    pac,
     prelude::*,
-    spi::{Spi, SpiBase, SpiConfig},
-    timer::{default_ms_irq_handler, set_up_ms_tick, DelayMs, InterruptConfig},
+    spi::{HwChipSelectId, Spi, SpiConfig},
 };
 use va108xx_hal::{port_function_select, FunSel};
 use vorago_reb1::max11619::{
     max11619_externally_clocked_no_wakeup, max11619_externally_clocked_with_wakeup,
-    max11619_internally_clocked, EocPin, AN2_CHANNEL, POTENTIOMETER_CHANNEL,
+    max11619_internally_clocked, AN2_CHANNEL, POTENTIOMETER_CHANNEL,
 };
 
 #[derive(Debug, PartialEq, Copy, Clone)]
@@ -57,34 +56,34 @@ const MUX_MODE: MuxMode = MuxMode::None;
 
 // This is probably more or less a re-implementation of https://docs.rs/embedded-hal-bus/latest/embedded_hal_bus/spi/struct.ExclusiveDevice.html.
 // Users should look at the embedded-hal-bus crate for sharing the bus.
-pub struct SpiWithHwCs<Delay, HwCs> {
-    inner: SpiBase<pac::Spib, u8>,
+pub struct SpiWithHwCs<Delay> {
+    inner: Spi<u8>,
     delay_provider: Delay,
-    hw_cs: HwCs,
+    hw_cs_id: HwChipSelectId,
 }
 
-impl<Delay: DelayNs, HwCs: OptionalHwCs<pac::Spib>> SpiWithHwCs<Delay, HwCs> {
-    pub fn new(spi: SpiBase<pac::Spib, u8>, hw_cs: HwCs, delay_provider: Delay) -> Self {
+impl<Delay: DelayNs> SpiWithHwCs<Delay> {
+    pub fn new(spi: Spi<u8>, hw_cs_id: HwChipSelectId, delay_provider: Delay) -> Self {
         Self {
             inner: spi,
-            hw_cs,
+            hw_cs_id,
             delay_provider,
         }
     }
 }
 
-impl<Delay, HwCs> embedded_hal::spi::ErrorType for SpiWithHwCs<Delay, HwCs> {
+impl<Delay> embedded_hal::spi::ErrorType for SpiWithHwCs<Delay> {
     type Error = Infallible;
 }
 
-impl<Delay: DelayNs, HwCs: OptionalHwCs<pac::Spib>> SpiDevice for SpiWithHwCs<Delay, HwCs> {
+impl<Delay: DelayNs> SpiDevice for SpiWithHwCs<Delay> {
     fn transaction(
         &mut self,
         operations: &mut [spi::Operation<'_, u8>],
     ) -> Result<(), Self::Error> {
         // Only the HW CS is configured here. This is not really necessary, but showcases
         // that we could scale this multiple SPI devices.
-        self.inner.cfg_hw_cs_with_pin(&self.hw_cs);
+        self.inner.cfg_hw_cs(self.hw_cs_id);
         for operation in operations {
             match operation {
                 spi::Operation::Read(buf) => self.inner.read(buf).ok().unwrap(),
@@ -111,28 +110,17 @@ fn main() -> ! {
     rprintln!("-- Vorago ADC Example --");
 
     let mut dp = pac::Peripherals::take().unwrap();
-    let tim0 = set_up_ms_tick(
-        InterruptConfig::new(pac::Interrupt::OC0, true, true),
-        &mut dp.sysconfig,
-        Some(&mut dp.irqsel),
-        SYS_CLK,
-        dp.tim0,
-    );
-    let delay = DelayMs::new(tim0).unwrap();
+    let mut delay = CountdownTimer::new(dp.tim0, SYS_CLK);
     unsafe {
         cortex_m::peripheral::NVIC::unmask(pac::Interrupt::OC0);
     }
 
-    let pinsa = PinsA::new(&mut dp.sysconfig, dp.porta);
+    let pinsa = PinsA::new(dp.porta);
     let spi_cfg = SpiConfig::default()
         .clk_cfg(SpiClkConfig::from_clk(SYS_CLK, 3.MHz()).unwrap())
         .mode(MODE_0)
         .blockmode(true);
-    let (sck, mosi, miso) = (
-        pinsa.pa20.into_funsel_2(),
-        pinsa.pa19.into_funsel_2(),
-        pinsa.pa18.into_funsel_2(),
-    );
+    let (sck, mosi, miso) = (pinsa.pa20, pinsa.pa19, pinsa.pa18);
 
     if MUX_MODE == MuxMode::PortB19to17 {
         port_function_select(&mut dp.ioconfig, Port::B, 19, FunSel::Sel1).ok();
@@ -141,39 +129,30 @@ fn main() -> ! {
         port_function_select(&mut dp.ioconfig, Port::B, 16, FunSel::Sel1).ok();
     }
     // Set the accelerometer chip select low in case the board slot is populated
-    let mut accel_cs = pinsa.pa16.into_push_pull_output();
-    accel_cs.set_high();
+    Output::new(pinsa.pa16, PinState::Low);
 
-    let spi = Spi::new(
-        &mut dp.sysconfig,
-        50.MHz(),
-        dp.spib,
-        (sck, miso, mosi),
-        spi_cfg,
-    )
-    .downgrade();
-    let delay_provider = CountdownTimer::new(&mut dp.sysconfig, 50.MHz(), dp.tim1);
-    let spi_with_hwcs = SpiWithHwCs::new(spi, pinsa.pa17.into_funsel_2(), delay_provider);
+    let hw_cs_id = configure_pin_as_hw_cs_pin(pinsa.pa17);
+    let spi = Spi::new(dp.spib, (sck, miso, mosi), spi_cfg).unwrap();
+
+    let delay_spi = CountdownTimer::new(dp.tim1, SYS_CLK);
+    let spi_with_hwcs = SpiWithHwCs::new(spi, hw_cs_id, delay_spi);
     match EXAMPLE_MODE {
-        ExampleMode::NotUsingEoc => spi_example_externally_clocked(spi_with_hwcs, delay),
+        ExampleMode::NotUsingEoc => spi_example_externally_clocked(spi_with_hwcs, &mut delay),
         ExampleMode::UsingEoc => {
-            spi_example_internally_clocked(spi_with_hwcs, delay, pinsa.pa14.into_floating_input());
+            spi_example_internally_clocked(
+                spi_with_hwcs,
+                &mut delay,
+                Input::new_floating(pinsa.pa14),
+            );
         }
         ExampleMode::NotUsingEocWithDelay => {
-            let delay_us = CountdownTimer::new(&mut dp.sysconfig, 50.MHz(), dp.tim2);
-            spi_example_externally_clocked_with_delay(spi_with_hwcs, delay, delay_us);
+            spi_example_externally_clocked_with_delay(spi_with_hwcs, &mut delay);
         }
     }
 }
 
-#[interrupt]
-#[allow(non_snake_case)]
-fn OC0() {
-    default_ms_irq_handler();
-}
-
 /// Use the SPI clock as the conversion clock
-fn spi_example_externally_clocked(spi: impl SpiDevice, mut delay: DelayMs) -> ! {
+fn spi_example_externally_clocked(spi: impl SpiDevice, delay: &mut impl DelayNs) -> ! {
     let mut adc = max11619_externally_clocked_no_wakeup(spi)
         .expect("Creating externally clocked MAX11619 device failed");
     if READ_MODE == ReadMode::AverageN {
@@ -228,11 +207,7 @@ fn spi_example_externally_clocked(spi: impl SpiDevice, mut delay: DelayMs) -> ! 
     }
 }
 
-fn spi_example_externally_clocked_with_delay(
-    spi: impl SpiDevice,
-    mut delay: DelayMs,
-    mut delay_us: impl DelayNs,
-) -> ! {
+fn spi_example_externally_clocked_with_delay(spi: impl SpiDevice, delay: &mut impl DelayNs) -> ! {
     let mut adc =
         max11619_externally_clocked_with_wakeup(spi).expect("Creating MAX116xx device failed");
     let mut cmd_buf: [u8; 32] = [0; 32];
@@ -244,7 +219,7 @@ fn spi_example_externally_clocked_with_delay(
             ReadMode::Single => {
                 rprintln!("Reading single potentiometer channel");
                 let pot_val = adc
-                    .read_single_channel(&mut cmd_buf, POTENTIOMETER_CHANNEL, &mut delay_us)
+                    .read_single_channel(&mut cmd_buf, POTENTIOMETER_CHANNEL, delay)
                     .expect("Creating externally clocked MAX11619 ADC failed");
                 rprintln!("Single channel read:");
                 rprintln!("\tPotentiometer value: {}", pot_val);
@@ -255,7 +230,7 @@ fn spi_example_externally_clocked_with_delay(
                     &mut cmd_buf,
                     &mut res_buf.iter_mut(),
                     POTENTIOMETER_CHANNEL,
-                    &mut delay_us,
+                    delay,
                 )
                 .expect("Multi-Channel read failed");
                 print_res_buf(&res_buf);
@@ -266,7 +241,7 @@ fn spi_example_externally_clocked_with_delay(
                     &mut cmd_buf,
                     &mut res_buf.iter_mut(),
                     AN2_CHANNEL,
-                    &mut delay_us,
+                    delay,
                 )
                 .expect("Multi-Channel read failed");
                 rprintln!("Multi channel read from 2 to 3:");
@@ -283,7 +258,11 @@ fn spi_example_externally_clocked_with_delay(
 }
 
 /// This function uses the EOC pin to determine whether the conversion finished
-fn spi_example_internally_clocked(spi: impl SpiDevice, mut delay: DelayMs, eoc_pin: EocPin) -> ! {
+fn spi_example_internally_clocked(
+    spi: impl SpiDevice,
+    delay: &mut impl DelayNs,
+    eoc_pin: Input,
+) -> ! {
     let mut adc = max11619_internally_clocked(
         spi,
         eoc_pin,
