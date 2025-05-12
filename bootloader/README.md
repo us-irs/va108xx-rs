@@ -12,8 +12,8 @@ The bootloader uses the following memory map:
 | 0x0 | Bootloader start | code up to 0x2FFE bytes |
 | 0x2FFE | Bootloader CRC | half-word |
 | 0x3000 | App image A start | code up to 0xE7F4 (~59K) bytes |
-| 0x117F8 | App image A CRC check length | word |
-| 0x117FC | App image A CRC check value | word |
+| 0x117F4 | App image A CRC check length | word |
+| 0x117F8 | App image A CRC check value | word |
 | 0x117FC | App image B start | code up to 0xE7F4 (~59K) bytes |
 | 0x1FFF0 | App image B CRC check length | word |
 | 0x1FFF4 | App image B CRC check value | word |
