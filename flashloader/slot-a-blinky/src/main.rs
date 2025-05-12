@@ -3,7 +3,7 @@
 #![no_std]
 
 use cortex_m_rt::entry;
-use embedded_hal::{delay::DelayNs, digital::StatefulOutputPin};
+use embedded_hal::delay::DelayNs;
 use panic_rtt_target as _;
 use rtt_target::{rprintln, rtt_init_print};
 use va108xx_hal::{gpio::PinsA, pac, prelude::*, timer::CountdownTimer};
@@ -15,11 +15,11 @@ fn main() -> ! {
 
     let mut dp = pac::Peripherals::take().unwrap();
     let mut timer = CountdownTimer::new(&mut dp.sysconfig, 50.MHz(), dp.tim0);
-    let porta = PinsA::new(&mut dp.sysconfig, Some(dp.ioconfig), dp.porta);
+    let porta = PinsA::new(&mut dp.sysconfig, dp.porta);
     let mut led1 = porta.pa10.into_readable_push_pull_output();
 
     loop {
-        led1.toggle().ok();
+        led1.toggle();
         timer.delay_ms(500);
     }
 }
