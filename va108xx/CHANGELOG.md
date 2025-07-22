@@ -8,6 +8,10 @@ and this project adheres to [Semantic Versioning](http://semver.org/).
 
 ## [unreleased]
 
+## [v0.5.1] 2025-07-22
+
+defmt version v1
+
 ## [v0.5.0] 2025-02-17
 
 - Re-generated PAC with `svd2rust` v0.35.0 and added optional `defmt` and `Debug` implementations
@@ -55,7 +59,7 @@ and this project adheres to [Semantic Versioning](http://semver.org/).
 
 ### Fixed
 
-- Generated with patched version of `svd2rust`: See 
+- Generated with patched version of `svd2rust`: See
   https://github.com/rust-embedded/svd2rust/pull/549 for more details.
   Some bitmasks were missing from register reader definitions.
 
@@ -79,3 +83,7 @@ and this project adheres to [Semantic Versioning](http://semver.org/).
 
 - First version of the PAC which builds. Uses a patched version
   of `svd2rust`: https://github.com/rust-embedded/svd2rust
+
+[unreleased]: https://egit.irs.uni-stuttgart.de/rust/va108xx-rs/compare/va108xx-v0.5.1...HEAD
+[v0.5.1]: https://egit.irs.uni-stuttgart.de/rust/va108xx-rs/compare/va108xx-v0.5.0...va108xx-v0.5.1
+[v0.5.0]: https://egit.irs.uni-stuttgart.de/rust/va108xx-rs/compare/va108xx-v0.4.0...va108xx-v0.5.0
