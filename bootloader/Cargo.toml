@@ -7,7 +7,7 @@ edition = "2021"
 cortex-m = "0.7"
 cortex-m-rt = "0.7"
 embedded-hal = "1"
-defmt-rtt = "0.4"
+defmt-rtt = "1"
 defmt = "1"
 panic-probe = { version = "1", features = ["defmt"] }
 crc = "3"

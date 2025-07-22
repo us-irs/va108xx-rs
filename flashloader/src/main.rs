@@ -270,7 +270,7 @@ mod app {
             defmt::warn!("PUS TC error: {}", pus_tc.unwrap_err());
             return;
         }
-        let (pus_tc, _) = pus_tc.unwrap();
+        let pus_tc = pus_tc.unwrap();
         let mut write_and_send = |tm: &PusTmCreator| {
             let written_size = tm.write_to_bytes(cx.local.verif_buf).unwrap();
             cx.shared.tm_rb.lock(|prod| {
@@ -278,18 +278,18 @@ mod app {
                 prod.buf.push_slice(&cx.local.verif_buf[0..written_size]);
             });
         };
-        let token = cx.local.verif_reporter.add_tc(&pus_tc);
-        let (tm, accepted_token) = cx
+        let request_id = VerificationReportCreator::read_request_id_from_tc(&pus_tc);
+        let tm = cx
             .local
             .verif_reporter
-            .acceptance_success(cx.local.src_data_buf, token, 0, 0, &[])
+            .acceptance_success(cx.local.src_data_buf, &request_id, 0, 0, &[])
             .expect("acceptance success failed");
         write_and_send(&tm);
 
-        let (tm, started_token) = cx
+        let tm = cx
             .local
             .verif_reporter
-            .start_success(cx.local.src_data_buf, accepted_token, 0, 0, &[])
+            .start_success(cx.local.src_data_buf, &request_id, 0, 0, &[])
             .expect("acceptance success failed");
         write_and_send(&tm);
 
@@ -308,7 +308,7 @@ mod app {
                 let tm = cx
                     .local
                     .verif_reporter
-                    .completion_success(cx.local.src_data_buf, started_token, 0, 0, &[])
+                    .completion_success(cx.local.src_data_buf, &request_id, 0, 0, &[])
                     .expect("completion success failed");
                 write_and_send(&tm);
             };
@@ -339,7 +339,7 @@ mod app {
                 let tm = cx
                     .local
                     .verif_reporter
-                    .completion_success(cx.local.src_data_buf, started_token, 0, 0, &[])
+                    .completion_success(cx.local.src_data_buf, &request_id, 0, 0, &[])
                     .expect("completion success failed");
                 write_and_send(&tm);
             }
@@ -349,7 +349,7 @@ mod app {
             let tm = cx
                 .local
                 .verif_reporter
-                .completion_success(cx.local.src_data_buf, started_token, 0, 0, &[])
+                .completion_success(cx.local.src_data_buf, &request_id, 0, 0, &[])
                 .expect("completion success failed");
             write_and_send(&tm);
         } else if pus_tc.service() == PusServiceId::MemoryManagement as u8 {
@@ -358,7 +358,7 @@ mod app {
                 .verif_reporter
                 .step_success(
                     cx.local.src_data_buf,
-                    &started_token,
+                    &request_id,
                     0,
                     0,
                     &[],
@@ -408,7 +408,7 @@ mod app {
                         .verif_reporter
                         .completion_failure(
                             cx.local.src_data_buf,
-                            started_token,
+                            &request_id,
                             0,
                             0,
                             FailParams::new(&[], &EcssEnumU8::new(0), &[]),
@@ -417,7 +417,7 @@ mod app {
                 } else {
                     cx.local
                         .verif_reporter
-                        .completion_success(cx.local.src_data_buf, started_token, 0, 0, &[])
+                        .completion_success(cx.local.src_data_buf, &request_id, 0, 0, &[])
                         .expect("completion success failed")
                 };
                 write_and_send(&tm);
