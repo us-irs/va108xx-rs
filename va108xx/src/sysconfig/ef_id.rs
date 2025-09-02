@@ -14,6 +14,4 @@ impl crate::RegisterSpec for EfIdSpec {
 #[doc = "`read()` method returns [`ef_id::R`](R) reader structure"]
 impl crate::Readable for EfIdSpec {}
 #[doc = "`reset()` method sets EF_ID to value 0"]
-impl crate::Resettable for EfIdSpec {
-    const RESET_VALUE: u32 = 0;
-}
+impl crate::Resettable for EfIdSpec {}

@@ -14,6 +14,4 @@ impl crate::RegisterSpec for IoconfigClkdiv0Spec {
 #[doc = "`read()` method returns [`ioconfig_clkdiv0::R`](R) reader structure"]
 impl crate::Readable for IoconfigClkdiv0Spec {}
 #[doc = "`reset()` method sets IOCONFIG_CLKDIV0 to value 0"]
-impl crate::Resettable for IoconfigClkdiv0Spec {
-    const RESET_VALUE: u32 = 0;
-}
+impl crate::Resettable for IoconfigClkdiv0Spec {}

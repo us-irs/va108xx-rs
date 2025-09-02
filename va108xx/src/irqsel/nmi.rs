@@ -17,6 +17,4 @@ impl crate::RegisterSpec for NmiSpec {
 #[doc = "`read()` method returns [`nmi::R`](R) reader structure"]
 impl crate::Readable for NmiSpec {}
 #[doc = "`reset()` method sets NMI to value 0"]
-impl crate::Resettable for NmiSpec {
-    const RESET_VALUE: u32 = 0;
-}
+impl crate::Resettable for NmiSpec {}

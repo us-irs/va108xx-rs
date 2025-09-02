@@ -19,10 +19,6 @@ impl crate::Readable for IoconfigClkdivSpec {}
 #[doc = "`write(|w| ..)` method takes [`ioconfig_clkdiv::W`](W) writer structure"]
 impl crate::Writable for IoconfigClkdivSpec {
     type Safety = crate::Unsafe;
-    const ZERO_TO_MODIFY_FIELDS_BITMAP: u32 = 0;
-    const ONE_TO_MODIFY_FIELDS_BITMAP: u32 = 0;
 }
 #[doc = "`reset()` method sets IOCONFIG_CLKDIV%s to value 0"]
-impl crate::Resettable for IoconfigClkdivSpec {
-    const RESET_VALUE: u32 = 0;
-}
+impl crate::Resettable for IoconfigClkdivSpec {}

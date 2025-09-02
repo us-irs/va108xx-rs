@@ -1,20 +1,20 @@
 #[repr(C)]
 #[doc = "Register block"]
 pub struct RegisterBlock {
-    porta0: [Porta; 32],
-    portb0: [Portb; 32],
-    tim0: [Tim; 32],
-    uart0: [Uart; 4],
-    spi0: [Spi; 4],
-    i2c_ms0: [I2cMs; 4],
-    i2c_sl0: [I2cSl; 4],
+    porta: [Porta; 32],
+    portb: [Portb; 32],
+    tim: [Tim; 32],
+    uart: [Uart; 4],
+    spi: [Spi; 4],
+    i2c_ms: [I2cMs; 4],
+    i2c_sl: [I2cSl; 4],
     int_ram_sbe: IntRamSbe,
     int_ram_mbe: IntRamMbe,
     int_rom_sbe: IntRomSbe,
     int_rom_mbe: IntRomMbe,
     txev: Txev,
     _reserved12: [u8; 0x062c],
-    irqs0: [Irqs; 32],
+    irqs: [Irqs; 32],
     _reserved13: [u8; 0x68],
     edbgrq: Edbgrq,
     mereset: Mereset,
@@ -27,80 +27,80 @@ pub struct RegisterBlock {
 impl RegisterBlock {
     #[doc = "0x00..0x80 - PORTA Interrupt Redirect Selection"]
     #[inline(always)]
-    pub const fn porta0(&self, n: usize) -> &Porta {
-        &self.porta0[n]
+    pub const fn porta(&self, n: usize) -> &Porta {
+        &self.porta[n]
     }
     #[doc = "Iterator for array of:"]
     #[doc = "0x00..0x80 - PORTA Interrupt Redirect Selection"]
     #[inline(always)]
-    pub fn porta0_iter(&self) -> impl Iterator<Item = &Porta> {
-        self.porta0.iter()
+    pub fn porta_iter(&self) -> impl Iterator<Item = &Porta> {
+        self.porta.iter()
     }
     #[doc = "0x80..0x100 - PORTB Interrupt Redirect Selection"]
     #[inline(always)]
-    pub const fn portb0(&self, n: usize) -> &Portb {
-        &self.portb0[n]
+    pub const fn portb(&self, n: usize) -> &Portb {
+        &self.portb[n]
     }
     #[doc = "Iterator for array of:"]
     #[doc = "0x80..0x100 - PORTB Interrupt Redirect Selection"]
     #[inline(always)]
-    pub fn portb0_iter(&self) -> impl Iterator<Item = &Portb> {
-        self.portb0.iter()
+    pub fn portb_iter(&self) -> impl Iterator<Item = &Portb> {
+        self.portb.iter()
     }
     #[doc = "0x100..0x180 - TIM Interrupt Redirect Selection"]
     #[inline(always)]
-    pub const fn tim0(&self, n: usize) -> &Tim {
-        &self.tim0[n]
+    pub const fn tim(&self, n: usize) -> &Tim {
+        &self.tim[n]
     }
     #[doc = "Iterator for array of:"]
     #[doc = "0x100..0x180 - TIM Interrupt Redirect Selection"]
     #[inline(always)]
-    pub fn tim0_iter(&self) -> impl Iterator<Item = &Tim> {
-        self.tim0.iter()
+    pub fn tim_iter(&self) -> impl Iterator<Item = &Tim> {
+        self.tim.iter()
     }
     #[doc = "0x180..0x190 - UART Interrupt Redirect Selection"]
     #[inline(always)]
-    pub const fn uart0(&self, n: usize) -> &Uart {
-        &self.uart0[n]
+    pub const fn uart(&self, n: usize) -> &Uart {
+        &self.uart[n]
     }
     #[doc = "Iterator for array of:"]
     #[doc = "0x180..0x190 - UART Interrupt Redirect Selection"]
     #[inline(always)]
-    pub fn uart0_iter(&self) -> impl Iterator<Item = &Uart> {
-        self.uart0.iter()
+    pub fn uart_iter(&self) -> impl Iterator<Item = &Uart> {
+        self.uart.iter()
     }
     #[doc = "0x190..0x1a0 - SPI Interrupt Redirect Selection"]
     #[inline(always)]
-    pub const fn spi0(&self, n: usize) -> &Spi {
-        &self.spi0[n]
+    pub const fn spi(&self, n: usize) -> &Spi {
+        &self.spi[n]
     }
     #[doc = "Iterator for array of:"]
     #[doc = "0x190..0x1a0 - SPI Interrupt Redirect Selection"]
     #[inline(always)]
-    pub fn spi0_iter(&self) -> impl Iterator<Item = &Spi> {
-        self.spi0.iter()
+    pub fn spi_iter(&self) -> impl Iterator<Item = &Spi> {
+        self.spi.iter()
     }
     #[doc = "0x1a0..0x1b0 - Master I2C Interrupt Redirect Selection"]
     #[inline(always)]
-    pub const fn i2c_ms0(&self, n: usize) -> &I2cMs {
-        &self.i2c_ms0[n]
+    pub const fn i2c_ms(&self, n: usize) -> &I2cMs {
+        &self.i2c_ms[n]
     }
     #[doc = "Iterator for array of:"]
     #[doc = "0x1a0..0x1b0 - Master I2C Interrupt Redirect Selection"]
     #[inline(always)]
-    pub fn i2c_ms0_iter(&self) -> impl Iterator<Item = &I2cMs> {
-        self.i2c_ms0.iter()
+    pub fn i2c_ms_iter(&self) -> impl Iterator<Item = &I2cMs> {
+        self.i2c_ms.iter()
     }
     #[doc = "0x1b0..0x1c0 - Slave I2C Interrupt Redirect Selection"]
     #[inline(always)]
-    pub const fn i2c_sl0(&self, n: usize) -> &I2cSl {
-        &self.i2c_sl0[n]
+    pub const fn i2c_sl(&self, n: usize) -> &I2cSl {
+        &self.i2c_sl[n]
     }
     #[doc = "Iterator for array of:"]
     #[doc = "0x1b0..0x1c0 - Slave I2C Interrupt Redirect Selection"]
     #[inline(always)]
-    pub fn i2c_sl0_iter(&self) -> impl Iterator<Item = &I2cSl> {
-        self.i2c_sl0.iter()
+    pub fn i2c_sl_iter(&self) -> impl Iterator<Item = &I2cSl> {
+        self.i2c_sl.iter()
     }
     #[doc = "0x1c0 - Internal Memory RAM SBE Interrupt Redirect Selection"]
     #[inline(always)]
@@ -129,14 +129,14 @@ impl RegisterBlock {
     }
     #[doc = "0x800..0x880 - Interrupt Status Register"]
     #[inline(always)]
-    pub const fn irqs0(&self, n: usize) -> &Irqs {
-        &self.irqs0[n]
+    pub const fn irqs(&self, n: usize) -> &Irqs {
+        &self.irqs[n]
     }
     #[doc = "Iterator for array of:"]
     #[doc = "0x800..0x880 - Interrupt Status Register"]
     #[inline(always)]
-    pub fn irqs0_iter(&self) -> impl Iterator<Item = &Irqs> {
-        self.irqs0.iter()
+    pub fn irqs_iter(&self) -> impl Iterator<Item = &Irqs> {
+        self.irqs.iter()
     }
     #[doc = "0x8e8 - EDBGRQ Status Register"]
     #[inline(always)]
@@ -169,8 +169,7 @@ impl RegisterBlock {
         &self.perid
     }
 }
-#[doc = "INT_RAM_SBE (rw) register accessor: Internal Memory RAM SBE Interrupt Redirect Selection\n\nYou can [`read`](crate::Reg::read) this register and get [`int_ram_sbe::R`]. You can [`reset`](crate::Reg::reset), [`write`](crate::Reg::write), [`write_with_zero`](crate::Reg::write_with_zero) this register using [`int_ram_sbe::W`]. You can also [`modify`](crate::Reg::modify) this register. See [API](https://docs.rs/svd2rust/#read--modify--write-api).\n\nFor information about available fields see [`mod@int_ram_sbe`]
-module"]
+#[doc = "INT_RAM_SBE (rw) register accessor: Internal Memory RAM SBE Interrupt Redirect Selection\n\nYou can [`read`](crate::Reg::read) this register and get [`int_ram_sbe::R`]. You can [`reset`](crate::Reg::reset), [`write`](crate::Reg::write), [`write_with_zero`](crate::Reg::write_with_zero) this register using [`int_ram_sbe::W`]. You can also [`modify`](crate::Reg::modify) this register. See [API](https://docs.rs/svd2rust/#read--modify--write-api).\n\nFor information about available fields see [`mod@int_ram_sbe`] module"]
 #[doc(alias = "INT_RAM_SBE")]
 pub type IntRamSbe = crate::Reg<int_ram_sbe::IntRamSbeSpec>;
 #[doc = "Internal Memory RAM SBE Interrupt Redirect Selection"]
@@ -197,8 +196,7 @@ pub use IntRamSbe as IntRamMbe;
 pub use IntRamSbe as IntRomSbe;
 pub use IntRamSbe as IntRomMbe;
 pub use IntRamSbe as Txev;
-#[doc = "NMI (r) register accessor: NMI Status Register\n\nYou can [`read`](crate::Reg::read) this register and get [`nmi::R`]. See [API](https://docs.rs/svd2rust/#read--modify--write-api).\n\nFor information about available fields see [`mod@nmi`]
-module"]
+#[doc = "NMI (r) register accessor: NMI Status Register\n\nYou can [`read`](crate::Reg::read) this register and get [`nmi::R`]. See [API](https://docs.rs/svd2rust/#read--modify--write-api).\n\nFor information about available fields see [`mod@nmi`] module"]
 #[doc(alias = "NMI")]
 pub type Nmi = crate::Reg<nmi::NmiSpec>;
 #[doc = "NMI Status Register"]
@@ -213,8 +211,7 @@ pub use Nmi as Watchdog;
 pub use Nmi as Mereset;
 pub use Nmi as Edbgrq;
 pub use Nmi as Irqs;
-#[doc = "PERID (r) register accessor: Peripheral ID Register\n\nYou can [`read`](crate::Reg::read) this register and get [`perid::R`]. See [API](https://docs.rs/svd2rust/#read--modify--write-api).\n\nFor information about available fields see [`mod@perid`]
-module"]
+#[doc = "PERID (r) register accessor: Peripheral ID Register\n\nYou can [`read`](crate::Reg::read) this register and get [`perid::R`]. See [API](https://docs.rs/svd2rust/#read--modify--write-api).\n\nFor information about available fields see [`mod@perid`] module"]
 #[doc(alias = "PERID")]
 pub type Perid = crate::Reg<perid::PeridSpec>;
 #[doc = "Peripheral ID Register"]

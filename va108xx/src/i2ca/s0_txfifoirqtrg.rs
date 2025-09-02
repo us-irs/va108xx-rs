@@ -19,10 +19,6 @@ impl crate::Readable for S0TxfifoirqtrgSpec {}
 #[doc = "`write(|w| ..)` method takes [`s0_txfifoirqtrg::W`](W) writer structure"]
 impl crate::Writable for S0TxfifoirqtrgSpec {
     type Safety = crate::Unsafe;
-    const ZERO_TO_MODIFY_FIELDS_BITMAP: u32 = 0;
-    const ONE_TO_MODIFY_FIELDS_BITMAP: u32 = 0;
 }
 #[doc = "`reset()` method sets S0_TXFIFOIRQTRG to value 0"]
-impl crate::Resettable for S0TxfifoirqtrgSpec {
-    const RESET_VALUE: u32 = 0;
-}
+impl crate::Resettable for S0TxfifoirqtrgSpec {}

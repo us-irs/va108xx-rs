@@ -43,22 +43,22 @@ impl R {
 impl W {
     #[doc = "Bit 0 - RAM Single Bit Interrupt"]
     #[inline(always)]
-    pub fn ramsbe(&mut self) -> RamsbeW<IrqEnbSpec> {
+    pub fn ramsbe(&mut self) -> RamsbeW<'_, IrqEnbSpec> {
         RamsbeW::new(self, 0)
     }
     #[doc = "Bit 1 - RAM Multi Bit Interrupt"]
     #[inline(always)]
-    pub fn rammbe(&mut self) -> RammbeW<IrqEnbSpec> {
+    pub fn rammbe(&mut self) -> RammbeW<'_, IrqEnbSpec> {
         RammbeW::new(self, 1)
     }
     #[doc = "Bit 2 - ROM Single Bit Interrupt"]
     #[inline(always)]
-    pub fn romsbe(&mut self) -> RomsbeW<IrqEnbSpec> {
+    pub fn romsbe(&mut self) -> RomsbeW<'_, IrqEnbSpec> {
         RomsbeW::new(self, 2)
     }
     #[doc = "Bit 3 - ROM Multi Bit Interrupt"]
     #[inline(always)]
-    pub fn rommbe(&mut self) -> RommbeW<IrqEnbSpec> {
+    pub fn rommbe(&mut self) -> RommbeW<'_, IrqEnbSpec> {
         RommbeW::new(self, 3)
     }
 }
@@ -72,10 +72,6 @@ impl crate::Readable for IrqEnbSpec {}
 #[doc = "`write(|w| ..)` method takes [`irq_enb::W`](W) writer structure"]
 impl crate::Writable for IrqEnbSpec {
     type Safety = crate::Unsafe;
-    const ZERO_TO_MODIFY_FIELDS_BITMAP: u32 = 0;
-    const ONE_TO_MODIFY_FIELDS_BITMAP: u32 = 0;
 }
 #[doc = "`reset()` method sets IRQ_ENB to value 0"]
-impl crate::Resettable for IrqEnbSpec {
-    const RESET_VALUE: u32 = 0;
-}
+impl crate::Resettable for IrqEnbSpec {}
