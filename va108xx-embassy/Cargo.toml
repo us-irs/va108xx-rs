@@ -12,7 +12,7 @@ categories = ["aerospace", "embedded", "no-std", "hardware-support"]
 
 [dependencies]
 vorago-shared-hal = { version = "0.2", features = ["vor1x"] }
-va108xx-hal = { path = "../va108xx-hal" }
+va108xx-hal = { version = "0.12" }
 
 [features]
 default = ["irq-oc30-oc31"]
