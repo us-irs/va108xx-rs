@@ -42,7 +42,7 @@ The majority of the HAL implementation and the Embassy-rs support are contained 
 Use the following command to have a starting `config.toml` file
 
 ```sh
-cp .cargo/def-config.toml .cargo/config.toml
+cp .cargo/config.toml.template .cargo/config.toml
 ```
 
 You then can adapt the `config.toml` to your needs. For example, you can configure runners
