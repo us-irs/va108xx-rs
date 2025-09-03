@@ -16,14 +16,14 @@ use panic_rtt_target as _;
 use rtt_target::{rprintln, rtt_init_print};
 use va108xx_hal::gpio::{Input, Output, PinState, Port};
 use va108xx_hal::pins::PinsA;
-use va108xx_hal::spi::{configure_pin_as_hw_cs_pin, SpiClkConfig};
+use va108xx_hal::spi::{configure_pin_as_hw_cs_pin, SpiClockConfig};
 use va108xx_hal::timer::CountdownTimer;
 use va108xx_hal::{
     pac,
     prelude::*,
     spi::{HwChipSelectId, Spi, SpiConfig},
 };
-use va108xx_hal::{port_function_select, FunSel};
+use va108xx_hal::{port_function_select, FunctionSelect};
 use vorago_reb1::max11619::{
     max11619_externally_clocked_no_wakeup, max11619_externally_clocked_with_wakeup,
     max11619_internally_clocked, AN2_CHANNEL, POTENTIOMETER_CHANNEL,
@@ -117,16 +117,16 @@ fn main() -> ! {
 
     let pinsa = PinsA::new(dp.porta);
     let spi_cfg = SpiConfig::default()
-        .clk_cfg(SpiClkConfig::from_clk(SYS_CLK, 3.MHz()).unwrap())
+        .clk_cfg(SpiClockConfig::from_clk(SYS_CLK, 3.MHz()).unwrap())
         .mode(MODE_0)
         .blockmode(true);
     let (sck, mosi, miso) = (pinsa.pa20, pinsa.pa19, pinsa.pa18);
 
     if MUX_MODE == MuxMode::PortB19to17 {
-        port_function_select(&mut dp.ioconfig, Port::B, 19, FunSel::Sel1).ok();
-        port_function_select(&mut dp.ioconfig, Port::B, 18, FunSel::Sel2).ok();
-        port_function_select(&mut dp.ioconfig, Port::B, 17, FunSel::Sel1).ok();
-        port_function_select(&mut dp.ioconfig, Port::B, 16, FunSel::Sel1).ok();
+        port_function_select(&mut dp.ioconfig, Port::B, 19, FunctionSelect::Sel1).ok();
+        port_function_select(&mut dp.ioconfig, Port::B, 18, FunctionSelect::Sel2).ok();
+        port_function_select(&mut dp.ioconfig, Port::B, 17, FunctionSelect::Sel1).ok();
+        port_function_select(&mut dp.ioconfig, Port::B, 16, FunctionSelect::Sel1).ok();
     }
     // Set the accelerometer chip select low in case the board slot is populated
     Output::new(pinsa.pa16, PinState::Low);

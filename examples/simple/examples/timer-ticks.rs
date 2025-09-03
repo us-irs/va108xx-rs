@@ -41,8 +41,8 @@ fn main() -> ! {
                 dp.sysconfig
                     .tim_clk_enable()
                     .modify(|r, w| w.bits(r.bits() | (1 << 0) | (1 << 1)));
-                dp.irqsel.tim0(0).write(|w| w.bits(0x00));
-                dp.irqsel.tim0(1).write(|w| w.bits(0x01));
+                dp.irqsel.tim(0).write(|w| w.bits(0x00));
+                dp.irqsel.tim(1).write(|w| w.bits(0x01));
             }
 
             let sys_clk: Hertz = 50.MHz();

@@ -38,6 +38,6 @@ pub fn disable_ram_scrubbing() {
     syscfg.ram_scrub().write(|w| unsafe { w.bits(0) });
 }
 
-pub use vorago_shared_periphs::sysconfig::{
+pub use vorago_shared_hal::sysconfig::{
     assert_peripheral_reset, disable_peripheral_clock, enable_peripheral_clock,
 };

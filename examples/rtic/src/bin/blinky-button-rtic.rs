@@ -10,7 +10,7 @@ mod app {
     // Import global logger.
     use defmt_rtt as _;
     use va108xx_hal::{
-        clock::{set_clk_div_register, FilterClkSel},
+        clock::{set_clk_div_register, FilterClockSelect},
         gpio::{FilterType, InterruptEdge},
         pac,
         pins::PinsA,
@@ -60,8 +60,8 @@ mod app {
 
         if mode == PressMode::Toggle {
             // This filter debounces the switch for edge based interrupts
-            button.configure_filter_type(FilterType::FilterFourCycles, FilterClkSel::Clk1);
-            set_clk_div_register(&mut dp.sysconfig, FilterClkSel::Clk1, 50_000);
+            button.configure_filter_type(FilterType::FilterFourCycles, FilterClockSelect::Clk1);
+            set_clk_div_register(&mut dp.sysconfig, FilterClockSelect::Clk1, 50_000);
         }
         button.configure_and_enable_edge_interrupt(
             edge_irq,

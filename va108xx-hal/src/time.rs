@@ -1,2 +1,2 @@
 //! Time units
-pub use vorago_shared_periphs::time::*;
+pub use vorago_shared_hal::time::*;

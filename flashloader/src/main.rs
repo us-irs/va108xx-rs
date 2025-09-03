@@ -69,7 +69,8 @@ mod app {
         tc::PusTcReader, tm::PusTmCreator, EcssEnumU8, PusPacket, WritablePusPacket,
     };
     use va108xx_hal::pins::PinsA;
-    use va108xx_hal::uart::IrqContextTimeoutOrMaxSize;
+    use va108xx_hal::spi::SpiClockConfig;
+    use va108xx_hal::uart::InterruptContextTimeoutOrMaxSize;
     use va108xx_hal::{pac, uart, InterruptConfig};
     use vorago_reb1::m95m01::M95M01;
 
@@ -85,7 +86,7 @@ mod app {
     struct Local {
         uart_rx: uart::RxWithInterrupt,
         uart_tx: uart::Tx,
-        rx_context: IrqContextTimeoutOrMaxSize,
+        rx_context: InterruptContextTimeoutOrMaxSize,
         verif_reporter: VerificationReportCreator,
         nvm: M95M01,
     }
@@ -105,8 +106,9 @@ mod app {
 
         Mono::start(cx.core.SYST, SYSCLK_FREQ.raw());
 
-        let mut dp = cx.device;
-        let nvm = M95M01::new(&mut dp.sysconfig, SYSCLK_FREQ, dp.spic);
+        let dp = cx.device;
+        let spi_clock_config = SpiClockConfig::new(2, 4);
+        let nvm = M95M01::new(dp.spic, spi_clock_config);
 
         let gpioa = PinsA::new(dp.porta);
         let tx = gpioa.pa9;
@@ -127,7 +129,7 @@ mod app {
 
         let verif_reporter = VerificationReportCreator::new(0).unwrap();
 
-        let mut rx_context = IrqContextTimeoutOrMaxSize::new(MAX_TC_FRAME_SIZE);
+        let mut rx_context = InterruptContextTimeoutOrMaxSize::new(MAX_TC_FRAME_SIZE);
         rx.read_fixed_len_or_timeout_based_using_irq(&mut rx_context)
             .expect("initiating UART RX failed");
         pus_tc_handler::spawn().unwrap();

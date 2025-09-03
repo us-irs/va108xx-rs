@@ -16,6 +16,6 @@ embedded-io = "0.6"
 portable-atomic = { version = "1", features = ["unsafe-assume-single-core"] }
 
 [dependencies.va108xx-hal]
-version = "0.11"
+version = "0.12"
 path = "../../va108xx-hal"
 features = ["defmt"]

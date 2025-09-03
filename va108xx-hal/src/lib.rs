@@ -17,8 +17,9 @@ pub mod time;
 pub mod timer;
 pub mod uart;
 
-pub use vorago_shared_periphs::{
-    disable_nvic_interrupt, enable_nvic_interrupt, FunSel, InterruptConfig, PeripheralSelect,
+pub use vorago_shared_hal::{
+    disable_nvic_interrupt, enable_nvic_interrupt, FunctionSelect, InterruptConfig,
+    PeripheralSelect,
 };
 
 /// This is the NONE destination reigster value for the IRQSEL peripheral.
@@ -38,7 +39,7 @@ pub fn port_function_select(
     ioconfig: &mut pac::Ioconfig,
     port: Port,
     pin: u8,
-    funsel: FunSel,
+    funsel: FunctionSelect,
 ) -> Result<(), InvalidPinError> {
     if (port == Port::A && pin >= 32) || (port == Port::B && pin >= 24) {
         return Err(InvalidPinError(pin));
@@ -46,7 +47,7 @@ pub fn port_function_select(
 
     let reg_block = match port {
         Port::A => ioconfig.porta(pin as usize),
-        Port::B => ioconfig.portb0(pin as usize),
+        Port::B => ioconfig.portb(pin as usize),
     };
 
     reg_block.modify(|_, w| unsafe { w.funsel().bits(funsel as u8) });
