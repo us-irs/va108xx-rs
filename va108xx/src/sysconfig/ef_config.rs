@@ -14,6 +14,4 @@ impl crate::RegisterSpec for EfConfigSpec {
 #[doc = "`read()` method returns [`ef_config::R`](R) reader structure"]
 impl crate::Readable for EfConfigSpec {}
 #[doc = "`reset()` method sets EF_CONFIG to value 0"]
-impl crate::Resettable for EfConfigSpec {
-    const RESET_VALUE: u32 = 0;
-}
+impl crate::Resettable for EfConfigSpec {}

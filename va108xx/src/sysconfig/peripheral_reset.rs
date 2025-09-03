@@ -124,67 +124,67 @@ impl R {
 impl W {
     #[doc = "Bit 0 - Reset PORTA"]
     #[inline(always)]
-    pub fn porta(&mut self) -> PortaW<PeripheralResetSpec> {
+    pub fn porta(&mut self) -> PortaW<'_, PeripheralResetSpec> {
         PortaW::new(self, 0)
     }
     #[doc = "Bit 1 - Reset PORTB"]
     #[inline(always)]
-    pub fn portb(&mut self) -> PortbW<PeripheralResetSpec> {
+    pub fn portb(&mut self) -> PortbW<'_, PeripheralResetSpec> {
         PortbW::new(self, 1)
     }
     #[doc = "Bit 4 - Reset SPI\\[0\\]"]
     #[inline(always)]
-    pub fn spi_0(&mut self) -> Spi0W<PeripheralResetSpec> {
+    pub fn spi_0(&mut self) -> Spi0W<'_, PeripheralResetSpec> {
         Spi0W::new(self, 4)
     }
     #[doc = "Bit 5 - Reset SPI\\[1\\]"]
     #[inline(always)]
-    pub fn spi_1(&mut self) -> Spi1W<PeripheralResetSpec> {
+    pub fn spi_1(&mut self) -> Spi1W<'_, PeripheralResetSpec> {
         Spi1W::new(self, 5)
     }
     #[doc = "Bit 6 - Reset SPI\\[2\\]"]
     #[inline(always)]
-    pub fn spi_2(&mut self) -> Spi2W<PeripheralResetSpec> {
+    pub fn spi_2(&mut self) -> Spi2W<'_, PeripheralResetSpec> {
         Spi2W::new(self, 6)
     }
     #[doc = "Bit 8 - Reset UART\\[0\\]"]
     #[inline(always)]
-    pub fn uart_0(&mut self) -> Uart0W<PeripheralResetSpec> {
+    pub fn uart_0(&mut self) -> Uart0W<'_, PeripheralResetSpec> {
         Uart0W::new(self, 8)
     }
     #[doc = "Bit 9 - Reset UART\\[1\\]"]
     #[inline(always)]
-    pub fn uart_1(&mut self) -> Uart1W<PeripheralResetSpec> {
+    pub fn uart_1(&mut self) -> Uart1W<'_, PeripheralResetSpec> {
         Uart1W::new(self, 9)
     }
     #[doc = "Bit 16 - Reset I2C\\[0\\]"]
     #[inline(always)]
-    pub fn i2c_0(&mut self) -> I2c0W<PeripheralResetSpec> {
+    pub fn i2c_0(&mut self) -> I2c0W<'_, PeripheralResetSpec> {
         I2c0W::new(self, 16)
     }
     #[doc = "Bit 17 - Reset I2C\\[1\\]"]
     #[inline(always)]
-    pub fn i2c_1(&mut self) -> I2c1W<PeripheralResetSpec> {
+    pub fn i2c_1(&mut self) -> I2c1W<'_, PeripheralResetSpec> {
         I2c1W::new(self, 17)
     }
     #[doc = "Bit 21 - Reset IRQ selector"]
     #[inline(always)]
-    pub fn irqsel(&mut self) -> IrqselW<PeripheralResetSpec> {
+    pub fn irqsel(&mut self) -> IrqselW<'_, PeripheralResetSpec> {
         IrqselW::new(self, 21)
     }
     #[doc = "Bit 22 - Reset IO Configuration block"]
     #[inline(always)]
-    pub fn ioconfig(&mut self) -> IoconfigW<PeripheralResetSpec> {
+    pub fn ioconfig(&mut self) -> IoconfigW<'_, PeripheralResetSpec> {
         IoconfigW::new(self, 22)
     }
     #[doc = "Bit 23 - Reset Utility Block"]
     #[inline(always)]
-    pub fn utility(&mut self) -> UtilityW<PeripheralResetSpec> {
+    pub fn utility(&mut self) -> UtilityW<'_, PeripheralResetSpec> {
         UtilityW::new(self, 23)
     }
     #[doc = "Bit 24 - Reset GPIO"]
     #[inline(always)]
-    pub fn gpio(&mut self) -> GpioW<PeripheralResetSpec> {
+    pub fn gpio(&mut self) -> GpioW<'_, PeripheralResetSpec> {
         GpioW::new(self, 24)
     }
 }
@@ -198,8 +198,6 @@ impl crate::Readable for PeripheralResetSpec {}
 #[doc = "`write(|w| ..)` method takes [`peripheral_reset::W`](W) writer structure"]
 impl crate::Writable for PeripheralResetSpec {
     type Safety = crate::Unsafe;
-    const ZERO_TO_MODIFY_FIELDS_BITMAP: u32 = 0;
-    const ONE_TO_MODIFY_FIELDS_BITMAP: u32 = 0;
 }
 #[doc = "`reset()` method sets PERIPHERAL_RESET to value 0xffff_ffff"]
 impl crate::Resettable for PeripheralResetSpec {

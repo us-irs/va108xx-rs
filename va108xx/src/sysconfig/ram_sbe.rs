@@ -19,10 +19,6 @@ impl crate::Readable for RamSbeSpec {}
 #[doc = "`write(|w| ..)` method takes [`ram_sbe::W`](W) writer structure"]
 impl crate::Writable for RamSbeSpec {
     type Safety = crate::Unsafe;
-    const ZERO_TO_MODIFY_FIELDS_BITMAP: u32 = 0;
-    const ONE_TO_MODIFY_FIELDS_BITMAP: u32 = 0;
 }
 #[doc = "`reset()` method sets RAM_SBE to value 0"]
-impl crate::Resettable for RamSbeSpec {
-    const RESET_VALUE: u32 = 0;
-}
+impl crate::Resettable for RamSbeSpec {}

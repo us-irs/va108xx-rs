@@ -14,6 +14,4 @@ impl crate::RegisterSpec for SyndCheck64Data0Spec {
 #[doc = "`read()` method returns [`synd_check_64_data0::R`](R) reader structure"]
 impl crate::Readable for SyndCheck64Data0Spec {}
 #[doc = "`reset()` method sets SYND_CHECK_64_DATA0 to value 0"]
-impl crate::Resettable for SyndCheck64Data0Spec {
-    const RESET_VALUE: u32 = 0;
-}
+impl crate::Resettable for SyndCheck64Data0Spec {}

@@ -16,7 +16,7 @@ impl R {
 impl W {
     #[doc = "Bit 0 - Lockup Reset Enable Bit"]
     #[inline(always)]
-    pub fn lren(&mut self) -> LrenW<LockupResetSpec> {
+    pub fn lren(&mut self) -> LrenW<'_, LockupResetSpec> {
         LrenW::new(self, 0)
     }
 }
@@ -30,8 +30,6 @@ impl crate::Readable for LockupResetSpec {}
 #[doc = "`write(|w| ..)` method takes [`lockup_reset::W`](W) writer structure"]
 impl crate::Writable for LockupResetSpec {
     type Safety = crate::Unsafe;
-    const ZERO_TO_MODIFY_FIELDS_BITMAP: u32 = 0;
-    const ONE_TO_MODIFY_FIELDS_BITMAP: u32 = 0;
 }
 #[doc = "`reset()` method sets LOCKUP_RESET to value 0x01"]
 impl crate::Resettable for LockupResetSpec {

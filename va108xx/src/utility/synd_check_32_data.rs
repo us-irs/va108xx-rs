@@ -14,6 +14,4 @@ impl crate::RegisterSpec for SyndCheck32DataSpec {
 #[doc = "`read()` method returns [`synd_check_32_data::R`](R) reader structure"]
 impl crate::Readable for SyndCheck32DataSpec {}
 #[doc = "`reset()` method sets SYND_CHECK_32_DATA to value 0"]
-impl crate::Resettable for SyndCheck32DataSpec {
-    const RESET_VALUE: u32 = 0;
-}
+impl crate::Resettable for SyndCheck32DataSpec {}

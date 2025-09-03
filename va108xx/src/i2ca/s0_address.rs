@@ -19,10 +19,6 @@ impl crate::Readable for S0AddressSpec {}
 #[doc = "`write(|w| ..)` method takes [`s0_address::W`](W) writer structure"]
 impl crate::Writable for S0AddressSpec {
     type Safety = crate::Unsafe;
-    const ZERO_TO_MODIFY_FIELDS_BITMAP: u32 = 0;
-    const ONE_TO_MODIFY_FIELDS_BITMAP: u32 = 0;
 }
 #[doc = "`reset()` method sets S0_ADDRESS to value 0"]
-impl crate::Resettable for S0AddressSpec {
-    const RESET_VALUE: u32 = 0;
-}
+impl crate::Resettable for S0AddressSpec {}
