@@ -40,12 +40,12 @@ const SYSCLK_FREQ: Hertz = Hertz::from_raw(50_000_000);
 
 static QUEUE_UART_A: static_cell::ConstStaticCell<Queue<u8, 256>> =
     static_cell::ConstStaticCell::new(Queue::new());
-static PRODUCER_UART_A: Mutex<RefCell<Option<Producer<u8, 256>>>> = Mutex::new(RefCell::new(None));
+static PRODUCER_UART_A: Mutex<RefCell<Option<Producer<u8>>>> = Mutex::new(RefCell::new(None));
 
 static QUEUE_UART_B: static_cell::ConstStaticCell<Queue<u8, 256>> =
     static_cell::ConstStaticCell::new(Queue::new());
-static PRODUCER_UART_B: Mutex<RefCell<Option<Producer<u8, 256>>>> = Mutex::new(RefCell::new(None));
-static CONSUMER_UART_B: Mutex<RefCell<Option<Consumer<u8, 256>>>> = Mutex::new(RefCell::new(None));
+static PRODUCER_UART_B: Mutex<RefCell<Option<Producer<u8>>>> = Mutex::new(RefCell::new(None));
+static CONSUMER_UART_B: Mutex<RefCell<Option<Consumer<u8>>>> = Mutex::new(RefCell::new(None));
 
 // main is itself an async function.
 #[embassy_executor::main]
@@ -120,7 +120,7 @@ async fn main(spawner: Spawner) {
 }
 
 #[embassy_executor::task]
-async fn uart_b_task(mut async_rx: RxAsyncOverwriting<256>, mut tx: Tx) {
+async fn uart_b_task(mut async_rx: RxAsyncOverwriting, mut tx: Tx) {
     let mut buf = [0u8; 256];
     loop {
         defmt::info!("Current time UART B: {}", Instant::now().as_secs());
