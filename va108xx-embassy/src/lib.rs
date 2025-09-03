@@ -36,8 +36,8 @@
 #[cfg(feature = "irqs-in-lib")]
 use va108xx_hal::pac::{self, interrupt};
 use va108xx_hal::time::Hertz;
-use va108xx_hal::timer::TimMarker;
-use vorago_shared_periphs::embassy::time_driver;
+use va108xx_hal::timer::TimInstance;
+use vorago_shared_hal::embassy::time_driver;
 
 /// Macro to define the IRQ handlers for the time driver.
 ///
@@ -87,7 +87,7 @@ embassy_time_driver_irqs!(timekeeper_irq = OC29, alarm_irq = OC28);
 /// This should be used if the interrupt handler is provided by the library, which is the
 /// default case.
 #[cfg(feature = "irqs-in-lib")]
-pub fn init<TimekeeperTim: TimMarker, AlarmTim: TimMarker>(
+pub fn init<TimekeeperTim: TimInstance, AlarmTim: TimInstance>(
     timekeeper_tim: TimekeeperTim,
     alarm_tim: AlarmTim,
     sysclk: Hertz,
@@ -98,7 +98,7 @@ pub fn init<TimekeeperTim: TimMarker, AlarmTim: TimMarker>(
 /// Initialization method for embassy when using custom IRQ handlers.
 ///
 /// Requires an explicit [pac::Interrupt] argument for the timekeeper and alarm IRQs.
-pub fn init_with_custom_irqs<TimekeeperTim: TimMarker, AlarmTim: TimMarker>(
+pub fn init_with_custom_irqs<TimekeeperTim: TimInstance, AlarmTim: TimInstance>(
     timekeeper_tim: TimekeeperTim,
     alarm_tim: AlarmTim,
     sysclk: Hertz,

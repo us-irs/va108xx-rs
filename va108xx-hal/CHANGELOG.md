@@ -8,9 +8,11 @@ and this project adheres to [Semantic Versioning](http://semver.org/).
 
 ## [unreleased]
 
+## [v0.12.0] 2025-09-03
+
 ## Changed
 
-- Move most library components to new [`vorago-shared-periphs`](https://egit.irs.uni-stuttgart.de/rust/vorago-shared-periphs)
+- Move most library components to new [`vorago-shared-hal`](https://egit.irs.uni-stuttgart.de/rust/vorago-shared-hal)
   which is mostly re-exported in this crate.
 - Overhaul and simplification of several HAL APIs. The system configuration and IRQ router
   peripheral instance generally does not need to be passed to HAL API anymore.
@@ -274,7 +276,8 @@ and this project adheres to [Semantic Versioning](http://semver.org/).
 - Added basic test binary in form of an example
 - README with basic instructions how to set up own binary crate
 
-[unreleased]: https://egit.irs.uni-stuttgart.de/rust/va108xx-rs/compare/va108xx-hal-v0.11.0...HEAD
+[unreleased]: https://egit.irs.uni-stuttgart.de/rust/va108xx-rs/compare/va108xx-hal-v0.12.0...HEAD
+[v0.12.0]: https://egit.irs.uni-stuttgart.de/rust/va108xx-rs/compare/va108xx-hal-v0.11.1...va108xx-hal-v0.12.0
 [v0.11.1]: https://egit.irs.uni-stuttgart.de/rust/va108xx-rs/compare/va108xx-hal-v0.11.0...va108xx-hal-v0.11.1
 [v0.11.0]: https://egit.irs.uni-stuttgart.de/rust/va108xx-rs/compare/va108xx-hal-v0.10.0...va108xx-hal-v0.11.0
 [v0.10.0]: https://egit.irs.uni-stuttgart.de/rust/va108xx-rs/compare/va108xx-hal-v0.9.0...va108xx-hal-v0.10.0

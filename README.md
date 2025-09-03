@@ -58,10 +58,27 @@ cp -rT vscode .vscode
 
 You can then adapt the files in `.vscode` to your needs.
 
+## Building projects
+
+Building an application requires the `thumbv6m-none-eabi` cross-compiler toolchain.
+If you have not installed it yet, you can do so with
+
+```sh
+rustup target add thumbv6m-none-eabi
+```
+
+After that, you can use `cargo build` to build the development version of the crate.
+For example, you can use
+
+```sh
+cargo build --example blinky
+```
+
+to build a simple blinky app.
+
 ## Flashing, running and debugging the software
 
-You can use CLI or VS Code for flashing, running and debugging. In any case, take
-care of installing the pre-requisites first.
+You can use CLI or VS Code for flashing, running and debugging.
 
 ### Using CLI with probe-rs
 

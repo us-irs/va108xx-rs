@@ -11,7 +11,7 @@ use panic_rtt_target as _;
 use rtt_target::{rprintln, rtt_init_print};
 use va108xx_hal::gpio::{Output, PinState};
 use va108xx_hal::pins::PinsA;
-use va108xx_hal::spi::{configure_pin_as_hw_cs_pin, SpiClkConfig};
+use va108xx_hal::spi::{configure_pin_as_hw_cs_pin, SpiClockConfig};
 use va108xx_hal::timer::CountdownTimer;
 use va108xx_hal::{
     pac,
@@ -42,7 +42,7 @@ fn main() -> ! {
 
     let spi_cfg = SpiConfig::default()
         .clk_cfg(
-            SpiClkConfig::from_clk(50.MHz(), 1.MHz()).expect("creating SPI clock config failed"),
+            SpiClockConfig::from_clk(50.MHz(), 1.MHz()).expect("creating SPI clock config failed"),
         )
         .mode(MODE_3)
         .slave_output_disable(true);
